@@ -1,0 +1,42 @@
+# ===== Secrets — NEVER commit =====
+.streamlit/secrets.toml
+.env
+.env.*
+*.key
+*.pem
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# ===== Streamlit / app artifacts =====
+uploads_streamlit/
+.streamlit/cache/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== Backups / dev artifacts =====
+*.bak
+*_backup*.py
+*_before_*.py
+backups/
+
+# ===== Local player data (Supabase is source of truth) =====
+players/
+profile_pics/
+
+# ===== Dev-only swing artifacts (NOT used at runtime) =====
+*.mp4
+*.mov
+*_fingerprint.json
+*_metrics.csv
+*_phases.png
+swing.mp4
+My swing*
