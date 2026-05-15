@@ -1,0 +1,76 @@
+{
+  "video": "manny_machado_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 55.380434782608695,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 16.68459273797841,
+    "foot_plant": 17.172129538763492,
+    "launch": 17.298527968596662,
+    "contact": 17.31658488714426,
+    "peak_rotation": 18.147203140333662,
+    "finish": 18.36388616290481
+  },
+  "phases_frame": {
+    "load_start": 922,
+    "foot_plant": 949,
+    "launch": 956,
+    "contact": 957,
+    "peak_rotation": 1003,
+    "finish": 1015
+  },
+  "timing_ms": {
+    "load_duration": 487.5368007850831,
+    "foot_plant_to_launch": 126.39842983316996,
+    "launch_to_contact": 18.056918547596723,
+    "total_swing": 144.45534838076668
+  },
+  "timing_ms_corrected": {
+    "load_duration": 487.5368007850831,
+    "foot_plant_to_launch": 126.39842983316996,
+    "launch_to_contact": 18.056918547596723,
+    "total_swing": 144.45534838076668
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -4.941371963312609,
+    "hip_at_contact": 11.339892211532504,
+    "peak_hip": 31.277180028128942,
+    "separation_at_foot_plant": -1.0565983145908693,
+    "separation_at_launch": 4.890900107136458,
+    "separation_at_contact": 5.913432279222858,
+    "peak_separation": 25.18370609844188,
+    "peak_separation_t": 18.147203140333662
+  },
+  "knee_deg": {
+    "at_foot_plant": 154.14731035637197,
+    "min_during_load": 122.21633592230867,
+    "at_contact": 151.99032342797085,
+    "re_extension": 29.773987505662177
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -16.433770179748535,
+    "dy": 2.6597481966018677,
+    "total_drift": 16.647614327287833
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.04264985552138912,
+    "dy_torso": 0.006902729870722868,
+    "total_drift_torso": 0.04320483602171794
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.4013491979219243
+  },
+  "player_name": "Manny Machado",
+  "team": "Padres",
+  "position": "3B",
+  "swing_style": "Explosive right-handed swing with elite lower-half sequencing and exceptional front-side blocking",
+  "added_at": "2026-05-14",
+  "source_clip": "manny_machado_swing.mp4",
+  "tags": [
+    "right-handed",
+    "power",
+    "balanced",
+    "elite"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "video": "shohei_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 59.338235294117645,
+  "slow_mo_factor": 3.59520859149112,
+  "phases_t": {
+    "load_start": 16.313258983890954,
+    "foot_plant": 16.801982651796777,
+    "launch": 17.155885997521686,
+    "contact": 17.341263940520445,
+    "peak_rotation": 17.49293680297398,
+    "finish": 17.880545229244113
+  },
+  "phases_frame": {
+    "load_start": 968,
+    "foot_plant": 997,
+    "launch": 1018,
+    "contact": 1029,
+    "peak_rotation": 1038,
+    "finish": 1061
+  },
+  "timing_ms": {
+    "load_duration": 488.72366790582333,
+    "foot_plant_to_launch": 353.903345724909,
+    "launch_to_contact": 185.37794299875898,
+    "total_swing": 539.281288723668
+  },
+  "timing_ms_corrected": {
+    "load_duration": 135.93749999999977,
+    "foot_plant_to_launch": 98.43750000000053,
+    "launch_to_contact": 51.562499999999474,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -0.5222736659652639,
+    "hip_at_contact": 25.013304668991665,
+    "peak_hip": 49.15176110470482,
+    "separation_at_foot_plant": -4.655781015779293,
+    "separation_at_launch": -32.64657344897745,
+    "separation_at_contact": -6.099586554349728,
+    "peak_separation": 34.627354377761854,
+    "peak_separation_t": 17.45923172242875
+  },
+  "knee_deg": {
+    "at_foot_plant": 179.394460148501,
+    "min_during_load": 164.18302376503178,
+    "at_contact": 172.39792413431957,
+    "re_extension": 8.21490036928779
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -11.798990249633789,
+    "dy": -29.043050408363342,
+    "total_drift": 31.348284609108795
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.02602184833493246,
+    "dy_torso": -0.06405241778496137,
+    "total_drift_torso": 0.06913645069618098
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3832863988409773
+  },
+  "player_name": "Shohei Ohtani",
+  "team": "Dodgers",
+  "position": "DH/P",
+  "swing_style": "Explosive lower-half mechanics, elite bat speed, plus-plus power",
+  "added_at": "2026-05-11",
+  "source_clip": "shohei_swing.mp4",
+  "tags": [
+    "power",
+    "athletic",
+    "left-handed"
+  ]
+}

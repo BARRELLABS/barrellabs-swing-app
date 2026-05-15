@@ -1,0 +1,75 @@
+{
+  "video": "trout_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 57.4384236453202,
+  "slow_mo_factor": 2.437392795883362,
+  "phases_t": {
+    "load_start": 6.3720411663807885,
+    "foot_plant": 6.859519725557461,
+    "launch": 7.0162092624356776,
+    "contact": 7.225128644939965,
+    "peak_rotation": 7.346998284734133,
+    "finish": 7.730017152658662
+  },
+  "phases_frame": {
+    "load_start": 366,
+    "foot_plant": 394,
+    "launch": 403,
+    "contact": 415,
+    "peak_rotation": 422,
+    "finish": 444
+  },
+  "timing_ms": {
+    "load_duration": 487.4785591766724,
+    "foot_plant_to_launch": 156.68953687821664,
+    "launch_to_contact": 208.91938250428765,
+    "total_swing": 365.60891938250427
+  },
+  "timing_ms_corrected": {
+    "load_duration": 200.0,
+    "foot_plant_to_launch": 64.2857142857145,
+    "launch_to_contact": 85.71428571428551,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 8.985043241729112,
+    "hip_at_contact": 24.820305813960896,
+    "peak_hip": 36.319969739869784,
+    "separation_at_foot_plant": 0.6701530410068799,
+    "separation_at_launch": -7.498385234899328,
+    "separation_at_contact": 4.511075812768272,
+    "peak_separation": 21.52080371572477,
+    "peak_separation_t": 7.346998284734133
+  },
+  "knee_deg": {
+    "at_foot_plant": 178.97015765977454,
+    "min_during_load": 155.74177038745918,
+    "at_contact": 164.1952587559036,
+    "re_extension": 8.453488368444425
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -2.7350893020629883,
+    "dy": -19.61013972759247,
+    "total_drift": 19.79995690969957
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.005576697258962149,
+    "dy_torso": -0.03998400066288261,
+    "total_drift_torso": 0.040371027499030945
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3687393094725078
+  },
+  "player_name": "Mike Trout",
+  "team": "Angels",
+  "position": "OF",
+  "swing_style": "Compact and explosive with elite lower-half sequencing and power",
+  "added_at": "2026-05-11",
+  "source_clip": "trout_swing.mp4",
+  "tags": [
+    "power",
+    "athletic",
+    "right-handed"
+  ]
+}

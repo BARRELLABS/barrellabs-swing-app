@@ -1,0 +1,70 @@
+{
+  "player_name": "Francisco Lindor",
+  "team": "Mets",
+  "position": "SS",
+  "swing_style": "Athletic switch-hitter with elite rhythm, balance, and compact rotational efficiency",
+  "added_at": "2026-05-11",
+  "source_clip": "francisco_lindor_swing.mp4",
+  "video": "francisco_lindor_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 58.91146589259797,
+  "slow_mo_factor": 3.7344173441734325,
+  "phases_t": {
+    "load_start": 16.703030303030303,
+    "foot_plant": 17.19529440748953,
+    "launch": 17.568736141906875,
+    "contact": 17.755457009115545,
+    "peak_rotation": 18.094949494949496,
+    "finish": 18.485365853658536
+  },
+  "phases_frame": {
+    "load_start": 983,
+    "foot_plant": 1012,
+    "launch": 1034,
+    "contact": 1045,
+    "peak_rotation": 1065,
+    "finish": 1088
+  },
+  "timing_ms": {
+    "load_duration": 492.2641044592275,
+    "foot_plant_to_launch": 373.4417344173444,
+    "launch_to_contact": 186.72086720867043,
+    "total_swing": 560.1626016260149
+  },
+  "timing_ms_corrected": {
+    "load_duration": 131.81818181818244,
+    "foot_plant_to_launch": 100.0000000000003,
+    "launch_to_contact": 49.99999999999968,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 18.352282447572513,
+    "hip_at_contact": 9.355377444159858,
+    "peak_hip": 18.68433320906599,
+    "separation_at_foot_plant": 39.87498983325525,
+    "separation_at_launch": 41.79490563661684,
+    "separation_at_contact": 29.862067062979825,
+    "peak_separation": 50.807116858252975,
+    "peak_separation_t": 18.094949494949496
+  },
+  "knee_deg": {
+    "at_foot_plant": 148.39882619482236,
+    "min_during_load": 140.47451761804138,
+    "at_contact": 148.22084485287394,
+    "re_extension": 7.746327234832563
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 13.393672943115234,
+    "dy": -0.1737213134765625,
+    "total_drift": 13.394799513314602
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.029888781377430302,
+    "dy_torso": -0.0003876694900012492,
+    "total_drift_torso": 0.02989129538613712
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3830510820124557
+  }
+}

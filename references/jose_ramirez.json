@@ -1,0 +1,76 @@
+{
+  "video": "jose_ramirez_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 57.34608487746563,
+  "slow_mo_factor": 2.906330345354746,
+  "phases_t": {
+    "load_start": 19.146904315197,
+    "foot_plant": 19.635167813216594,
+    "launch": 19.879299562226393,
+    "contact": 20.071117365019806,
+    "peak_rotation": 20.071117365019806,
+    "finish": 20.45475297060663
+  },
+  "phases_frame": {
+    "load_start": 1098,
+    "foot_plant": 1126,
+    "launch": 1140,
+    "contact": 1151,
+    "peak_rotation": 1151,
+    "finish": 1173
+  },
+  "timing_ms": {
+    "load_duration": 488.2634980195952,
+    "foot_plant_to_launch": 244.1317490097994,
+    "launch_to_contact": 191.81780279341254,
+    "total_swing": 435.94955180321193
+  },
+  "timing_ms_corrected": {
+    "load_duration": 167.99999999999926,
+    "foot_plant_to_launch": 84.00000000000024,
+    "launch_to_contact": 65.99999999999976,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -0.7464736345199554,
+    "hip_at_contact": -11.556679507142967,
+    "peak_hip": -11.556679507142967,
+    "separation_at_foot_plant": -3.9021925365474246,
+    "separation_at_launch": 0.3115227068555034,
+    "separation_at_contact": 2.0533544943680058,
+    "peak_separation": 2.0533544943680058,
+    "peak_separation_t": 20.071117365019806
+  },
+  "knee_deg": {
+    "at_foot_plant": 175.82899666392976,
+    "min_during_load": 172.99582642682057,
+    "at_contact": 172.99582642682057,
+    "re_extension": 0.0
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -0.22841262817382812,
+    "dy": -1.233167052268982,
+    "total_drift": 1.2541424590177328
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.0005114998047023297,
+    "dy_torso": -0.0027615141572684986,
+    "total_drift_torso": 0.0028084858003922446
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3992579720127507
+  },
+  "player_name": "Jose Ramirez",
+  "team": "Guardians",
+  "position": "3B",
+  "swing_style": "Dynamic left-handed swing with elite timing, balance, and exceptional head stability",
+  "added_at": "2026-05-14",
+  "source_clip": "jose_ramirez_swing.mp4",
+  "tags": [
+    "left-handed",
+    "balanced",
+    "athletic",
+    "elite"
+  ]
+}

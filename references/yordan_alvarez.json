@@ -1,0 +1,76 @@
+{
+  "video": "yordan_alvarez_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 56.40471512770137,
+  "slow_mo_factor": 3.073029141994657,
+  "phases_t": {
+    "load_start": 10.371473354231975,
+    "foot_plant": 10.86788575409265,
+    "launch": 11.133820968303727,
+    "contact": 11.32884012539185,
+    "peak_rotation": 11.541588296760711,
+    "finish": 11.931626610936956
+  },
+  "phases_frame": {
+    "load_start": 585,
+    "foot_plant": 613,
+    "launch": 628,
+    "contact": 639,
+    "peak_rotation": 651,
+    "finish": 673
+  },
+  "timing_ms": {
+    "load_duration": 496.4123998606755,
+    "foot_plant_to_launch": 265.93521421107624,
+    "launch_to_contact": 195.01915708812234,
+    "total_swing": 460.95437129919856
+  },
+  "timing_ms_corrected": {
+    "load_duration": 161.5384615384616,
+    "foot_plant_to_launch": 86.53846153846159,
+    "launch_to_contact": 63.461538461538424,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 2.470236830837412,
+    "hip_at_contact": 26.718837375470258,
+    "peak_hip": 40.14406216608496,
+    "separation_at_foot_plant": 11.415461825034814,
+    "separation_at_launch": 8.390960758430687,
+    "separation_at_contact": 6.4421441577179746,
+    "peak_separation": 11.720956939281585,
+    "peak_separation_t": 11.541588296760711
+  },
+  "knee_deg": {
+    "at_foot_plant": 152.5072084701313,
+    "min_during_load": 151.17650177902792,
+    "at_contact": 165.2531774085356,
+    "re_extension": 14.07667562950769
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -26.528635025024414,
+    "dy": 32.10359573364258,
+    "total_drift": 41.64624035036183
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.0566152250479426,
+    "dy_torso": 0.06851284642401882,
+    "total_drift_torso": 0.08887797158098498
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.39882370080519297
+  },
+  "player_name": "Yordan Alvarez",
+  "team": "Astros",
+  "position": "OF/DH",
+  "swing_style": "Quiet left-handed power swing with elite bat speed and exceptional barrel control",
+  "added_at": "2026-05-14",
+  "source_clip": "yordan_alvarez_swing.mp4",
+  "tags": [
+    "left-handed",
+    "power",
+    "quiet-load",
+    "elite"
+  ]
+}

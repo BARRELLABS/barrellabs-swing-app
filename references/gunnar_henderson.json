@@ -1,0 +1,75 @@
+{
+  "video": "gunnar_henderson_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 50.05422153369481,
+  "slow_mo_factor": 3.3297224801403047,
+  "phases_t": {
+    "load_start": 13.045852677189725,
+    "foot_plant": 13.545311049210772,
+    "launch": 13.86496440730424,
+    "contact": 14.044769421231818,
+    "peak_rotation": 14.044769421231818,
+    "finish": 14.444336118848655
+  },
+  "phases_frame": {
+    "load_start": 653,
+    "foot_plant": 678,
+    "launch": 694,
+    "contact": 703,
+    "peak_rotation": 703,
+    "finish": 723
+  },
+  "timing_ms": {
+    "load_duration": 499.45837202104747,
+    "foot_plant_to_launch": 319.6533580934684,
+    "launch_to_contact": 179.8050139275773,
+    "total_swing": 499.4583720210457
+  },
+  "timing_ms_corrected": {
+    "load_duration": 150.00000000000054,
+    "foot_plant_to_launch": 95.99999999999974,
+    "launch_to_contact": 54.000000000000256,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 0.0,
+    "hip_at_contact": -7.747608037458226,
+    "peak_hip": -7.747608037458226,
+    "separation_at_foot_plant": -42.067993139966546,
+    "separation_at_launch": -38.066430235577684,
+    "separation_at_contact": -49.15631805046844,
+    "peak_separation": -37.79713761908407,
+    "peak_separation_t": 13.924899411946766
+  },
+  "knee_deg": {
+    "at_foot_plant": 178.26440076066305,
+    "min_during_load": 177.24710163489152,
+    "at_contact": 177.55775744287345,
+    "re_extension": 0.3106558079819308
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 1.5802803039550781,
+    "dy": 0.07338523864746094,
+    "total_drift": 1.5819833223898725
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.003713724109871776,
+    "dy_torso": 0.00017245834766888094,
+    "total_drift_torso": 0.003717726273668302
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3799200119876825
+  },
+  "player_name": "Gunnar Henderson",
+  "team": "Orioles",
+  "position": "INF",
+  "swing_style": "Explosive left-handed swing with elite bat speed and modern lower-half sequencing",
+  "added_at": "2026-05-14",
+  "source_clip": "gunnar_henderson_swing.mp4",
+  "tags": [
+    "power",
+    "athletic",
+    "left-handed"
+  ]
+}

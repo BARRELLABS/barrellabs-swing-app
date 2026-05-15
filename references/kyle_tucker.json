@@ -1,0 +1,70 @@
+{
+  "player_name": "Kyle Tucker",
+  "team": "Cubs",
+  "position": "OF",
+  "swing_style": "Smooth left-handed swing with elite rhythm, bat path, and effortless power",
+  "added_at": "2026-05-11",
+  "source_clip": "kyle_tucker_swing.mp4",
+  "video": "kyle_tucker_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 58.40177580466149,
+  "slow_mo_factor": 3.9953123020397756,
+  "phases_t": {
+    "load_start": 13.663968072976054,
+    "foot_plant": 14.16052831622957,
+    "launch": 14.571474724439376,
+    "contact": 14.759825161535536,
+    "peak_rotation": 14.896807297605472,
+    "finish": 14.948175598631698
+  },
+  "phases_frame": {
+    "load_start": 798,
+    "foot_plant": 827,
+    "launch": 851,
+    "contact": 862,
+    "peak_rotation": 870,
+    "finish": 873
+  },
+  "timing_ms": {
+    "load_duration": 496.56024325351564,
+    "foot_plant_to_launch": 410.94640820980646,
+    "launch_to_contact": 188.35043709615996,
+    "total_swing": 599.2968453059664
+  },
+  "timing_ms_corrected": {
+    "load_duration": 124.28571428571445,
+    "foot_plant_to_launch": 102.8571428571431,
+    "launch_to_contact": 47.14285714285692,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 2.0012342358109914,
+    "hip_at_contact": 15.300965161631893,
+    "peak_hip": 40.72943517091142,
+    "separation_at_foot_plant": 1.7632332292128865,
+    "separation_at_launch": -0.35686369134500934,
+    "separation_at_contact": 25.366322606517542,
+    "peak_separation": 53.546457440211555,
+    "peak_separation_t": 14.896807297605472
+  },
+  "knee_deg": {
+    "at_foot_plant": 169.0843027379732,
+    "min_during_load": 156.76364334185016,
+    "at_contact": 158.27616063845926,
+    "re_extension": 1.5125172966091043
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -20.046443939208984,
+    "dy": 26.349061131477356,
+    "total_drift": 33.107898409868596
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.04402140277259558,
+    "dy_torso": 0.057861765222100396,
+    "total_drift_torso": 0.07270397359625232
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.386853338588856
+  }
+}

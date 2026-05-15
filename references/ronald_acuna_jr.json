@@ -1,0 +1,70 @@
+{
+  "player_name": "Ronald Acu\u00f1a Jr.",
+  "team": "Braves",
+  "position": "OF",
+  "swing_style": "Explosive athletic lower-half move, elite bat speed, aggressive rotational power",
+  "added_at": "2026-05-11",
+  "source_clip": "ronald_acuna_jr_swing.mp4",
+  "video": "ronald_acuna_jr_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 53.9277108433735,
+  "slow_mo_factor": 3.3378016085790887,
+  "phases_t": {
+    "load_start": 2.670241286863271,
+    "foot_plant": 3.15236818588025,
+    "launch": 3.4305183199285074,
+    "contact": 3.6530384271671132,
+    "peak_rotation": 3.7828418230563,
+    "finish": 4.17225201072386
+  },
+  "phases_frame": {
+    "load_start": 144,
+    "foot_plant": 170,
+    "launch": 185,
+    "contact": 197,
+    "peak_rotation": 204,
+    "finish": 225
+  },
+  "timing_ms": {
+    "load_duration": 482.1268990169791,
+    "foot_plant_to_launch": 278.1501340482575,
+    "launch_to_contact": 222.52010723860582,
+    "total_swing": 500.6702412868633
+  },
+  "timing_ms_corrected": {
+    "load_duration": 144.44444444444434,
+    "foot_plant_to_launch": 83.33333333333336,
+    "launch_to_contact": 66.66666666666664,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -13.613257834483619,
+    "hip_at_contact": 33.23951879872536,
+    "peak_hip": 54.46155566146219,
+    "separation_at_foot_plant": 29.40933849372077,
+    "separation_at_launch": 39.75801565487369,
+    "separation_at_contact": 32.507906415559276,
+    "peak_separation": 41.17739758411101,
+    "peak_separation_t": 3.3748882931188557
+  },
+  "knee_deg": {
+    "at_foot_plant": 170.09050715954322,
+    "min_during_load": 167.22186198459335,
+    "at_contact": 177.76559770069963,
+    "re_extension": 10.543735716106283
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 1.041203498840332,
+    "dy": -17.529121041297913,
+    "total_drift": 17.560016776941602
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.0024111584107661746,
+    "dy_torso": -0.04059291740676831,
+    "total_drift_torso": 0.0406644639516436
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3953724407222145
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "player_name": "Aaron Judge",
+  "team": "Yankees",
+  "position": "OF",
+  "swing_style": "Long levers, plus-plus power, vertical bat path",
+  "added_at": "2026-05-09",
+  "source_clip": "judge_swing copy.mp4",
+  "video": "judge_swing copy.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 60.235063663075415,
+  "phases_t": {
+    "load_start": 0.03320325203252032,
+    "foot_plant": 0.7636747967479675,
+    "launch": 0.7802764227642277,
+    "contact": 0.8632845528455285,
+    "peak_rotation": 0.8632845528455285,
+    "finish": 1.2949268292682927
+  },
+  "phases_frame": {
+    "load_start": 2,
+    "foot_plant": 44,
+    "launch": 45,
+    "contact": 50,
+    "peak_rotation": 50,
+    "finish": 74
+  },
+  "timing_ms": {
+    "load_duration": 730.4715447154472,
+    "foot_plant_to_launch": 16.60162601626025,
+    "launch_to_contact": 83.0081300813008,
+    "total_swing": 99.60975609756106
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 11.547232750870398,
+    "hip_at_contact": -14.192923804972287,
+    "peak_hip": -14.192923804972287,
+    "separation_at_foot_plant": -0.00563567248067578,
+    "separation_at_launch": 0.8670103248046293,
+    "separation_at_contact": 7.841909705646406,
+    "peak_separation": 7.841909705646406,
+    "peak_separation_t": 0.8632845528455285
+  },
+  "knee_deg": {
+    "at_foot_plant": 169.8280098888299,
+    "min_during_load": 166.95580967869415,
+    "at_contact": 177.12674502406884,
+    "re_extension": 10.170935345374687
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 24.15637743473053,
+    "dy": -12.023281753063202,
+    "total_drift": 26.983140567448796
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.06655038806708687,
+    "dy_torso": -0.03312392632828584,
+    "total_drift_torso": 0.07433806997280443
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.4086975297117849
+  },
+  "slow_mo_factor": 1.0,
+  "timing_ms_corrected": {
+    "load_duration": 730.4715447154472,
+    "foot_plant_to_launch": 16.60162601626025,
+    "launch_to_contact": 83.0081300813008,
+    "total_swing": 99.60975609756106
+  }
+}

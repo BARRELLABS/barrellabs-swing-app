@@ -1,0 +1,76 @@
+{
+  "video": "juan_soto_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 58.310991957104555,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 9.243540229885058,
+    "foot_plant": 9.740873563218392,
+    "launch": 9.758022988505747,
+    "contact": 9.912367816091955,
+    "peak_rotation": 9.912367816091955,
+    "finish": 10.30680459770115
+  },
+  "phases_frame": {
+    "load_start": 539,
+    "foot_plant": 568,
+    "launch": 569,
+    "contact": 578,
+    "peak_rotation": 578,
+    "finish": 601
+  },
+  "timing_ms": {
+    "load_duration": 497.3333333333336,
+    "foot_plant_to_launch": 17.149425287355413,
+    "launch_to_contact": 154.3448275862076,
+    "total_swing": 171.49425287356303
+  },
+  "timing_ms_corrected": {
+    "load_duration": 497.3333333333336,
+    "foot_plant_to_launch": 17.149425287355413,
+    "launch_to_contact": 154.3448275862076,
+    "total_swing": 171.49425287356303
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -10.604032963746826,
+    "hip_at_contact": -10.477305316717857,
+    "peak_hip": -10.477305316717857,
+    "separation_at_foot_plant": -41.60793785048182,
+    "separation_at_launch": -36.590708290372405,
+    "separation_at_contact": -28.18384762758067,
+    "peak_separation": -8.058342398770751,
+    "peak_separation_t": 9.84377011494253
+  },
+  "knee_deg": {
+    "at_foot_plant": 177.28175220726274,
+    "min_during_load": 174.7258177357766,
+    "at_contact": 177.58886521404116,
+    "re_extension": 2.8630474782645763
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -24.692081451416016,
+    "dy": -3.491281270980835,
+    "total_drift": 24.93768095305705
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.05292487536972912,
+    "dy_torso": -0.007483193610506004,
+    "total_drift_torso": 0.05345129202847839
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3802407127619103
+  },
+  "player_name": "Juan Soto",
+  "team": "Mets",
+  "position": "OF",
+  "swing_style": "Controlled left-handed swing with elite plate discipline, balance, and barrel accuracy",
+  "added_at": "2026-05-11",
+  "source_clip": "juan_soto_swing.mp4",
+  "tags": [
+    "barrel control",
+    "left-handed",
+    "disciplined",
+    "smooth"
+  ]
+}

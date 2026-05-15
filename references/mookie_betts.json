@@ -1,0 +1,70 @@
+{
+  "player_name": "Mookie Betts",
+  "team": "Dodgers",
+  "position": "OF / 2B",
+  "swing_style": "Compact, level path, plus barrel control, plus contact",
+  "added_at": "2026-05-09",
+  "source_clip": "mookie_swing.mp4",
+  "video": "mookie_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 38.86710239651416,
+  "phases_t": {
+    "load_start": 21.663565022421523,
+    "foot_plant": 22.152410313901346,
+    "launch": 22.178139013452913,
+    "contact": 22.306782511210763,
+    "peak_rotation": 22.306782511210763,
+    "finish": 22.692713004484304
+  },
+  "phases_frame": {
+    "load_start": 842,
+    "foot_plant": 861,
+    "launch": 862,
+    "contact": 867,
+    "peak_rotation": 867,
+    "finish": 882
+  },
+  "timing_ms": {
+    "load_duration": 488.8452914798229,
+    "foot_plant_to_launch": 25.728699551567757,
+    "launch_to_contact": 128.64349775784945,
+    "total_swing": 154.3721973094172
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 17.450170317994107,
+    "hip_at_contact": 12.787673264550929,
+    "peak_hip": 12.787673264550929,
+    "separation_at_foot_plant": 21.90366288589621,
+    "separation_at_launch": 21.963077598899368,
+    "separation_at_contact": 17.4300464973332,
+    "peak_separation": 21.963077598899368,
+    "peak_separation_t": 22.178139013452913
+  },
+  "knee_deg": {
+    "at_foot_plant": 154.32317732031515,
+    "min_during_load": 153.09240039639934,
+    "at_contact": 153.09240039639934,
+    "re_extension": 0.0
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 3.264394998550415,
+    "dy": 0.6160743355751208,
+    "total_drift": 3.322020814732396
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.01537730559809125,
+    "dy_torso": 0.0029020885442743527,
+    "total_drift_torso": 0.015648758588971107
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3716379687941716
+  },
+  "slow_mo_factor": 1.0,
+  "timing_ms_corrected": {
+    "load_duration": 488.8452914798229,
+    "foot_plant_to_launch": 25.728699551567757,
+    "launch_to_contact": 128.64349775784945,
+    "total_swing": 154.3721973094172
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "video": "yandy_diaz_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 54.12213740458015,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 10.49478138222849,
+    "foot_plant": 10.993653032440056,
+    "launch": 11.01212976022567,
+    "contact": 11.159943582510579,
+    "peak_rotation": 11.252327221438646,
+    "finish": 11.640338504936532
+  },
+  "phases_frame": {
+    "load_start": 568,
+    "foot_plant": 595,
+    "launch": 596,
+    "contact": 604,
+    "peak_rotation": 609,
+    "finish": 630
+  },
+  "timing_ms": {
+    "load_duration": 498.8716502115658,
+    "foot_plant_to_launch": 18.4767277856146,
+    "launch_to_contact": 147.81382228490793,
+    "total_swing": 166.2905500705225
+  },
+  "timing_ms_corrected": {
+    "load_duration": 498.8716502115658,
+    "foot_plant_to_launch": 18.4767277856146,
+    "launch_to_contact": 147.81382228490793,
+    "total_swing": 166.2905500705225
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -3.6057972431363403,
+    "hip_at_contact": -5.049450401514358,
+    "peak_hip": 8.577609396562002,
+    "separation_at_foot_plant": -33.86518872208602,
+    "separation_at_launch": -39.06711629748286,
+    "separation_at_contact": -43.50432688996366,
+    "peak_separation": -30.100945293291204,
+    "peak_separation_t": 11.252327221438646
+  },
+  "knee_deg": {
+    "at_foot_plant": 161.03984343676274,
+    "min_during_load": 112.64170148683152,
+    "at_contact": 130.53948011778184,
+    "re_extension": 17.897778630950313
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -4.344260215759277,
+    "dy": -14.275660514831543,
+    "total_drift": 14.922033372062577
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.01033414857865241,
+    "dy_torso": -0.03395901476700249,
+    "total_drift_torso": 0.0354966098492681
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.42876712928944827
+  },
+  "player_name": "Yandy Diaz",
+  "team": "Rays",
+  "position": "1B",
+  "swing_style": "Compact right-handed swing with exceptional balance, strength, and barrel precision",
+  "added_at": "2026-05-14",
+  "source_clip": "yandy_diaz_swing.mp4",
+  "tags": [
+    "right-handed",
+    "compact",
+    "power",
+    "balanced"
+  ]
+}

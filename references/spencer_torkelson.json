@@ -1,0 +1,76 @@
+{
+  "video": "spencer_torkelson_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 55.7400327689787,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 23.591661767587695,
+    "foot_plant": 24.07605330197923,
+    "launch": 24.093993729178916,
+    "contact": 24.25545757397609,
+    "peak_rotation": 24.47074270037233,
+    "finish": 24.86543209876543
+  },
+  "phases_frame": {
+    "load_start": 1315,
+    "foot_plant": 1342,
+    "launch": 1343,
+    "contact": 1352,
+    "peak_rotation": 1364,
+    "finish": 1386
+  },
+  "timing_ms": {
+    "load_duration": 484.39153439153415,
+    "foot_plant_to_launch": 17.94042719968658,
+    "launch_to_contact": 161.46384479717568,
+    "total_swing": 179.40427199686226
+  },
+  "timing_ms_corrected": {
+    "load_duration": 484.39153439153415,
+    "foot_plant_to_launch": 17.94042719968658,
+    "launch_to_contact": 161.46384479717568,
+    "total_swing": 179.40427199686226
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -0.6743255639997585,
+    "hip_at_contact": 4.244485998488974,
+    "peak_hip": 10.436820092031686,
+    "separation_at_foot_plant": 0.8239296491850159,
+    "separation_at_launch": 0.7827129933419279,
+    "separation_at_contact": 2.553707188310482,
+    "peak_separation": 10.729952500768349,
+    "peak_separation_t": 24.47074270037233
+  },
+  "knee_deg": {
+    "at_foot_plant": 156.75015994514723,
+    "min_during_load": 155.98522266725809,
+    "at_contact": 160.47459783333073,
+    "re_extension": 4.489375166072648
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -4.675570964813232,
+    "dy": -3.4261035919189453,
+    "total_drift": 5.796477350043252
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.011536026975073568,
+    "dy_torso": -0.008453218602223094,
+    "total_drift_torso": 0.014301637077852158
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.40642294577792176
+  },
+  "player_name": "Spencer Torkelson",
+  "team": "Tigers",
+  "position": "1B",
+  "swing_style": "Controlled right-handed power swing with exceptional head stability and efficient sequencing",
+  "added_at": "2026-05-14",
+  "source_clip": "spencer_torkelson_swing.mp4",
+  "tags": [
+    "right-handed",
+    "power",
+    "balanced",
+    "detroit"
+  ]
+}

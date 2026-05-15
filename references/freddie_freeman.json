@@ -1,0 +1,70 @@
+{
+  "player_name": "Freddie Freeman",
+  "team": "Dodgers",
+  "position": "1B",
+  "swing_style": "Smooth left-handed swing with elite balance, barrel control, and repeatable contact mechanics",
+  "added_at": "2026-05-11",
+  "source_clip": "freddie_freeman_swing.mp4",
+  "video": "freddie_freeman_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 58.54465270121279,
+  "slow_mo_factor": 3.07457627118644,
+  "phases_t": {
+    "load_start": 0.6832391713747645,
+    "foot_plant": 0.9052919020715631,
+    "launch": 1.178587570621469,
+    "contact": 1.366478342749529,
+    "peak_rotation": 1.6056120527306967,
+    "finish": 1.9984745762711864
+  },
+  "phases_frame": {
+    "load_start": 40,
+    "foot_plant": 53,
+    "launch": 69,
+    "contact": 80,
+    "peak_rotation": 94,
+    "finish": 117
+  },
+  "timing_ms": {
+    "load_duration": 222.05273069679853,
+    "foot_plant_to_launch": 273.29566854990594,
+    "launch_to_contact": 187.89077212806004,
+    "total_swing": 461.186440677966
+  },
+  "timing_ms_corrected": {
+    "load_duration": 72.22222222222226,
+    "foot_plant_to_launch": 88.88888888888894,
+    "launch_to_contact": 61.11111111111105,
+    "total_swing": 150.0
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 0.0,
+    "hip_at_contact": 7.934550966550819,
+    "peak_hip": 16.559909126348096,
+    "separation_at_foot_plant": 1.6911851895718768,
+    "separation_at_launch": 3.378287843530868,
+    "separation_at_contact": 11.942295938625271,
+    "peak_separation": 20.95716370414295,
+    "peak_separation_t": 1.5202071563088513
+  },
+  "knee_deg": {
+    "at_foot_plant": 173.45884896718354,
+    "min_during_load": 170.40196397958772,
+    "at_contact": 170.75612268080286,
+    "re_extension": 0.35415870121514104
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -9.186278343200684,
+    "dy": 2.2810256481170654,
+    "total_drift": 9.465241032648127
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.020520282371158754,
+    "dy_torso": 0.005095348589111985,
+    "total_drift_torso": 0.02114342843146906
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.4028850857271748
+  }
+}

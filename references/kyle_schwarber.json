@@ -1,0 +1,70 @@
+{
+  "player_name": "Kyle Schwarber",
+  "team": "Phillies",
+  "position": "OF/DH",
+  "swing_style": "Explosive left-handed power swing with exceptional lower-half force and elite loft creation.",
+  "added_at": "2026-05-11",
+  "source_clip": "kyle_schwarber_swing.mp4",
+  "video": "kyle_schwarber_swing.mp4",
+  "handedness": "LEFT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 58.48101265822785,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 8.960173160173161,
+    "foot_plant": 9.456060606060607,
+    "launch": 9.473160173160172,
+    "contact": 9.627056277056278,
+    "peak_rotation": 9.986147186147186,
+    "finish": 10.37943722943723
+  },
+  "phases_frame": {
+    "load_start": 524,
+    "foot_plant": 553,
+    "launch": 554,
+    "contact": 563,
+    "peak_rotation": 584,
+    "finish": 607
+  },
+  "timing_ms": {
+    "load_duration": 495.88744588744584,
+    "foot_plant_to_launch": 17.099567099565505,
+    "launch_to_contact": 153.89610389610553,
+    "total_swing": 170.99567099567105
+  },
+  "timing_ms_corrected": {
+    "load_duration": 495.88744588744584,
+    "foot_plant_to_launch": 17.099567099565505,
+    "launch_to_contact": 153.89610389610553,
+    "total_swing": 170.99567099567105
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": 3.2794324731074225,
+    "hip_at_contact": 5.71653962505832,
+    "peak_hip": 20.287906894897368,
+    "separation_at_foot_plant": 4.44679909958415,
+    "separation_at_launch": 4.3705571746934,
+    "separation_at_contact": 11.426142212798748,
+    "peak_separation": 22.210521011913933,
+    "peak_separation_t": 9.986147186147186
+  },
+  "knee_deg": {
+    "at_foot_plant": 149.92146379723914,
+    "min_during_load": 140.38470214046387,
+    "at_contact": 148.57153880020854,
+    "re_extension": 8.186836659744671
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": 1.5413732528686523,
+    "dy": -5.559135675430298,
+    "total_drift": 5.76886652320027
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": 0.0036821081043333574,
+    "dy_torso": -0.013279936242240529,
+    "total_drift_torso": 0.01378095158869557
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.4007029576977972
+  }
+}

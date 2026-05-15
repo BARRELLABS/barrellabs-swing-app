@@ -1,0 +1,76 @@
+{
+  "video": "alex_bregman_swing.mp4",
+  "handedness": "RIGHT",
+  "rotation_method": "2d_width_ratio",
+  "fps": 56.97061039939714,
+  "slow_mo_factor": 1.0,
+  "phases_t": {
+    "load_start": 15.341243386243386,
+    "foot_plant": 15.832724867724867,
+    "launch": 15.850277777777777,
+    "contact": 16.008253968253968,
+    "peak_rotation": 16.411970899470898,
+    "finish": 16.79813492063492
+  },
+  "phases_frame": {
+    "load_start": 874,
+    "foot_plant": 902,
+    "launch": 903,
+    "contact": 912,
+    "peak_rotation": 935,
+    "finish": 957
+  },
+  "timing_ms": {
+    "load_duration": 491.4814814814807,
+    "foot_plant_to_launch": 17.55291005290971,
+    "launch_to_contact": 157.97619047619094,
+    "total_swing": 175.52910052910065
+  },
+  "timing_ms_corrected": {
+    "load_duration": 491.4814814814807,
+    "foot_plant_to_launch": 17.55291005290971,
+    "launch_to_contact": 157.97619047619094,
+    "total_swing": 175.52910052910065
+  },
+  "rotation_deg": {
+    "hip_at_foot_plant": -1.858708875325894,
+    "hip_at_contact": -13.789777138627983,
+    "peak_hip": -3.8439431567002416,
+    "separation_at_foot_plant": -10.563307006908511,
+    "separation_at_launch": -13.234830337590413,
+    "separation_at_contact": -28.022948220644388,
+    "peak_separation": -10.563307006908511,
+    "peak_separation_t": 15.832724867724867
+  },
+  "knee_deg": {
+    "at_foot_plant": 172.61672476511598,
+    "min_during_load": 168.86765354342555,
+    "at_contact": 175.31011867631042,
+    "re_extension": 6.442465132884877
+  },
+  "head_movement_px_foot_plant_to_contact": {
+    "dx": -7.54185676574707,
+    "dy": -3.0662262439727783,
+    "total_drift": 8.14133569227263
+  },
+  "head_movement_normalized_foot_plant_to_contact": {
+    "dx_torso": -0.017219402863476525,
+    "dy_torso": -0.007000740879265648,
+    "total_drift_torso": 0.018588120072598108
+  },
+  "camera_view": {
+    "hip_to_torso_ratio_stance": 0.3703521994807399
+  },
+  "player_name": "Alex Bregman",
+  "team": "Cubs",
+  "position": "INF",
+  "swing_style": "Compact right-handed swing with elite timing, balance, and barrel precision",
+  "added_at": "2026-05-14",
+  "source_clip": "alex_bregman_swing.mp4",
+  "tags": [
+    "right-handed",
+    "compact",
+    "balanced",
+    "elite"
+  ]
+}
