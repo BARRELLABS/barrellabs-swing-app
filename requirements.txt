@@ -2,7 +2,7 @@ streamlit>=1.32
 numpy>=1.26
 pandas>=2.2
 opencv-python-headless>=4.9
-mediapipe>=0.10
+mediapipe==0.10.14
 matplotlib>=3.8
 plotly>=5.20
 reportlab>=4.0
