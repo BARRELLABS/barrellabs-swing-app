@@ -28,6 +28,7 @@ from reportlab.pdfgen import canvas
 from analyzer import analyze
 from bl_theme import inject_global_theme
 from dashboard import render_dashboard
+from dashboard_v2 import render_dashboard_v2
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
 from pricing import render_pricing_page
@@ -4153,10 +4154,25 @@ with st.sidebar:
 
 
 # ---------- DASHBOARD PAGE ----------
-# Render the new BarrelLabs dashboard. Acts as the default landing
-# screen for authenticated users; sits above the legacy upload flow.
+# Render the BarrelLabs dashboard. Acts as the default landing screen
+# for authenticated users; sits above the legacy upload flow.
+#
+# Feature flag — set st.session_state["use_dashboard_v2"] = True to
+# preview the futuristic v2 redesign. The URL query param ?v2=1 also
+# flips it on for the current session, which makes it shareable.
 if st.session_state.get("page") == "dashboard":
-    render_dashboard(user)
+    # Allow ?v2=1 in the URL to opt in (and ?v2=0 to opt out) per-session.
+    try:
+        qp = st.query_params
+        if "v2" in qp:
+            st.session_state["use_dashboard_v2"] = str(qp["v2"]).strip() in ("1", "true", "yes", "on")
+    except Exception:
+        pass
+
+    if st.session_state.get("use_dashboard_v2"):
+        render_dashboard_v2(user)
+    else:
+        render_dashboard(user)
     st.stop()
 
 
