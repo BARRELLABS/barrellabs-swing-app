@@ -62,9 +62,16 @@ _CSS_FLAG = "_swr_v2_css_injected"
 
 
 def _ensure_css_v2():
-    """Inject the v2 stylesheet once per Streamlit session."""
-    if st.session_state.get(_CSS_FLAG):
-        return
+    """Inject the v2 stylesheet on every Streamlit rerun.
+
+    IMPORTANT: do NOT gate this with st.session_state. Streamlit rebuilds
+    the entire DOM on every rerun (sidebar toggles, widget interactions,
+    page navigations, etc.) so a previously-injected <style> tag is gone.
+    If we skip re-injection because a session flag is set, the page
+    renders unstyled — that's the "everything breaks when I touch the
+    sidebar" bug. We keep the flag name around in case any other code
+    reads it, but we always re-inject.
+    """
     st.session_state[_CSS_FLAG] = True
     _md("""
 <style>
