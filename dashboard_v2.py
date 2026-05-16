@@ -736,6 +736,55 @@ _DASHBOARD_V2_CSS = """
 
 /* The radar plot host */
 .bld2-radar-host .js-plotly-plot { margin-top: -6px !important; }
+
+/* Numeric breakdown chips below the radar */
+.bld2-radar-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.bld2-radar-stat {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 0.55rem 0.4rem 0.5rem;
+  text-align: center;
+  min-width: 0;
+}
+.bld2-radar-stat-label {
+  font-family: var(--bld2-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  color: var(--bld2-ink-60);
+  text-transform: uppercase;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.35rem;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+.bld2-radar-stat-val {
+  font-family: var(--bld2-sans);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--bld2-ink-100);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.bld2-radar-stat-val .bld2-radar-stat-foot {
+  font-family: var(--bld2-mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.12em;
+  color: var(--bld2-ink-60);
+  margin-left: 2px;
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .bld2-radar-stats { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 """
 
@@ -1215,6 +1264,25 @@ def _render_radar_card(latest: Dict[str, Any]) -> None:
     )
     fig = _build_radar_figure(metrics)
     st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, key="bld2_radar")
+
+    # Numeric breakdown row — one chip per metric so the user sees values, not just shape.
+    stats_html = ""
+    for label, value in metrics:
+        try:
+            val_int = int(round(float(value)))
+        except Exception:
+            val_int = 0
+        val_int = max(0, min(100, val_int))
+        stats_html += (
+            f'<div class="bld2-radar-stat">'
+            f'<div class="bld2-radar-stat-label">{label}</div>'
+            f'<div class="bld2-radar-stat-val">{val_int}'
+            f'<span class="bld2-radar-stat-foot">/100</span></div>'
+            f'</div>'
+        )
+    if stats_html:
+        st.markdown(f'<div class="bld2-radar-stats">{stats_html}</div>', unsafe_allow_html=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
