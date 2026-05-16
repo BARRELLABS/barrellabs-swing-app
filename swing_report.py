@@ -2282,6 +2282,50 @@ def _render_swing_progress(record: Dict[str, Any],
         down_cls = "is-up"
         down_arrow_char = "↑"
 
+    # When BOTH biggest_up and biggest_down land inside the ±0.5% flat band,
+    # the two cards would show identical "Flat" deltas on the same (or
+    # near-identical) category — visually broken UX even though the math is
+    # right. Collapse to a single "Steady Rep" card in that case.
+    both_flat = (
+        up is not None and down is not None
+        and -0.5 <= float(up[1]) <= 0.5
+        and -0.5 <= float(down[1]) <= 0.5
+    )
+    if both_flat:
+        movers_html = """
+  <div class="swr-prog-movers" style="grid-template-columns: 1fr;">
+    <div class="swr-prog-mover is-flat">
+      <div class="swr-prog-mover-eyebrow">
+        <span class="swr-prog-mover-arrow">→</span> STEADY REP
+      </div>
+      <div class="swr-prog-mover-cat">No meaningful change vs. last swing</div>
+      <div class="swr-prog-mover-delta">Held the line</div>
+      <div class="swr-prog-mover-detail">Every category landed within the margin of your previous swing — clean consistency. Push for a breakthrough in the deltas below.</div>
+    </div>
+  </div>
+"""
+    else:
+        movers_html = f"""
+  <div class="swr-prog-movers">
+    <div class="swr-prog-mover {up_cls}">
+      <div class="swr-prog-mover-eyebrow">
+        <span class="swr-prog-mover-arrow">{up_arrow_char}</span> BIGGEST GAIN
+      </div>
+      <div class="swr-prog-mover-cat">{html.escape(str(up_cat))}</div>
+      <div class="swr-prog-mover-delta">{up_delta}</div>
+      <div class="swr-prog-mover-detail">{up_detail}</div>
+    </div>
+    <div class="swr-prog-mover {down_cls}">
+      <div class="swr-prog-mover-eyebrow">
+        <span class="swr-prog-mover-arrow">{down_arrow_char}</span> BIGGEST SLIP
+      </div>
+      <div class="swr-prog-mover-cat">{html.escape(str(down_cat))}</div>
+      <div class="swr-prog-mover-delta">{down_delta}</div>
+      <div class="swr-prog-mover-detail">{down_detail}</div>
+    </div>
+  </div>
+"""
+
     # ---- Per-category delta rows ----
     cat_rows_html = ""
     for cd in prog["category_deltas"]:
@@ -2367,24 +2411,7 @@ def _render_swing_progress(record: Dict[str, Any],
     {sparkline_svg}
   </div>
 
-  <div class="swr-prog-movers">
-    <div class="swr-prog-mover {up_cls}">
-      <div class="swr-prog-mover-eyebrow">
-        <span class="swr-prog-mover-arrow">{up_arrow_char}</span> BIGGEST GAIN
-      </div>
-      <div class="swr-prog-mover-cat">{html.escape(str(up_cat))}</div>
-      <div class="swr-prog-mover-delta">{up_delta}</div>
-      <div class="swr-prog-mover-detail">{up_detail}</div>
-    </div>
-    <div class="swr-prog-mover {down_cls}">
-      <div class="swr-prog-mover-eyebrow">
-        <span class="swr-prog-mover-arrow">{down_arrow_char}</span> BIGGEST SLIP
-      </div>
-      <div class="swr-prog-mover-cat">{html.escape(str(down_cat))}</div>
-      <div class="swr-prog-mover-delta">{down_delta}</div>
-      <div class="swr-prog-mover-detail">{down_detail}</div>
-    </div>
-  </div>
+  {movers_html}
 
   <div class="swr-prog-cats">
     <div class="swr-prog-cats-head">
@@ -3522,38 +3549,69 @@ def build_swing_report_pdf(record: Dict[str, Any], history: Optional[List[Dict[s
             # ---- Biggest Gain / Biggest Slip movers ----
             up_m = prog_pdf.get("biggest_up")
             down_m = prog_pdf.get("biggest_down")
+            # Mirror HTML dashboard: when BOTH movers land in the ±0.5% flat
+            # band, collapse to a single full-width "Steady Rep" card instead
+            # of two duplicate "Flat" cards on the same category.
+            both_flat_pdf = (
+                up_m is not None and down_m is not None
+                and -0.5 <= float(up_m[1]) <= 0.5
+                and -0.5 <= float(down_m[1]) <= 0.5
+            )
             m_gap = 8
-            m_w = (width - MARGIN * 2 - m_gap) / 2
             m_h = 58
             need_space(m_h + 16)
-            for i_m, (kind, mover) in enumerate([("BIGGEST GAIN", up_m),
-                                                 ("BIGGEST SLIP", down_m)]):
-                x_m = MARGIN + i_m * (m_w + m_gap)
+            if both_flat_pdf:
+                m_w_full = width - MARGIN * 2
                 c.setFillColor(SOFT)
                 c.setStrokeColor(LINE)
-                c.roundRect(x_m, y - m_h, m_w, m_h, 8, fill=1, stroke=1)
+                c.roundRect(MARGIN, y - m_h, m_w_full, m_h, 8, fill=1, stroke=1)
                 c.setFillColor(INK_40)
                 c.setFont("Helvetica-Bold", 7)
-                c.drawString(x_m + 10, y - 14, kind)
-                if mover is not None:
-                    lab_m, val_m = mover
-                    if val_m > 0:
-                        vcolor = ELITE_GREEN; vstr = f"+{val_m:.1f}%"
-                    elif val_m < 0:
-                        vcolor = BUILDING_RED; vstr = f"{val_m:.1f}%"
+                c.drawString(MARGIN + 10, y - 14, "STEADY REP")
+                c.setFillColor(INK_100)
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(
+                    MARGIN + 10, y - 34,
+                    fit_text("No meaningful change vs. last swing",
+                             "Helvetica-Bold", 12, m_w_full - 20),
+                )
+                c.setFillColor(INK_60)
+                c.setFont("Helvetica", 10)
+                c.drawString(
+                    MARGIN + 10, y - 50,
+                    fit_text("Every category landed within margin — clean consistency.",
+                             "Helvetica", 10, m_w_full - 20),
+                )
+            else:
+                m_w = (width - MARGIN * 2 - m_gap) / 2
+                for i_m, (kind, mover) in enumerate([("BIGGEST GAIN", up_m),
+                                                     ("BIGGEST SLIP", down_m)]):
+                    x_m = MARGIN + i_m * (m_w + m_gap)
+                    c.setFillColor(SOFT)
+                    c.setStrokeColor(LINE)
+                    c.roundRect(x_m, y - m_h, m_w, m_h, 8, fill=1, stroke=1)
+                    c.setFillColor(INK_40)
+                    c.setFont("Helvetica-Bold", 7)
+                    c.drawString(x_m + 10, y - 14, kind)
+                    if mover is not None:
+                        lab_m, val_m = mover
+                        if val_m > 0:
+                            vcolor = ELITE_GREEN; vstr = f"+{val_m:.1f}%"
+                        elif val_m < 0:
+                            vcolor = BUILDING_RED; vstr = f"{val_m:.1f}%"
+                        else:
+                            vcolor = INK_60; vstr = "0.0%"
+                        c.setFillColor(INK_100)
+                        c.setFont("Helvetica-Bold", 12)
+                        c.drawString(x_m + 10, y - 34,
+                                     fit_text(str(lab_m), "Helvetica-Bold", 12, m_w - 20))
+                        c.setFillColor(vcolor)
+                        c.setFont("Helvetica-Bold", 11)
+                        c.drawString(x_m + 10, y - 50, vstr)
                     else:
-                        vcolor = INK_60; vstr = "0.0%"
-                    c.setFillColor(INK_100)
-                    c.setFont("Helvetica-Bold", 12)
-                    c.drawString(x_m + 10, y - 34,
-                                 fit_text(str(lab_m), "Helvetica-Bold", 12, m_w - 20))
-                    c.setFillColor(vcolor)
-                    c.setFont("Helvetica-Bold", 11)
-                    c.drawString(x_m + 10, y - 50, vstr)
-                else:
-                    c.setFillColor(INK_60)
-                    c.setFont("Helvetica", 10)
-                    c.drawString(x_m + 10, y - 36, "No movement to report.")
+                        c.setFillColor(INK_60)
+                        c.setFont("Helvetica", 10)
+                        c.drawString(x_m + 10, y - 36, "No movement to report.")
             y -= m_h + 14
 
             # ---- Per-category delta rows (top 5) ----
