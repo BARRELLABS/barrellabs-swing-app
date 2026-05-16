@@ -264,17 +264,17 @@ _DASHBOARD_V2_CSS = """
 
 /* ===== SCORE RING ===== */
 .bld2-score-body {
-  display: flex; align-items: center; gap: 1.2rem;
+  display: flex; align-items: center; gap: 0.7rem;
   margin-top: 0.4rem;
 }
 .bld2-score-ring-wrap {
   position: relative;
-  width: 116px; height: 116px;
+  width: 92px; height: 92px;
   flex-shrink: 0;
 }
 .bld2-score-ring-wrap svg { width: 100%; height: 100%; display: block; }
 .bld2-score-scan {
-  position: absolute; inset: 6px;
+  position: absolute; inset: 5px;
   border-radius: 50%;
   background: conic-gradient(from 0deg, transparent 0%, rgba(255,59,48,0.18) 8%, transparent 16%);
   animation: bld2ScanRotate 4.2s linear infinite;
@@ -290,7 +290,7 @@ _DASHBOARD_V2_CSS = """
 }
 .bld2-score-num {
   font-family: var(--bld2-sans);
-  font-size: 2.1rem;
+  font-size: 1.7rem;
   font-weight: 800;
   color: var(--bld2-ink-100);
   letter-spacing: -0.05em;
@@ -298,28 +298,37 @@ _DASHBOARD_V2_CSS = """
 }
 .bld2-score-num-foot {
   font-family: var(--bld2-mono);
-  font-size: 0.5rem;
+  font-size: 0.45rem;
   letter-spacing: 0.18em;
   color: var(--bld2-ink-60);
-  margin-top: 3px;
+  margin-top: 2px;
   font-weight: 700;
 }
-.bld2-score-meta { flex: 1; min-width: 0; }
+.bld2-score-meta {
+  flex: 1; min-width: 0;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
 .bld2-score-band {
   color: var(--bld2-ink-100);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  hyphens: none;
 }
 .bld2-score-delta {
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
   font-family: var(--bld2-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
   color: var(--bld2-ink-60);
   text-transform: uppercase;
   font-weight: 600;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 .bld2-score-delta b { color: #4ADE80; font-weight: 800; }
 .bld2-score-delta b.down { color: var(--bld2-red); }
@@ -1131,9 +1140,9 @@ def _render_performance_card(history: List[Dict[str, Any]]) -> None:
         unsafe_allow_html=True,
     )
     tab_7, tab_30, tab_90 = st.tabs(["7D", "30D", "90D"])
-    with tab_7:  st.plotly_chart(_build_perf_figure(history, 7),  width="stretch", config={"displayModeBar": False})
-    with tab_30: st.plotly_chart(_build_perf_figure(history, 30), width="stretch", config={"displayModeBar": False})
-    with tab_90: st.plotly_chart(_build_perf_figure(history, 90), width="stretch", config={"displayModeBar": False})
+    with tab_7:  st.plotly_chart(_build_perf_figure(history, 7),  width="stretch", config={"displayModeBar": False}, key="bld2_perf_7")
+    with tab_30: st.plotly_chart(_build_perf_figure(history, 30), width="stretch", config={"displayModeBar": False}, key="bld2_perf_30")
+    with tab_90: st.plotly_chart(_build_perf_figure(history, 90), width="stretch", config={"displayModeBar": False}, key="bld2_perf_90")
     st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -1205,7 +1214,7 @@ def _render_radar_card(latest: Dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
     fig = _build_radar_figure(metrics)
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, key="bld2_radar")
     st.markdown('</div>', unsafe_allow_html=True)
 
 
