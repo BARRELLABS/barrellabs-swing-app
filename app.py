@@ -5113,6 +5113,29 @@ except Exception as e:
     st.error(f"Analysis failed: {e}")
     st.stop()
 
+# ---------- EXTRACT PER-FRAME POSE (Pro users only) ----------
+# Captures the 33-keypoint arrays that drive the v2 swing-overlay feature
+# (side-by-side skeleton vs MLB ghost). Pro-only — gated here so we don't
+# burn ~15-20s of MediaPipe CPU on Free swings that won't render the
+# overlay. Free users still get the full analysis, just no overlay.
+#
+# Fail-soft: if extraction errors for any reason, the swing still saves
+# without pose data and the report falls back to "overlay unavailable".
+pose_payload = None
+if is_pro(_plan_snapshot):
+    try:
+        from pose_extract import extract_pose_frames, build_pose_meta
+        with st.spinner("Capturing your pose data for swing comparison..."):
+            _pose_data = extract_pose_frames(video_path)
+        pose_payload = {
+            "pose_frames": _pose_data["frames"],
+            "pose_meta":   build_pose_meta(_pose_data),
+        }
+    except Exception:
+        # Silent fail — pose is a nice-to-have on top of the analysis,
+        # not a hard requirement. Surface only if we hit it repeatedly.
+        pose_payload = None
+
 # ---------- SAVE SWING TO LOGGED-IN PLAYER'S HISTORY ----------
 saved_record = save_swing_record(
     player=user,
@@ -5120,6 +5143,7 @@ saved_record = save_swing_record(
     result=result,
     phase_chart_path=phase_chart_path,
     video_path=str(video_path),
+    pose_payload=pose_payload,
 )
 
 # ---------- USAGE COUNTER: bump free-swing tally for Free users ----------

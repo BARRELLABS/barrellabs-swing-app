@@ -249,9 +249,80 @@ def _upload_swing_video(player_id: str, timestamp: str, safe_name: str,
         return None
 
 
+def _upload_swing_pose_json(player_id: str, timestamp: str, safe_name: str,
+                            pose_payload: dict) -> Optional[str]:
+    """
+    Upload the per-frame pose JSON (pose_frames + pose_meta) for a single
+    swing into Supabase Storage under
+    <user_uid>/<player_id>/<timestamp>_<name>.pose.json so RLS lets only
+    the owner read it. Returns the storage path, or None on failure.
+
+    Stored as a separate Storage object (not inline in the swings row) so
+    the dashboard's recent-swing list stays light — pose JSON is only
+    fetched when a specific swing report is opened.
+
+    Entitlement: pose persistence is a Pro-only feature. Free users get
+    the analysis numbers and their 1-3 free swings, but the side-by-side
+    skeleton overlay is gated behind Pro. We mirror the video-upload
+    pattern: silently skip for Free, swing row still saves (pose_path
+    stays NULL), report falls back to "Upgrade to see overlay" CTA.
+    """
+    # Pro-only gate — mirror the video-upload pattern. Local imports keep
+    # this module usable in standalone scripts that don't load entitlements.
+    try:
+        from entitlements import can_save_video
+        from subscription_storage import load_my_plan
+        if not can_save_video(load_my_plan()):
+            return None
+    except Exception:
+        # Fail closed — if anything in the entitlement chain blows up,
+        # skip the pose upload. The swing row still saves without it.
+        return None
+
+    sb = get_client()
+    user = sb.auth.get_user()
+    user_obj = getattr(user, "user", None)
+    if not user_obj:
+        return None
+    uid = user_obj.id
+
+    import json as _json
+    try:
+        body = _json.dumps(pose_payload).encode("utf-8")
+    except Exception:
+        return None
+
+    object_path = f"{uid}/{player_id}/{timestamp}_{safe_name}.pose.json"
+    try:
+        sb.storage.from_(STORAGE_BUCKET).upload(
+            path=object_path,
+            file=body,
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+        return object_path
+    except Exception:
+        return None
+
+
+def get_swing_pose_signed_url(storage_path: str, expires_in: int = 3600) -> Optional[str]:
+    """Return a short-lived signed URL for a pose JSON object in
+    Supabase Storage. Returns None if storage_path is empty or the URL
+    can't be minted.
+    """
+    if not storage_path:
+        return None
+    try:
+        sb = get_client()
+        resp = sb.storage.from_(STORAGE_BUCKET).create_signed_url(storage_path, expires_in)
+        return (resp or {}).get("signedURL") or (resp or {}).get("signed_url")
+    except Exception:
+        return None
+
+
 def save_swing_record(player: dict, upload_name: str, result: dict,
                       phase_chart_path: Optional[str] = None,
-                      video_path: Optional[str] = None) -> dict:
+                      video_path: Optional[str] = None,
+                      pose_payload: Optional[dict] = None) -> dict:
     """
     Insert a swings row tied to the current player + auth user. Returns
     the inserted row (with the same key names the rest of the app
@@ -288,6 +359,15 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
             local_path=Path(video_path),
         )
 
+    pose_storage_path = None
+    if pose_payload:
+        pose_storage_path = _upload_swing_pose_json(
+            player_id=player_id,
+            timestamp=timestamp,
+            safe_name=safe_name,
+            pose_payload=pose_payload,
+        )
+
     row = {
         "player_id":          player_id,
         "user_id":            user_obj.id,
@@ -309,18 +389,29 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
         "slow_mo":            result.get("slow_mo", {}) or {},
         "phase_chart_path":   chart_path,
         "video_path":         video_storage_path,
+        "pose_path":          pose_storage_path,
     }
 
+    # Tolerate older deployments where the swings table doesn't yet have
+    # the `video_path` or `pose_path` columns — drop the offending column
+    # and retry rather than failing the whole save. Each retry only fires
+    # if the corresponding column genuinely doesn't exist server-side.
+    def _do_insert(r):
+        return sb.table("swings").insert(r).execute()
+
     try:
-        resp = sb.table("swings").insert(row).execute()
+        resp = _do_insert(row)
     except Exception as exc:
-        # If the `video_path` column doesn't exist yet on the swings
-        # table (older deployments without the migration), drop it and
-        # retry once so save still succeeds.
         msg = str(exc).lower()
+        retried = False
+        if "pose_path" in msg and "pose_path" in row:
+            row.pop("pose_path", None)
+            retried = True
         if "video_path" in msg and "video_path" in row:
             row.pop("video_path", None)
-            resp = sb.table("swings").insert(row).execute()
+            retried = True
+        if retried:
+            resp = _do_insert(row)
         else:
             raise
     inserted = (resp.data or [{}])[0]
@@ -372,6 +463,8 @@ def _swing_row_to_legacy(row: dict) -> dict:
         "_phase_chart_path": row.get("phase_chart_path"),
         # Raw swing video pointer (may be None for older swings)
         "_video_path":       row.get("video_path"),
+        # Per-frame pose JSON pointer (may be None for Free users or older swings)
+        "_pose_path":        row.get("pose_path"),
         "_record_path":      None,  # no longer a local file
     }
 
