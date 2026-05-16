@@ -627,30 +627,90 @@ _DASHBOARD_V2_CSS = """
 
 /* Recent rows wrapped around a real Streamlit button so they're clickable */
 .bld2-recent-btn .stButton > button {
+  position: relative !important;
   width: 100% !important;
   text-align: left !important;
-  background: transparent !important;
-  border: 1px solid var(--bld2-line) !important;
-  border-radius: 8px !important;
+  background: linear-gradient(135deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008)) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-left: 2px solid rgba(255,59,48,0.25) !important;
+  border-radius: 10px !important;
   color: var(--bld2-ink-100) !important;
-  padding: 0.75rem 0.9rem !important;
+  padding: 0.85rem 1.05rem !important;
   font-family: var(--bld2-sans) !important;
   font-weight: 500 !important;
-  font-size: 0.88rem !important;
-  line-height: 1.35 !important;
+  line-height: 1.3 !important;
   justify-content: flex-start !important;
   cursor: pointer !important;
-  transition: background .22s, border-color .22s, transform .22s, box-shadow .22s !important;
-  box-shadow: none !important;
+  transition: all .25s cubic-bezier(.2,.7,.2,1) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset !important;
+  overflow: hidden !important;
   white-space: pre-wrap !important;
 }
-.bld2-recent-btn .stButton > button:hover {
-  background: var(--bld2-surface-1) !important;
-  border-color: rgba(255,59,48,0.4) !important;
-  transform: translateX(2px) !important;
-  box-shadow: 0 10px 28px -18px rgba(0,0,0,0.65) !important;
+.bld2-recent-btn .stButton > button::after {
+  content: "";
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 140px;
+  background: radial-gradient(ellipse at right, rgba(255,59,48,0.08), transparent 65%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s;
 }
-.bld2-recent-btn .stButton > button p { margin: 0 !important; color: inherit !important; }
+.bld2-recent-btn .stButton > button:hover {
+  background: linear-gradient(135deg, rgba(255,59,48,0.05), rgba(255,255,255,0.008)) !important;
+  border-color: rgba(255,59,48,0.45) !important;
+  border-left-color: var(--bld2-red) !important;
+  transform: translateX(3px) !important;
+  box-shadow:
+    0 14px 36px -22px rgba(255,59,48,0.55),
+    0 1px 0 rgba(255,255,255,0.04) inset !important;
+}
+.bld2-recent-btn .stButton > button:hover::after { opacity: 1; }
+.bld2-recent-btn .stButton > button p { color: inherit !important; }
+
+/* line 1: # number + date + handedness — tiny mono uppercase */
+.bld2-recent-btn .stButton > button p:nth-child(1) {
+  margin: 0 0 0.32rem 0 !important;
+  font-family: var(--bld2-mono) !important;
+  font-size: 0.58rem !important;
+  letter-spacing: 0.18em !important;
+  color: var(--bld2-ink-60) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+/* line 2: bold title — primary visual hook */
+.bld2-recent-btn .stButton > button p:nth-child(2) {
+  margin: 0 0 0.5rem 0 !important;
+  font-size: 0.97rem !important;
+  font-weight: 700 !important;
+  color: var(--bld2-ink-100) !important;
+  letter-spacing: -0.005em !important;
+  line-height: 1.25 !important;
+}
+/* line 3: big colored score + band + delta + chevron */
+.bld2-recent-btn .stButton > button p:nth-child(3),
+.bld2-recent-btn .stButton > button p:last-child {
+  margin: 0 !important;
+  font-family: var(--bld2-mono) !important;
+  font-size: 0.62rem !important;
+  letter-spacing: 0.14em !important;
+  font-weight: 700 !important;
+  color: var(--bld2-ink-60) !important;
+  text-transform: uppercase !important;
+  display: flex !important;
+  align-items: baseline !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+}
+.bld2-recent-btn .stButton > button p:nth-child(3) strong,
+.bld2-recent-btn .stButton > button p:last-child strong {
+  font-family: var(--bld2-sans) !important;
+  font-size: 1.55rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 1 !important;
+  margin-right: -0.15rem !important;
+}
 
 /* ===== ACHIEVEMENTS ===== */
 .bld2-achievements {
@@ -1286,6 +1346,15 @@ def _render_radar_card(latest: Dict[str, Any]) -> None:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
+def _band_for_score(score: int) -> Tuple[str, str]:
+    """Return (streamlit color token, band word) for a 0-100 score."""
+    if score >= 80:
+        return "green", "STRONG"
+    if score >= 60:
+        return "orange", "MIXED"
+    return "red", "WORK"
+
+
 def _render_recent_card(history: List[Dict[str, Any]]) -> None:
     recent = list(reversed(history))[:5]
 
@@ -1313,8 +1382,42 @@ def _render_recent_card(history: List[Dict[str, Any]]) -> None:
         date = _format_short_date(rec.get("timestamp"))
         score = int(round(rec.get("score") or 0))
         ref = _pretty_player_name(rec.get("reference_name") or "")
-        title = f"Swing {n}" + (f" · vs {ref}" if ref else "")
-        label = f"{num_disp}     {title}     ·     {date}     ·     SCORE {score}    ›"
+        hand = (rec.get("handedness") or "").upper()
+        hand_tag = hand if hand in ("LHH", "RHH", "L", "R") else ""
+
+        color_tok, band_word = _band_for_score(score)
+
+        # Swing-over-swing delta (recent is newest-first, so recent[idx+1] is older)
+        delta_disp = ""
+        if idx + 1 < len(recent):
+            try:
+                prev_score = int(round(recent[idx + 1].get("score") or 0))
+                d = score - prev_score
+                if d > 0:
+                    delta_disp = f"   ·   :green[↑+{d}]"
+                elif d < 0:
+                    delta_disp = f"   ·   :red[↓{d}]"
+                else:
+                    delta_disp = "   ·   :gray[—]"
+            except Exception:
+                delta_disp = ""
+
+        # Line 1: tiny mono uppercase — swing #, date, handedness
+        line1_parts = [num_disp, date]
+        if hand_tag:
+            line1_parts.append(hand_tag)
+        line1 = "   ·   ".join(line1_parts)
+
+        # Line 2: bold title — swing name + matchup
+        title = f"Swing {n}"
+        if ref:
+            title += f"  ·  vs {ref}"
+        line2 = f"**{title}**"
+
+        # Line 3: big colored score + band word + delta + chevron
+        line3 = f":{color_tok}[**{score}**] / 100   ·   {band_word} MATCH{delta_disp}   ›"
+
+        label = f"{line1}\n\n{line2}\n\n{line3}"
 
         st.markdown('<div class="bld2-recent-btn">', unsafe_allow_html=True)
         btn_key = f"bld2_recent_{idx}_{rec.get('id') or rec.get('timestamp') or idx}"
