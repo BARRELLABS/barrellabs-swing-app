@@ -4157,11 +4157,11 @@ with st.sidebar:
 # Render the BarrelLabs dashboard. Acts as the default landing screen
 # for authenticated users; sits above the legacy upload flow.
 #
-# Feature flag — set st.session_state["use_dashboard_v2"] = True to
-# preview the futuristic v2 redesign. The URL query param ?v2=1 also
-# flips it on for the current session, which makes it shareable.
+# v2 is now the DEFAULT dashboard. The legacy v1 layout is still in the
+# build as a safety net — pass ?v2=0 in the URL to fall back for the
+# current session if anything breaks in prod.
 if st.session_state.get("page") == "dashboard":
-    # Allow ?v2=1 in the URL to opt in (and ?v2=0 to opt out) per-session.
+    # Allow ?v2=1 / ?v2=0 in the URL to override per-session.
     try:
         qp = st.query_params
         if "v2" in qp:
@@ -4169,7 +4169,8 @@ if st.session_state.get("page") == "dashboard":
     except Exception:
         pass
 
-    if st.session_state.get("use_dashboard_v2"):
+    # Default to v2 unless explicitly opted out via ?v2=0.
+    if st.session_state.get("use_dashboard_v2", True):
         render_dashboard_v2(user)
     else:
         render_dashboard(user)
