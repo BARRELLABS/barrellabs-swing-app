@@ -3958,7 +3958,12 @@ def _clear_saved_report_view():
 
 
 def _go_upload():
-    st.session_state.pop("page", None)
+    # Set an explicit "upload" page rather than popping. The default-
+    # landing fallback re-assigns page=dashboard whenever the key is
+    # missing, which made clicking "Analyze new swing" silently bounce
+    # back to the dashboard. Using a real page value keeps us on the
+    # upload UI (no routing block claims "upload", so we fall through).
+    st.session_state["page"] = "upload"
     st.session_state.pop("view", None)
     _clear_saved_report_view()
 
