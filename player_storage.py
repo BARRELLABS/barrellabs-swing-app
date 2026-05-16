@@ -390,6 +390,11 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
         "phase_chart_path":   chart_path,
         "video_path":         video_storage_path,
         "pose_path":          pose_storage_path,
+        # phases_t: timestamps for load_start, foot_plant, launch, contact,
+        # peak_rotation, finish in the source video. Consumed by the
+        # side-by-side comparison viewer to sync user playback against
+        # the MLB reference at foot plant. Stored as JSONB.
+        "phases_t":           result.get("phases_t", {}) or {},
     }
 
     # Tolerate older deployments where the swings table doesn't yet have
@@ -409,6 +414,12 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
             retried = True
         if "video_path" in msg and "video_path" in row:
             row.pop("video_path", None)
+            retried = True
+        if "phases_t" in msg and "phases_t" in row:
+            # phases_t is a new column shipped with the swing-compare
+            # viewer. Older deployments may not have the JSONB column
+            # yet — drop and retry so the swing still saves.
+            row.pop("phases_t", None)
             retried = True
         if retried:
             resp = _do_insert(row)
@@ -455,6 +466,11 @@ def _swing_row_to_legacy(row: dict) -> dict:
         "metric_table":      row.get("metric_table") or {},
         "camera_view":       row.get("camera_view") or {},
         "slow_mo":           row.get("slow_mo") or {},
+        # phases_t (load_start, foot_plant, launch, contact, ...) — used
+        # by the side-by-side swing comparison viewer. May be {} for
+        # older swings saved before the column existed; the viewer
+        # falls back to lockstep playback in that case.
+        "phases_t":          row.get("phases_t") or {},
         # New-world keys
         "player_id":         row.get("player_id"),
         "user_id":           row.get("user_id"),

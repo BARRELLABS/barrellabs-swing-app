@@ -38,6 +38,13 @@ import math
 
 import streamlit as st
 
+# ---------------------------------------------------------------------------
+# KILL SWITCH for the side-by-side comparison viewer (Push 1.3).
+# Set to False to skip the comparison block on every report — instant rollback
+# without redeploying. Leave True in normal operation.
+# ---------------------------------------------------------------------------
+USE_SWING_COMPARE = True
+
 # Reuse every data helper from swing_report.py — this file is render-only.
 from swing_report import (
     _md,
@@ -1884,16 +1891,82 @@ def render_swing_report_v2(
     # section, Streamlit wraps each in its own stMarkdownContainer chrome
     # and the cards get pushed apart with extra padding, killing the
     # mockup's tight rhythm.
-    sections = [
-        _build_v2_header(record, is_live),
-        _build_v2_hero(record, history),
-        _build_v2_key_metrics(record, history),
-        _build_v2_breakdown_and_viz(record, phase_chart_path),
-        _build_v2_priorities_and_drills(record, history),
-        _build_v2_progress_and_next(record, history),
-        _build_v2_accordions(record, history),
-    ]
-    _md('<div class="bld2-wrap">' + "".join(sections) + "</div>")
+    #
+    # EXCEPTION: the swing-compare viewer needs <script> + <canvas>,
+    # which Streamlit strips from st.markdown. So we split the render
+    # into THREE chunks and slot st.components.v1.html() in between
+    # hero and key metrics. The seam is invisible to the user because
+    # the bld2-wrap spacing rules are consistent on both sides.
+
+    # Chunk 1: header + hero
+    top_html = (
+        _build_v2_header(record, is_live)
+        + _build_v2_hero(record, history)
+    )
+    _md('<div class="bld2-wrap">' + top_html + "</div>")
+
+    # Chunk 2: side-by-side comparison block (Pro users) — fail-soft so
+    # any error here never blocks the rest of the report from rendering.
+    # Gated by USE_SWING_COMPARE kill switch at top of module for instant
+    # rollback without redeploying.
+    _compare = None
+    if USE_SWING_COMPARE:
+        try:
+            from swing_compare_viewer import build_compare_section
+            _compare = build_compare_section(record)
+        except Exception:
+            _compare = None
+    if _compare and _compare.get("html"):
+        # Eyebrow rendered as a bld2 card so it inherits the v2 styling
+        # and visually flows with the rest of the report (avoiding a
+        # naked "iframe in a sea of cards" look).
+        _md(
+            '<div class="bld2-wrap" style="margin-bottom:0;">'
+            '<div class="bld2-card" style="margin-bottom:0.75rem;'
+            'padding-bottom:0.5rem;">'
+            '<div class="bld2-eyebrow">SIDE-BY-SIDE COMPARISON</div>'
+            '<div style="color:#a0a0a8;font-size:12px;line-height:1.5;'
+            'margin-top:6px;">'
+            'Your swing on the left, the MLB reference on the right — '
+            'synchronized at foot plant so you can see the timing '
+            'difference frame-by-frame.'
+            '</div>'
+            '</div></div>'
+        )
+        # If pose data is missing (Free user), render a small upgrade
+        # nudge above the MLB-only viewer. Uses inline styles so we don't
+        # need to add a new CSS class to _ensure_css_v2.
+        if not _compare.get("ready"):
+            _md(
+                '<div class="bld2-wrap" style="margin-bottom:0.75rem;">'
+                '<div style="background:#1a0f0f;border:1px solid #3a1f1f;'
+                'border-left:3px solid #ff3b30;border-radius:10px;'
+                'padding:12px 16px;color:#ffb3a8;font-size:13px;'
+                'line-height:1.5;">'
+                '<strong style="color:#fff;">Upgrade to Pro</strong> '
+                'to see your own swing skeleton overlaid next to the '
+                'MLB reference. Free reports show the MLB side only.'
+                '</div></div>'
+            )
+        try:
+            import streamlit.components.v1 as components
+            components.html(
+                _compare["html"],
+                height=int(_compare.get("height", 680)),
+                scrolling=False,
+            )
+        except Exception:
+            pass
+
+    # Chunk 3: rest of the report
+    bottom_html = (
+        _build_v2_key_metrics(record, history)
+        + _build_v2_breakdown_and_viz(record, phase_chart_path)
+        + _build_v2_priorities_and_drills(record, history)
+        + _build_v2_progress_and_next(record, history)
+        + _build_v2_accordions(record, history)
+    )
+    _md('<div class="bld2-wrap">' + bottom_html + "</div>")
 
     # ====== DIAGNOSTICS (kept from v1 — useful expandables) ======
     if show_diagnostics:

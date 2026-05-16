@@ -5165,6 +5165,12 @@ if is_pro(_plan_snapshot):
         pose_payload = {
             "pose_frames": _pose_data["frames"],
             "pose_meta":   build_pose_meta(_pose_data),
+            # phases_t carried alongside the pose frames so the
+            # side-by-side comparison viewer can sync at foot plant
+            # even on older deployments where the swings table doesn't
+            # yet have the phases_t JSONB column. Pulled from the
+            # analyzer result via the surfaced field added for v2.
+            "phases_t":    result.get("phases_t", {}) or {},
         }
     except Exception:
         # Silent fail — pose is a nice-to-have on top of the analysis,

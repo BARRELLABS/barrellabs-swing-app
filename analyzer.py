@@ -451,4 +451,9 @@ def analyze(player_fp_path, reference_arg=None):
         "drill_plan": drill_plan,
         "metric_table": metric_table,
         "other_observations": other_observations,
+        # Phase timestamps from the player fingerprint, surfaced so the
+        # side-by-side comparison viewer can sync user playback to MLB
+        # reference playback at foot plant. Safe to omit downstream —
+        # callers that don't render the comparison ignore this field.
+        "phases_t": player.get("phases_t", {}) or {},
     }
