@@ -68,6 +68,8 @@ def _ensure_css_v2():
     st.session_state[_CSS_FLAG] = True
     _md("""
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
   :root {
     --bld2-bg:        #0a0a0c;
     --bld2-surface-0: #0f0f12;
@@ -622,15 +624,193 @@ def _ensure_css_v2():
     border-top: 1px solid var(--bld2-line);
   }
 
-  /* Mobile */
-  @media (max-width: 1100px) {
+  /* =====================================================================
+     BARRELLABS POLISH LAYER — depth, glow, motion. Subtle enough to feel
+     premium without overpowering the data. Everything here is additive
+     on top of the base styles above.
+     ===================================================================== */
+
+  /* Background bloom — red-tinged radial glow drifting across the report.
+     Gives the whole page a subtle atmospheric depth instead of flat black. */
+  .bld2-wrap {
+    background-image:
+      radial-gradient(ellipse 800px 400px at 85% 0%, rgba(255,59,48,0.05), transparent 60%),
+      radial-gradient(ellipse 600px 500px at 15% 100%, rgba(255,59,48,0.03), transparent 60%);
+    background-attachment: scroll;
+    background-repeat: no-repeat;
+    padding: 1.2rem 0 2.5rem;
+  }
+
+  /* Card depth — subtle inner gradient + transition for hover lift. */
+  .bld2-card {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 40%),
+      var(--bld2-surface-0);
+    transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+  }
+  .bld2-card:hover {
+    border-color: rgba(255,255,255,0.11);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 36px -18px rgba(0,0,0,0.6);
+  }
+
+  /* Card eyebrow — add a glowing red accent dot before the label. */
+  .bld2-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--bld2-red);
+    box-shadow: 0 0 8px var(--bld2-red), 0 0 2px var(--bld2-red);
+    margin-right: 0.55rem;
+    flex-shrink: 0;
+  }
+
+  /* Score number — drop a soft red halo behind the big 78. */
+  .bld2-score-num {
+    text-shadow:
+      0 0 32px rgba(255,59,48,0.35),
+      0 0 8px rgba(255,59,48,0.2);
+  }
+
+  /* NEW ANALYSIS pill — pulse the background so the eye is drawn to it. */
+  @keyframes bld2-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(255,59,48,0); }
+  }
+  .bld2-pill-new {
+    animation: bld2-pulse 2.4s ease-in-out infinite;
+  }
+
+  /* Score band pill — slight glow so the strong-swing badge pops. */
+  .bld2-band-green { box-shadow: 0 0 18px -6px rgba(110,231,183,0.4); }
+  .bld2-band-amber { box-shadow: 0 0 18px -6px rgba(251,191,36,0.35); }
+  .bld2-band-red   { box-shadow: 0 0 18px -6px rgba(255,59,48,0.4); }
+
+  /* MLB avatar — outer ring glow */
+  .bld2-mlb-avatar {
+    box-shadow: 0 0 24px -6px rgba(255,59,48,0.45);
+  }
+
+  /* MLB similarity % — slight glow on the %. */
+  .bld2-mlb-sim .pct {
+    text-shadow: 0 0 16px rgba(255,59,48,0.4);
+  }
+
+  /* Key metrics value — small white-glow lift so the numbers feel sharper. */
+  .bld2-km-val { text-shadow: 0 0 14px rgba(255,255,255,0.06); }
+  .bld2-km:hover { border-color: rgba(255,255,255,0.12); }
+
+  /* What's Next card — subtle red wash so the CTA feels charged. */
+  .bld2-next {
+    background:
+      radial-gradient(ellipse at top right, rgba(255,59,48,0.06), transparent 60%),
+      var(--bld2-surface-0);
+    border-color: rgba(255,59,48,0.18);
+  }
+  .bld2-next-cta {
+    box-shadow:
+      0 12px 32px -14px rgba(255,59,48,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.18);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .bld2-next-cta:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 40px -10px rgba(255,59,48,0.75),
+      inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+
+  /* Header primary button — match the same heat as the bottom CTA. */
+  .bld2-btn-primary {
+    box-shadow:
+      0 10px 30px -12px rgba(255,59,48,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .bld2-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 36px -10px rgba(255,59,48,0.7),
+      inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+
+  /* Card footer links — arrow nudges right on hover. */
+  .bld2-card-foot-link { transition: color .2s ease; cursor: pointer; }
+  .bld2-card-foot-link:hover { color: #ff6e66; }
+
+  /* Coach quote — stronger left bar + soft red glow. */
+  .bld2-coach-quote {
+    border-left-width: 3px;
+    box-shadow: -2px 0 18px -10px rgba(255,59,48,0.5);
+  }
+
+  /* Strength cards — stronger green glow. */
+  .bld2-str {
+    box-shadow: 0 0 24px -10px rgba(110,231,183,0.35);
+  }
+
+  /* Sparklines — drop-shadow makes the line feel like a glowing trace. */
+  .bld2-km-spark polyline {
+    filter: drop-shadow(0 0 4px rgba(255,59,48,0.45));
+  }
+
+  /* =====================================================================
+     OVERFLOW + RESPONSIVE PROTECTION — keeps the layout from breaking
+     when Streamlit changes the content-area width (e.g. sidebar collapse).
+     ===================================================================== */
+  /* Every grid child gets min-width:0 so flex/grid items can shrink below
+     their content size instead of forcing the parent to overflow. */
+  .bld2-grid-2 > *,
+  .bld2-grid-2-tilt > *,
+  .bld2-km-row > *,
+  .bld2-mlb-grid > *,
+  .bld2-score-body > *,
+  .bld2-dna-grid > *,
+  .bld2-str-row > *,
+  .bld2-viz-pair > * { min-width: 0; }
+
+  /* SVGs scale to their container instead of clipping or overflowing. */
+  .bld2-radar-host svg,
+  .bld2-pc-host svg,
+  .bld2-km-spark { max-width: 100%; height: auto; display: block; }
+  .bld2-radar-host { width: 100%; }
+  .bld2-radar-host svg { width: 100%; max-width: 280px; }
+
+  /* Long-content guards — names / titles / table cells truncate gracefully
+     rather than pushing the box wider. */
+  .bld2-mlb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bld2-pri-title, .bld2-drill-title { overflow-wrap: anywhere; }
+  .bld2-br-table td:first-child { overflow-wrap: anywhere; }
+
+  /* Cards never force horizontal overflow on the parent. */
+  .bld2-card { overflow: hidden; }
+  /* …except the hero score card, where the ring's drop-shadow needs to
+     escape. Use overflow:visible there. */
+  .bld2-grid-2 > .bld2-card:first-child { overflow: visible; }
+
+  /* =====================================================================
+     BREAKPOINTS — re-tier the layout as the content area shrinks. We use
+     three steps so the report works whether the sidebar is open, closed,
+     or the window itself is narrow.
+     ===================================================================== */
+  @media (max-width: 1280px) {
     .bld2-km-row { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 1024px) {
     .bld2-grid-2, .bld2-grid-2-tilt { grid-template-columns: 1fr; }
+    .bld2-hdr { flex-direction: column; align-items: stretch; }
+    .bld2-hdr-actions { justify-content: flex-start; }
+  }
+  @media (max-width: 760px) {
+    .bld2-km-row { grid-template-columns: repeat(2, 1fr); }
     .bld2-dna-grid { grid-template-columns: repeat(2, 1fr); }
     .bld2-str-row { grid-template-columns: 1fr; }
     .bld2-mlb-grid { grid-template-columns: 1fr; }
     .bld2-score-body { grid-template-columns: 1fr; }
-    .bld2-hdr { flex-direction: column; }
+    .bld2-hdr-actions .bld2-btn { font-size: 0.74rem; padding: 0.55rem 0.75rem; }
+  }
+  @media (max-width: 480px) {
+    .bld2-km-row { grid-template-columns: 1fr; }
   }
 </style>
 """)
@@ -723,13 +903,21 @@ def _radar_svg(axes: List[Tuple[str, float]]) -> str:
     is the 100%-on-every-axis pentagon. Player polygon is overlaid.
     """
     n = max(len(axes), 3)
-    W = H = 260
+    # Widen the viewBox horizontally so the side labels ("SEPARATION",
+    # "LOWER BODY") never overflow the SVG bounds when the sidebar
+    # collapses or the card narrows. Height stays the same.
+    W = 320
+    H = 260
     cx, cy = W / 2, H / 2
     R = 88
     levels = [0.25, 0.5, 0.75, 1.0]
     angles = [-math.pi / 2 + i * (2 * math.pi / n) for i in range(n)]
 
-    parts = ['<svg viewBox="0 0 260 260" width="260" height="260" style="overflow:visible">']
+    parts = [
+        f'<svg viewBox="0 0 {W} {H}" width="100%" height="auto" '
+        f'preserveAspectRatio="xMidYMid meet" '
+        f'style="display:block;max-width:340px;margin:0 auto;overflow:visible">'
+    ]
 
     # Grid pentagons
     for lvl in levels:
