@@ -2948,6 +2948,14 @@ def _render_next_step_cta(record: Dict[str, Any]):
 #                      PUBLIC ENTRY
 # ============================================================
 
+#: Feature flag — when True, delegate to the v2 layout in swing_report_v2.py.
+#  v2 ships the badass "info-full" redesign (radar, score ring, score-over-time,
+#  6 biomechanics tiles, severity-tiered priorities, pose overlay slot).
+#  Flip back to False to fall through to the original v1 renderer below if
+#  anything explodes in production.
+USE_V2_REPORT = True
+
+
 def render_swing_report(
     record: Dict[str, Any],
     *,
@@ -2965,6 +2973,24 @@ def render_swing_report(
     `history` is the player's swing history (latest last) used for the
     "vs. last swing" section. Pass None to skip that section.
     """
+    # v2 delegation — keep the v1 body intact below so we can flip back
+    # by toggling USE_V2_REPORT to False if Render starts smoking.
+    if USE_V2_REPORT:
+        try:
+            from swing_report_v2 import render_swing_report_v2
+            return render_swing_report_v2(
+                record,
+                history=history,
+                phase_chart_path=phase_chart_path,
+                show_diagnostics=show_diagnostics,
+                show_section_numbers=show_section_numbers,
+            )
+        except Exception as _v2_err:
+            # If v2 blows up for any reason, fall through to v1 so the
+            # player still sees a report instead of a stack trace.
+            import streamlit as _st
+            _st.warning(f"v2 report failed, showing v1 fallback: {_v2_err}")
+
     _ensure_css()
 
     # ====== HERO ======
