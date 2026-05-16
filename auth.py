@@ -80,6 +80,12 @@ def _profile_from_row(row: dict) -> dict:
         "primary_goal":row.get("primary_goal"),
         "profile_pic_path": row.get("profile_pic_path"),
 
+        # MLB comp lock — slug of the reference this player is locked to,
+        # set on first auto-picked swing so subsequent swings keep
+        # comparing to the same MLB hitter instead of bouncing between
+        # players (Trout one week, Judge the next).
+        "locked_mlb_slug": row.get("locked_mlb_slug"),
+
         # Bookkeeping
         "created_at":  row.get("created_at"),
     }
@@ -260,6 +266,7 @@ ALLOWED_PROFILE_UPDATES = {
     "name", "handedness", "height_in", "weight_lb",
     "team", "position", "throws", "level", "primary_goal",
     "profile_pic_path",
+    "locked_mlb_slug",
 }
 
 

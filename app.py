@@ -5107,16 +5107,46 @@ if not fingerprint_path.is_file():
 
 
 # ---------- RUN ANALYSIS ----------
+# MLB comp lock: once a player's first swing locks them to a reference
+# (e.g. Trout), every future "Auto-pick best match" swing keeps using
+# that same reference so the player builds toward one swing model
+# instead of remodeling weekly against whichever comp the picker
+# happened to favor. Manual sidebar picks bypass the lock for one-off
+# comparisons (and do NOT change the lock).
 reference_arg = None
-if ref_choice != "Auto-pick best match":
+manual_override = ref_choice != "Auto-pick best match"
+if manual_override:
     picked_idx = ref_options.index(ref_choice) - 1
     reference_arg = refs[picked_idx]["slug"]
+else:
+    # Auto-pick path — honor the saved lock if one exists.
+    _locked_slug = (user or {}).get("locked_mlb_slug") or None
+    if _locked_slug:
+        reference_arg = _locked_slug
 
 try:
     result = analyze(str(fingerprint_path), reference_arg)
 except Exception as e:
     st.error(f"Analysis failed: {e}")
     st.stop()
+
+# After analysis: if the player has no lock yet AND we just auto-picked
+# their reference, persist that slug as the lock so future swings stay
+# anchored to the same hitter. Skip when the user manually overrode
+# from the sidebar — manual picks shouldn't change the lock.
+if not manual_override and not (user or {}).get("locked_mlb_slug"):
+    _picked = (result.get("reference") or {}).get("slug")
+    if _picked:
+        try:
+            from player_storage import update_profile as _save_lock
+            _updated = _save_lock(user["slug"], locked_mlb_slug=_picked)
+            if _updated:
+                st.session_state.user = _updated
+                user = _updated
+        except Exception:
+            # Fail-soft — if the lock write fails the analysis still
+            # renders. Next swing will try again.
+            pass
 
 # ---------- EXTRACT PER-FRAME POSE (Pro users only) ----------
 # Captures the 33-keypoint arrays that drive the v2 swing-overlay feature

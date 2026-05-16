@@ -96,6 +96,11 @@ def analyze(player_fp_path, reference_arg=None):
     ref_source = None      # "file" | "library" | "auto"
     auto_reason = None
     ref_arg_for_override = None  # to display "Override: --reference <slug>"
+    # picked_slug tracks which reference file was actually used. We surface
+    # this in the result dict so callers (specifically the MLB comp lock
+    # in app.py) can persist the slug to players.locked_mlb_slug after a
+    # first-time auto-pick. None for ad-hoc file paths that have no slug.
+    picked_slug = None
 
     if reference_arg and os.path.isfile(reference_arg):
         reference = _load_fp(reference_arg)
@@ -108,6 +113,11 @@ def analyze(player_fp_path, reference_arg=None):
         reference = ref
         ref_source = "library"
         ref_arg_for_override = reference_arg
+        # When the caller passes a slug-like arg, that arg IS the slug.
+        # (load_reference also accepts fuzzy name matches; in that case
+        # this falls back to the raw input which is still useful for
+        # locking — load_reference will resolve it again next time.)
+        picked_slug = reference_arg
     else:
         slug, ref_data, reason = find_best_match(player)
         if ref_data is None:
@@ -123,6 +133,7 @@ def analyze(player_fp_path, reference_arg=None):
             reference = ref_data
             ref_source = "auto"
             auto_reason = reason
+            picked_slug = slug
 
     ref_name = (
         reference.get("player_name")
@@ -393,6 +404,10 @@ def analyze(player_fp_path, reference_arg=None):
         "auto_reason": auto_reason,
         "override_arg": ref_arg_for_override,
         "also_in_library": others_in_library,
+        # Slug of the actual reference file used. Consumed by app.py's
+        # MLB comp lock to remember which player was auto-picked on the
+        # first swing so subsequent swings keep targeting the same hitter.
+        "slug": picked_slug,
     }
 
     # ----- FINAL RESULT DICT -----
