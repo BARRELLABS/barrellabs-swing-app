@@ -3095,12 +3095,27 @@ def render_swing_report(
 #                  PDF EXPORT — PREMIUM REPORT
 # ============================================================
 
+# ============================================================
+#                       PDF — V2 FEATURE FLAG
+# ============================================================
+#  When True, build_swing_report_pdf() delegates to the v2 dark-theme
+#  PDF renderer (mirrors the on-screen v2 swing report).
+#  Flip back to False to fall through to the original v1 light-theme
+#  PDF renderer below if anything explodes in production.
+USE_V2_PDF = True
+
+
 def build_swing_report_pdf(record: Dict[str, Any], history: Optional[List[Dict[str, Any]]] = None) -> bytes:
     """
-    Build the premium BarrelLabs swing report PDF, mirroring the
-    on-screen design: hero w/ score ring, coach's summary, top 3 fixes,
-    swing DNA bars, vs-last-swing, MLB comp w/ traits, drill plan,
-    strengths, detailed mechanics.
+    Build the premium BarrelLabs swing report PDF.
+
+    v2 (default): dark-theme, mirrors the on-screen v2 layout. Hero w/
+    score ring + coach blurb, MLB comp card, 4 key-metric tiles with
+    sparklines, 5-axis radar, detailed breakdown, top priorities, drill
+    plan, score history, next step, and full coach notes.
+
+    v1 (fallback): light-theme original layout — kept intact so we can
+    flip back via USE_V2_PDF = False if v2 misbehaves in prod.
 
     Args:
         record:  swing record (live result OR saved record).
@@ -3109,6 +3124,21 @@ def build_swing_report_pdf(record: Dict[str, Any], history: Optional[List[Dict[s
     Returns:
         PDF bytes.
     """
+    # v2 delegation — same pattern as USE_V2_REPORT above.
+    if USE_V2_PDF:
+        try:
+            from swing_report_v2_pdf import build_swing_report_pdf_v2
+            return build_swing_report_pdf_v2(record, history=history)
+        except Exception as _v2_err:
+            # Log but don't bubble — fall through to v1 so the user
+            # still gets a PDF even if v2 has an edge-case bug.
+            import traceback as _tb
+            print(
+                f"[swing_report_v2_pdf] v2 PDF failed, falling back to v1: "
+                f"{type(_v2_err).__name__}: {_v2_err}\n{_tb.format_exc()}",
+                flush=True,
+            )
+
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
     from reportlab.lib import colors
