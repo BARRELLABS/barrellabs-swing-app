@@ -468,6 +468,160 @@ def _ensure_css_v2():
   .bld2-coach-body p { margin: 0 0 0.85rem; }
   .bld2-coach-body p:last-child { margin-bottom: 0; }
 
+  /* ===== HEADER ACTION BUTTONS ===== */
+  .bld2-hdr-actions { display: flex; gap: 0.55rem; flex-wrap: wrap; }
+  .bld2-btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.65rem 0.95rem;
+    border-radius: 10px;
+    font-family: var(--bld2-sans); font-size: 0.8rem; font-weight: 600;
+    border: 1px solid var(--bld2-line-2);
+    cursor: pointer;
+    transition: all .2s cubic-bezier(.2,.7,.2,1);
+    text-decoration: none;
+  }
+  .bld2-btn-ghost { background: var(--bld2-surface-1); color: var(--bld2-ink-100); }
+  .bld2-btn-ghost:hover { border-color: rgba(255,255,255,0.22); }
+  .bld2-btn-primary {
+    background: var(--bld2-red); color: #fff; border-color: var(--bld2-red);
+    box-shadow: 0 10px 30px -12px rgba(255,59,48,0.55);
+  }
+  .bld2-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 36px -12px rgba(255,59,48,0.7); }
+
+  /* ===== KEY METRICS — SPARKLINES ===== */
+  .bld2-km-spark { margin-top: 0.55rem; width: 100%; height: 28px; display: block; }
+
+  /* ===== VISUALIZATION TABS + SCRUBBER ===== */
+  .bld2-viz-tabs { display: flex; gap: 0.35rem; margin-bottom: 0.85rem; }
+  .bld2-viz-tab {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-family: var(--bld2-mono); font-size: 0.6rem; letter-spacing: 0.14em;
+    font-weight: 700; text-transform: uppercase;
+    color: var(--bld2-ink-60);
+    background: transparent;
+    border: 1px solid var(--bld2-line);
+    cursor: default;
+  }
+  .bld2-viz-tab.active {
+    color: var(--bld2-red);
+    border-color: rgba(255,59,48,0.45);
+    background: rgba(255,59,48,0.06);
+  }
+  .bld2-scrub-row {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--bld2-line);
+    margin-top: 0.85rem;
+  }
+  .bld2-scrub-play {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--bld2-red);
+    border: none; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+  .bld2-scrub-bar {
+    flex: 1; height: 4px;
+    background: var(--bld2-line);
+    border-radius: 999px;
+    position: relative;
+  }
+  .bld2-scrub-fill { width: 60%; height: 100%; background: var(--bld2-red); border-radius: 999px; }
+  .bld2-scrub-knob {
+    position: absolute; left: 60%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    background: var(--bld2-red);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(255,59,48,0.18);
+  }
+  .bld2-scrub-time {
+    font-family: var(--bld2-mono);
+    font-size: 0.62rem;
+    color: var(--bld2-ink-60);
+    letter-spacing: 0.08em;
+  }
+
+  /* ===== CARD FOOTER LINKS ===== */
+  .bld2-card-foot-link {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--bld2-line);
+    text-align: center;
+    color: var(--bld2-red);
+    font-family: var(--bld2-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  /* ===== DRILL CHECKBOX ===== */
+  .bld2-drill-check {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid var(--bld2-line-2);
+    flex-shrink: 0;
+  }
+
+  /* ===== WHAT'S NEXT — BIG CTA BUTTON ===== */
+  .bld2-next-cta {
+    background: var(--bld2-red);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem;
+    font-family: var(--bld2-sans);
+    font-weight: 700;
+    font-size: 0.92rem;
+    width: 100%;
+    box-shadow: 0 10px 30px -12px rgba(255,59,48,0.55);
+    text-align: center;
+    display: block;
+  }
+
+  /* ===== HTML ACCORDIONS (replaces st.expander for visual cohesion) ===== */
+  .bld2-accord {
+    background: var(--bld2-surface-0);
+    border: 1px solid var(--bld2-line);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+  .bld2-accord > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 1.1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.65rem;
+  }
+  .bld2-accord > summary::-webkit-details-marker { display: none; }
+  .bld2-accord > summary::marker { content: ""; }
+  .bld2-accord-head-l { display: flex; gap: 0.65rem; align-items: center; }
+  .bld2-accord-eyebrow {
+    font-family: var(--bld2-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    color: var(--bld2-red);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .bld2-accord-title { font-weight: 700; font-size: 1rem; color: var(--bld2-ink-100); }
+  .bld2-accord-caret {
+    color: var(--bld2-ink-60);
+    font-family: var(--bld2-mono);
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+  }
+  .bld2-accord[open] .bld2-accord-caret { transform: rotate(180deg); }
+  .bld2-accord-body {
+    padding: 1.1rem 1.5rem 1.4rem;
+    border-top: 1px solid var(--bld2-line);
+  }
+
   /* Mobile */
   @media (max-width: 1100px) {
     .bld2-km-row { grid-template-columns: repeat(3, 1fr); }
@@ -476,6 +630,7 @@ def _ensure_css_v2():
     .bld2-str-row { grid-template-columns: 1fr; }
     .bld2-mlb-grid { grid-template-columns: 1fr; }
     .bld2-score-body { grid-template-columns: 1fr; }
+    .bld2-hdr { flex-direction: column; }
   }
 </style>
 """)
@@ -741,6 +896,43 @@ def _progress_chart_svg(score_history: List[Tuple[Any, float]]) -> str:
     return "".join(parts)
 
 
+def _sparkline_svg(values: List[float], direction: str = "match") -> str:
+    """Tiny inline trend chart for a key-metric tile.
+
+    `values` is oldest-→-newest. `direction` controls the line color hint
+    (we use red for 'attention' trend, green for 'improving'). For Push 1
+    we keep it simple and always red so it visually matches the mockup.
+    """
+    if not values or len(values) < 2:
+        # Render a flat baseline so the tile doesn't look empty.
+        return (
+            '<svg class="bld2-km-spark" viewBox="0 0 100 28" '
+            'preserveAspectRatio="none">'
+            '<line x1="0" y1="18" x2="100" y2="18" '
+            'stroke="rgba(255,255,255,0.08)" stroke-width="1.5" '
+            'stroke-dasharray="2 3"/></svg>'
+        )
+
+    n = len(values)
+    v_min = min(values)
+    v_max = max(values)
+    span = (v_max - v_min) or 1.0
+    pts = []
+    for i, v in enumerate(values):
+        x = (i / (n - 1)) * 100.0
+        # Invert y because SVG origin is top-left; pad 4 each side.
+        y = 24 - ((v - v_min) / span) * 20
+        pts.append(f"{x:.1f},{y:.1f}")
+    poly = " ".join(pts)
+    return (
+        f'<svg class="bld2-km-spark" viewBox="0 0 100 28" '
+        f'preserveAspectRatio="none">'
+        f'<polyline fill="none" stroke="#ff3b30" stroke-width="1.5" '
+        f'stroke-linecap="round" stroke-linejoin="round" points="{poly}"/>'
+        f'</svg>'
+    )
+
+
 # =====================================================================
 #                  KEY METRICS COMPUTATION (biomechanics)
 # =====================================================================
@@ -807,12 +999,15 @@ def _parse_value_from_str(s: str) -> Optional[float]:
 def _compute_key_metrics(record: Dict[str, Any],
                           history: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
     """Build the 6-tile key-metrics row. Each tile: {label, value, unit,
-    delta_str, delta_class, ref_str}."""
+    delta_str, delta_class, ref_str, sparkline_svg}."""
     curr_rows = _flatten_metric_table(record)
     # Previous swing's metric_table for delta computation. We look at the
     # most-recent prior swing in history (history is sorted oldest→newest
     # in app.py's flow; defensive sort here just in case).
     prev_rows: List[Dict[str, Any]] = []
+    # Also build a sorted-prior history (last 8 swings, current included)
+    # so we can pull a per-metric series for the tile sparklines.
+    series_records: List[Dict[str, Any]] = []
     if history:
         def _ts(r): return str(r.get("timestamp") or r.get("date") or "")
         sorted_hist = sorted(history, key=_ts)
@@ -825,6 +1020,10 @@ def _compute_key_metrics(record: Dict[str, Any],
         if prior:
             prev_rec = prior[-1]
             prev_rows = _flatten_metric_table(prev_rec)
+        # Last 7 historical + current = up to 8 points
+        series_records = (prior[-7:] if prior else []) + [record]
+    else:
+        series_records = [record]
 
     out = []
     for (label, needle, unit_hint, direction) in _V2_TILES:
@@ -834,8 +1033,21 @@ def _compute_key_metrics(record: Dict[str, Any],
                 "label": label, "value": "—", "unit": unit_hint,
                 "delta_str": "", "delta_class": "flat",
                 "ref_str": "", "tooltip": "Metric not available for this swing.",
+                "sparkline_svg": _sparkline_svg([], direction),
             })
             continue
+
+        # Sparkline series for this metric across recent history.
+        series_vals: List[float] = []
+        for rec in series_records:
+            rec_rows = _flatten_metric_table(rec)
+            rec_row = _find_metric_row(rec_rows, needle)
+            if rec_row is None:
+                continue
+            v = _parse_value_from_str(rec_row.get("player_str", ""))
+            if v is not None:
+                series_vals.append(v)
+        spark_svg = _sparkline_svg(series_vals, direction)
 
         # Value / ref strings come pre-formatted from analyzer.py — use as-is.
         p_str = str(curr_row.get("player_str") or "—")
@@ -890,6 +1102,7 @@ def _compute_key_metrics(record: Dict[str, Any],
             "delta_str": delta_str,
             "delta_class": delta_class,
             "ref_str": ref_label,
+            "sparkline_svg": spark_svg,
         })
 
     return out
@@ -899,8 +1112,9 @@ def _compute_key_metrics(record: Dict[str, Any],
 #                    SECTION RENDERERS
 # =====================================================================
 
-def _render_v2_header(record: Dict[str, Any], is_live: bool):
-    """Top header with title, status pill, and swing meta."""
+def _build_v2_header(record: Dict[str, Any], is_live: bool) -> str:
+    """Top header with title, status pill, swing meta, and action buttons.
+    Returns HTML string (no st.markdown call)."""
     pill_html = (
         '<span class="bld2-pill-new">New Analysis</span>' if is_live
         else '<span class="bld2-pill-saved">Saved Report</span>'
@@ -910,32 +1124,38 @@ def _render_v2_header(record: Dict[str, Any], is_live: bool):
     when_short = str(when).replace("T", " ").split(".")[0] if when else ""
     swing_num = record.get("swing_number")
     meta_bits = []
+    if swing_num is not None:
+        meta_bits.append(f"<strong style=\"color:var(--bld2-ink-80);\">SWING #{swing_num}</strong>")
     if when_short:
         meta_bits.append(html.escape(when_short))
-    if swing_num is not None:
-        meta_bits.append(f"SWING #{swing_num}")
     if ref.get("name"):
         meta_bits.append(f"VS {html.escape(ref['name']).upper()}")
     meta_html = '<span class="sep">·</span>'.join(meta_bits) if meta_bits else ""
 
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-hdr">
-    <div>
-      <div class="bld2-hdr-title">
-        <h1>SWING REPORT</h1>
-        {pill_html}
-      </div>
-      <div class="bld2-hdr-meta">{meta_html}</div>
+    # Action buttons are visual affordances. Real Share/Download/Upload
+    # actions are wired through Streamlit elsewhere in app.py.
+    return f"""
+<div class="bld2-hdr">
+  <div>
+    <div class="bld2-hdr-title">
+      <h1>SWING REPORT</h1>
+      {pill_html}
     </div>
+    <div class="bld2-hdr-meta">{meta_html}</div>
+  </div>
+  <div class="bld2-hdr-actions">
+    <span class="bld2-btn bld2-btn-ghost">⬆ Share Report</span>
+    <span class="bld2-btn bld2-btn-ghost">⤓ Download PDF</span>
+    <span class="bld2-btn bld2-btn-primary">↑ Upload New Swing</span>
   </div>
 </div>
-""")
+"""
 
 
-def _render_v2_hero(record: Dict[str, Any],
-                     history: Optional[List[Dict[str, Any]]]):
-    """Hero row — score card + MLB comparison card side-by-side."""
+def _build_v2_hero(record: Dict[str, Any],
+                    history: Optional[List[Dict[str, Any]]]) -> str:
+    """Hero row — score card + MLB comparison card side-by-side.
+    Returns HTML string."""
     score = record.get("score")
     try:
         score_int = int(round(float(score)))
@@ -1000,56 +1220,54 @@ def _render_v2_hero(record: Dict[str, Any],
         if ref_style else ""
     )
 
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-grid-2">
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">OVERALL SWING SCORE</div>
-      <div class="bld2-score-body">
+    return f"""
+<div class="bld2-grid-2">
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">OVERALL SWING SCORE</div>
+    <div class="bld2-score-body">
+      <div>
         <div>
-          <div>
-            <span class="bld2-score-num">{score_int}</span>
-            <span class="bld2-score-num-foot">/ 100</span>
-          </div>
-          <div class="bld2-score-band {band_class}">
-            <span class="bld2-band-dot"></span>{html.escape(band_label.upper())}
-          </div>
-          <div class="bld2-score-blurb">{blurb_text}</div>
+          <span class="bld2-score-num">{score_int}</span>
+          <span class="bld2-score-num-foot">/ 100</span>
         </div>
-        <div class="bld2-ring-wrap">
-          {ring_svg}
-          {delta_block}
+        <div class="bld2-score-band {band_class}">
+          <span class="bld2-band-dot"></span>{html.escape(band_label.upper())}
         </div>
+        <div class="bld2-score-blurb">{blurb_text}</div>
       </div>
-    </div>
-
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">MLB COMPARISON</div>
-      <div class="bld2-mlb-grid">
-        <div>
-          <div class="bld2-mlb-sim">{sim_pct}<span class="pct">%</span></div>
-          <div class="bld2-mlb-foot">MLB SIMILARITY</div>
-          <div class="bld2-mlb-label">MOST SIMILAR TO:</div>
-          <div class="bld2-mlb-row">
-            <div class="bld2-mlb-avatar">{ref_initials}</div>
-            <div>
-              <div class="bld2-mlb-name">{html.escape(ref.get("name") or "Unknown")}</div>
-              <div class="bld2-mlb-team">{html.escape((ref.get("team") or "") + (" · " + ref.get("position") if ref.get("position") else ""))}</div>
-            </div>
-          </div>
-          {style_html}
-        </div>
-        <div class="bld2-radar-host">{radar_html}</div>
+      <div class="bld2-ring-wrap">
+        {ring_svg}
+        {delta_block}
       </div>
     </div>
   </div>
+
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">MLB COMPARISON</div>
+    <div class="bld2-mlb-grid">
+      <div>
+        <div class="bld2-mlb-sim">{sim_pct}<span class="pct">%</span></div>
+        <div class="bld2-mlb-foot">MLB SIMILARITY</div>
+        <div class="bld2-mlb-label">MOST SIMILAR TO:</div>
+        <div class="bld2-mlb-row">
+          <div class="bld2-mlb-avatar">{ref_initials}</div>
+          <div>
+            <div class="bld2-mlb-name">{html.escape(ref.get("name") or "Unknown")}</div>
+            <div class="bld2-mlb-team">{html.escape((ref.get("team") or "") + (" · " + ref.get("position") if ref.get("position") else ""))}</div>
+          </div>
+        </div>
+        {style_html}
+      </div>
+      <div class="bld2-radar-host">{radar_html}</div>
+    </div>
+  </div>
 </div>
-""")
+"""
 
 
-def _render_v2_key_metrics(record: Dict[str, Any],
-                            history: Optional[List[Dict[str, Any]]]):
-    """6-tile biomechanics key-metrics row."""
+def _build_v2_key_metrics(record: Dict[str, Any],
+                           history: Optional[List[Dict[str, Any]]]) -> str:
+    """6-tile biomechanics key-metrics row. Returns HTML string."""
     tiles = _compute_key_metrics(record, history)
 
     tile_html_chunks = []
@@ -1059,57 +1277,59 @@ def _render_v2_key_metrics(record: Dict[str, Any],
             delta_inner = f'<div class="bld2-km-delta {t["delta_class"]}">{html.escape(t["delta_str"])}</div>'
         unit_html = (f'<div class="bld2-km-unit">{html.escape(t["unit"])}</div>'
                      if t.get("unit") else "")
-        ref_html = (f'<div class="bld2-km-ref">{html.escape(t["ref_str"])}</div>'
-                    if t.get("ref_str") else "")
+        spark_html = t.get("sparkline_svg") or ""
         tile_html_chunks.append(f"""
-    <div class="bld2-km">
-      <div class="bld2-km-label">{html.escape(t["label"])}</div>
-      <div class="bld2-km-row-val">
-        <div class="bld2-km-val">{html.escape(t["value"])}</div>
-        {unit_html}
-        {delta_inner}
-      </div>
-      {ref_html}
+  <div class="bld2-km">
+    <div class="bld2-km-label">{html.escape(t["label"])}</div>
+    <div class="bld2-km-row-val">
+      <div class="bld2-km-val">{html.escape(t["value"])}</div>
+      {unit_html}
+      {delta_inner}
     </div>
+    {spark_html}
+  </div>
 """)
 
     tiles_html = "".join(tile_html_chunks)
 
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-card">
-    <div class="bld2-eyebrow">KEY METRICS — BIOMECHANICS</div>
-    <div class="bld2-km-row">
-      {tiles_html}
-    </div>
+    return f"""
+<div class="bld2-card" style="margin-bottom:1rem;">
+  <div class="bld2-eyebrow">KEY METRICS — BIOMECHANICS</div>
+  <div class="bld2-km-row">
+    {tiles_html}
   </div>
 </div>
-""")
+"""
 
 
-def _render_v2_breakdown_and_viz(record: Dict[str, Any],
-                                  phase_chart_path: Optional[str]):
-    """Breakdown table + pose overlay placeholder, side-by-side."""
+def _build_v2_breakdown_and_viz(record: Dict[str, Any],
+                                 phase_chart_path: Optional[str]) -> str:
+    """Breakdown table + pose overlay placeholder, side-by-side.
+    Returns HTML string."""
     rows = _flatten_metric_table(record)
-    # Take up to 6 most-important rows for the readable table.
-    # Sort by sim_pct ASC so the biggest gaps are at top (most actionable).
+    # Show ALL rows that have a sim_pct (mockup shows 10). Sort by sim_pct
+    # ascending so the biggest gaps surface first.
     rows_sorted = sorted(
         [r for r in rows if r.get("sim_pct") is not None],
         key=lambda r: r.get("sim_pct", 0)
-    )[:6]
+    )[:10]
 
     body_rows = []
     for r in rows_sorted:
         sim_pct = r.get("sim_pct") or 0
-        st_cls = _band_from_pct(sim_pct)
-        icon = "✓" if sim_pct >= 75 else ("—" if sim_pct >= 55 else "!")
+        if sim_pct >= 75:
+            st_cls, icon = "bld2-st-ok", "✓"
+        elif sim_pct >= 55:
+            st_cls, icon = "bld2-st-warn", "—"
+        else:
+            st_cls, icon = "bld2-st-bad", "↓"
         body_rows.append(f"""
-      <tr>
-        <td>{html.escape(str(r.get("label","")))}</td>
-        <td>{html.escape(str(r.get("player_str","—")))}</td>
-        <td>{html.escape(str(r.get("ref_str","—")))}</td>
-        <td><span class="bld2-status {st_cls}">{icon}</span></td>
-      </tr>
+    <tr>
+      <td>{html.escape(str(r.get("label","")))}</td>
+      <td>{html.escape(str(r.get("player_str","—")))}</td>
+      <td>{html.escape(str(r.get("ref_str","—")))}</td>
+      <td><span class="bld2-status {st_cls}">{icon}</span></td>
+    </tr>
 """)
 
     table_body = "".join(body_rows) if body_rows else (
@@ -1119,57 +1339,69 @@ def _render_v2_breakdown_and_viz(record: Dict[str, Any],
     )
 
     # Pose overlay placeholder. Push 2 will replace this block with the real
-    # SVG skeleton renderer driven by the stored .pose.json.
+    # SVG skeleton renderer driven by the stored .pose.json. Tabs + scrubber
+    # are visual affordances for the upcoming feature.
     pose_block = """
-    <div class="bld2-viz-pair">
-      <div class="bld2-viz-frame">
-        <div class="bld2-viz-tag">AT LOAD</div>
-        <div class="bld2-viz-empty">
-          POSE OVERLAY<br>RENDERING SOON
-        </div>
-      </div>
-      <div class="bld2-viz-frame">
-        <div class="bld2-viz-tag">AT CONTACT</div>
-        <div class="bld2-viz-empty">
-          POSE OVERLAY<br>RENDERING SOON
-        </div>
-      </div>
+  <div class="bld2-viz-tabs">
+    <span class="bld2-viz-tab active">Side View</span>
+    <span class="bld2-viz-tab">Front View</span>
+    <span class="bld2-viz-tab">Top View</span>
+  </div>
+  <div class="bld2-viz-pair">
+    <div class="bld2-viz-frame">
+      <div class="bld2-viz-tag">AT LOAD</div>
+      <div class="bld2-viz-empty">[ pose overlay frame ]</div>
     </div>
-    <div class="bld2-viz-soon">SIDE-BY-SIDE SKELETON OVERLAY · PRO FEATURE · SHIPPING NEXT</div>
-"""
-
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-grid-2-tilt">
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">SWING BREAKDOWN — TOP GAPS</div>
-      <table class="bld2-br-table">
-        <thead>
-          <tr><th>METRIC</th><th>YOU</th><th>REFERENCE</th><th>STATUS</th></tr>
-        </thead>
-        <tbody>
-          {table_body}
-        </tbody>
-      </table>
-      <div class="bld2-legend">
-        <span><span class="bld2-legend-dot" style="background:var(--bld2-green);"></span>STRONG MATCH</span>
-        <span><span class="bld2-legend-dot" style="background:var(--bld2-amber);"></span>WORKING</span>
-        <span><span class="bld2-legend-dot" style="background:var(--bld2-red);"></span>BIGGEST GAP</span>
-      </div>
-    </div>
-
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">SWING VISUALIZATION</div>
-      {pose_block}
+    <div class="bld2-viz-frame">
+      <div class="bld2-viz-tag">AT CONTACT</div>
+      <div class="bld2-viz-empty">[ pose overlay frame ]</div>
     </div>
   </div>
+  <div class="bld2-scrub-row">
+    <span class="bld2-scrub-play">▶</span>
+    <div class="bld2-scrub-bar">
+      <div class="bld2-scrub-fill"></div>
+      <div class="bld2-scrub-knob"></div>
+    </div>
+    <div class="bld2-scrub-time">0.00 / 0.60</div>
+  </div>
+  <div style="margin-top:0.7rem;display:flex;gap:1rem;font-family:var(--bld2-mono);font-size:0.55rem;color:var(--bld2-ink-60);letter-spacing:0.14em;text-transform:uppercase;font-weight:600;">
+    <div><span class="bld2-legend-dot" style="background:#ff3b30;"></span>Your Swing</div>
+    <div><span class="bld2-legend-dot" style="background:rgba(255,255,255,0.4);"></span>MLB Reference</div>
+  </div>
+  <div class="bld2-viz-soon">POSE SKELETON RENDERING — SHIPPING NEXT</div>
+"""
+
+    return f"""
+<div class="bld2-grid-2-tilt">
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">SWING BREAKDOWN</div>
+    <table class="bld2-br-table">
+      <thead>
+        <tr><th>METRIC</th><th>YOUR SWING</th><th>MLB AVG</th><th>STATUS</th></tr>
+      </thead>
+      <tbody>
+        {table_body}
+      </tbody>
+    </table>
+    <div class="bld2-legend">
+      <span><span class="bld2-legend-dot" style="background:var(--bld2-green);"></span>Above MLB Avg</span>
+      <span><span class="bld2-legend-dot" style="background:var(--bld2-amber);"></span>Average</span>
+      <span><span class="bld2-legend-dot" style="background:var(--bld2-red);"></span>Below MLB Avg</span>
+    </div>
+  </div>
+
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">SWING VISUALIZATION</div>
+    {pose_block}
+  </div>
 </div>
-""")
+"""
 
 
-def _render_v2_priorities_and_drills(record: Dict[str, Any],
-                                       history: Optional[List[Dict[str, Any]]]):
-    """Top 3 priorities + recommended drills, side-by-side."""
+def _build_v2_priorities_and_drills(record: Dict[str, Any],
+                                      history: Optional[List[Dict[str, Any]]]) -> str:
+    """Top 3 priorities + recommended drills, side-by-side. Returns HTML."""
     fixes = top_three_fixes(record) or []
     # Enrich with history-aware "recurring" flags
     if history:
@@ -1227,14 +1459,15 @@ def _render_v2_priorities_and_drills(record: Dict[str, Any],
                 f'<div class="bld2-drill-pill">{html.escape(p)}</div>' for p in pills
             )
             drill_rows.append(f"""
-      <div class="bld2-drill">
-        <div class="bld2-drill-thumb">DRILL {drill_count:02d}</div>
-        <div class="bld2-drill-body">
-          <div class="bld2-drill-title">{html.escape(d.get("title") or d.get("name") or "Drill")}</div>
-          <div class="bld2-drill-pills">{pills_html}</div>
-          <div class="bld2-drill-why">{html.escape(d.get("why") or d.get("benefit") or "Reinforces this category.")}</div>
-        </div>
+    <div class="bld2-drill">
+      <div class="bld2-drill-thumb">DRILL {drill_count:02d}</div>
+      <div class="bld2-drill-body">
+        <div class="bld2-drill-title">{html.escape(d.get("title") or d.get("name") or "Drill")}</div>
+        <div class="bld2-drill-pills">{pills_html}</div>
+        <div class="bld2-drill-why">{html.escape(d.get("why") or d.get("benefit") or "Reinforces this category.")}</div>
       </div>
+      <div class="bld2-drill-check"></div>
+    </div>
 """)
             if drill_count >= 3:
                 break
@@ -1253,25 +1486,25 @@ def _render_v2_priorities_and_drills(record: Dict[str, Any],
 
     drills_html = "".join(drill_rows)
 
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-grid-2">
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">TOP 3 PRIORITIES</div>
-      {pri_html}
-    </div>
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">RECOMMENDED DRILLS</div>
-      {drills_html}
-    </div>
+    return f"""
+<div class="bld2-grid-2">
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">TOP 3 PRIORITIES</div>
+    {pri_html}
+    <div class="bld2-card-foot-link">View All Insights ›</div>
+  </div>
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">RECOMMENDED DRILLS</div>
+    {drills_html}
+    <div class="bld2-card-foot-link">View Full Drill Plan ›</div>
   </div>
 </div>
-""")
+"""
 
 
-def _render_v2_progress_and_next(record: Dict[str, Any],
-                                   history: Optional[List[Dict[str, Any]]]):
-    """Score-over-time chart + What's Next CTA."""
+def _build_v2_progress_and_next(record: Dict[str, Any],
+                                  history: Optional[List[Dict[str, Any]]]) -> str:
+    """Score-over-time chart + What's Next CTA. Returns HTML."""
     prog = swing_progress(record, history) or {}
     chart_svg = _progress_chart_svg(prog.get("score_history") or [])
 
@@ -1291,31 +1524,34 @@ def _render_v2_progress_and_next(record: Dict[str, Any],
             or "Work the priority drill block 3-4 sessions, then re-upload."
         )
 
-    _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-grid-2">
-    <div class="bld2-card">
-      <div class="bld2-eyebrow">SWING SCORE OVER TIME</div>
-      <div class="bld2-pc-host">{chart_svg}</div>
+    return f"""
+<div class="bld2-grid-2">
+  <div class="bld2-card">
+    <div class="bld2-eyebrow">SWING SCORE OVER TIME</div>
+    <div class="bld2-pc-host">{chart_svg}</div>
+  </div>
+  <div class="bld2-card bld2-next">
+    <div>
+      <div class="bld2-eyebrow">WHAT'S NEXT</div>
+      <h3>{html.escape(headline)}</h3>
+      <div class="bld2-next-blurb">{html.escape(body)}</div>
     </div>
-    <div class="bld2-card bld2-next">
-      <div>
-        <div class="bld2-eyebrow">WHAT'S NEXT</div>
-        <h3>{html.escape(headline)}</h3>
-        <div class="bld2-next-blurb">{html.escape(body)}</div>
-      </div>
-    </div>
+    <div class="bld2-next-cta">↑ Upload New Swing</div>
   </div>
 </div>
-""")
+"""
 
 
-def _render_v2_accordions(record: Dict[str, Any],
-                            history: Optional[List[Dict[str, Any]]]):
-    """Three st.expander blocks — coach notes, DNA, strengths."""
+def _build_v2_accordions(record: Dict[str, Any],
+                           history: Optional[List[Dict[str, Any]]]) -> str:
+    """Three HTML <details> accordions — coach notes, DNA, strengths.
+    Returns HTML string. We use native <details> instead of st.expander so
+    the dark-themed visual treatment is preserved (st.expander injects its
+    own Streamlit chrome that breaks the design)."""
+    parts: List[str] = []
+
     # ----- Coach's Full Notes -----
     coach_top = coach_summary(record)
-    # Plus an opinionated extra paragraph using narratives + reference style.
     narratives = record.get("narratives") or []
     ref = _extract_ref_info(record)
     extra_paras = []
@@ -1336,12 +1572,20 @@ def _render_v2_accordions(record: Dict[str, Any],
         )
     extra_html = "".join(f"<p>{p}</p>" for p in extra_paras)
 
-    with st.expander("Coach's Full Notes", expanded=False):
-        _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-coach-quote">{coach_top}</div>
-  <div class="bld2-coach-body">{extra_html}</div>
-</div>
+    parts.append(f"""
+<details class="bld2-accord">
+  <summary>
+    <div class="bld2-accord-head-l">
+      <div class="bld2-accord-eyebrow">08</div>
+      <div class="bld2-accord-title">Coach's Full Notes</div>
+    </div>
+    <div class="bld2-accord-caret">▼</div>
+  </summary>
+  <div class="bld2-accord-body">
+    <div class="bld2-coach-quote">{html.escape(coach_top)}</div>
+    <div class="bld2-coach-body">{extra_html}</div>
+  </div>
+</details>
 """)
 
     # ----- Swing DNA -----
@@ -1352,19 +1596,27 @@ def _render_v2_accordions(record: Dict[str, Any],
             pct = float(d.get("pct") or 0)
             color = _dna_fill_color(pct)
             cells_html_parts.append(f"""
-        <div class="bld2-dna-cell">
-          <div class="bld2-dna-label">{html.escape(str(d.get("label","")))}</div>
-          <div class="bld2-dna-bar"><div class="bld2-dna-fill" style="width:{max(0,min(100,pct))}%;background:{color};"></div></div>
-          <div class="bld2-dna-pct" style="color:{color};">{int(round(pct))}%</div>
-        </div>
+      <div class="bld2-dna-cell">
+        <div class="bld2-dna-label">{html.escape(str(d.get("label","")))}</div>
+        <div class="bld2-dna-bar"><div class="bld2-dna-fill" style="width:{max(0,min(100,pct))}%;background:{color};"></div></div>
+        <div class="bld2-dna-pct" style="color:{color};">{int(round(pct))}%</div>
+      </div>
 """)
-        with st.expander("Swing DNA — Category Match", expanded=False):
-            _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-dna-grid">
-    {"".join(cells_html_parts)}
+        parts.append(f"""
+<details class="bld2-accord">
+  <summary>
+    <div class="bld2-accord-head-l">
+      <div class="bld2-accord-eyebrow">09</div>
+      <div class="bld2-accord-title">Swing DNA — Category Match</div>
+    </div>
+    <div class="bld2-accord-caret">▼</div>
+  </summary>
+  <div class="bld2-accord-body">
+    <div class="bld2-dna-grid">
+      {"".join(cells_html_parts)}
+    </div>
   </div>
-</div>
+</details>
 """)
 
     # ----- Strengths -----
@@ -1378,23 +1630,33 @@ def _render_v2_accordions(record: Dict[str, Any],
             r_str = s.get("ref_str") or ""
             sub = f"You: {p_str} · Ref: {r_str}" if (p_str or r_str) else ""
             cells_html_parts.append(f"""
-        <div class="bld2-str">
-          <div class="bld2-str-head">
-            <div class="bld2-str-check">✓</div>
-            <div class="bld2-str-title">{html.escape(str(cat_label))}</div>
-          </div>
-          <div class="bld2-str-pct">{int(round(float(pct)))}%</div>
-          <div class="bld2-str-sub">{html.escape(sub)}</div>
+      <div class="bld2-str">
+        <div class="bld2-str-head">
+          <div class="bld2-str-check">✓</div>
+          <div class="bld2-str-title">{html.escape(str(cat_label))}</div>
         </div>
+        <div class="bld2-str-pct">{int(round(float(pct)))}%</div>
+        <div class="bld2-str-sub">{html.escape(sub)}</div>
+      </div>
 """)
-        with st.expander("What You Did Well", expanded=False):
-            _md(f"""
-<div class="bld2-wrap">
-  <div class="bld2-str-row">
-    {"".join(cells_html_parts)}
+        parts.append(f"""
+<details class="bld2-accord">
+  <summary>
+    <div class="bld2-accord-head-l">
+      <div class="bld2-accord-eyebrow">10</div>
+      <div class="bld2-accord-title">What You Did Well</div>
+    </div>
+    <div class="bld2-accord-caret">▼</div>
+  </summary>
+  <div class="bld2-accord-body">
+    <div class="bld2-str-row">
+      {"".join(cells_html_parts)}
+    </div>
   </div>
-</div>
+</details>
 """)
+
+    return "".join(parts)
 
 
 # =====================================================================
@@ -1422,13 +1684,21 @@ def render_swing_report_v2(
     # Live results don't have a DB id yet; saved records do.
     is_live = not record.get("id")
 
-    _render_v2_header(record, is_live)
-    _render_v2_hero(record, history)
-    _render_v2_key_metrics(record, history)
-    _render_v2_breakdown_and_viz(record, phase_chart_path)
-    _render_v2_priorities_and_drills(record, history)
-    _render_v2_progress_and_next(record, history)
-    _render_v2_accordions(record, history)
+    # Build the WHOLE report as one HTML string and emit it in ONE markdown
+    # call. This is critical for visual cohesion — if we call _md() per
+    # section, Streamlit wraps each in its own stMarkdownContainer chrome
+    # and the cards get pushed apart with extra padding, killing the
+    # mockup's tight rhythm.
+    sections = [
+        _build_v2_header(record, is_live),
+        _build_v2_hero(record, history),
+        _build_v2_key_metrics(record, history),
+        _build_v2_breakdown_and_viz(record, phase_chart_path),
+        _build_v2_priorities_and_drills(record, history),
+        _build_v2_progress_and_next(record, history),
+        _build_v2_accordions(record, history),
+    ]
+    _md('<div class="bld2-wrap">' + "".join(sections) + "</div>")
 
     # ====== DIAGNOSTICS (kept from v1 — useful expandables) ======
     if show_diagnostics:
