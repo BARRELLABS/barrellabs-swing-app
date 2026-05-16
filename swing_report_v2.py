@@ -1777,7 +1777,7 @@ def _build_v2_accordions(record: Dict[str, Any],
     <div class="bld2-accord-caret">▼</div>
   </summary>
   <div class="bld2-accord-body">
-    <div class="bld2-coach-quote">{html.escape(coach_top)}</div>
+    <div class="bld2-coach-quote">{coach_top}</div>
     <div class="bld2-coach-body">{extra_html}</div>
   </div>
 </details>
