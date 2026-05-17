@@ -419,14 +419,15 @@ _HTML_TEMPLATE = r"""
     text-transform: none;
   }
   .viewport {
-    /* Constrain the viewport with a max-height so portrait 9:16 swings
-       don't blow up to ~1000px tall on desktop. The aspect ratio is
-       preserved and the panel centers itself in its column. */
+    /* Width-driven sizing: fill the column up to ~270px, then let
+       aspect-ratio derive the height (~480px at full width). This
+       prevents the 9:16 portrait from blowing up to ~1000px tall on
+       desktop while still keeping the panel non-zero in width.
+       max-width = max-height * 9/16 (480 * 9/16 = 270). */
     position: relative;
+    width: 100%;
+    max-width: 270px;
     aspect-ratio: 9 / 16;
-    max-height: 480px;
-    width: auto;
-    max-width: 100%;
     margin: 0 auto;
     background: #000;
     overflow: hidden;
