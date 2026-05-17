@@ -201,15 +201,48 @@ def clear_session():
         pass
 
 
+def _is_auth_error(exc: Exception) -> bool:
+    """Best-effort: is this exception an actual auth failure (vs. a
+    transient network / 5xx hiccup)?
+
+    Auth failures → clear the session and bounce to login.
+    Transient errors → leave session intact, return the cached user
+    if we have one, so a flaky network during a long upload doesn't
+    kick a logged-in user to login with no warning.
+    """
+    msg = str(exc).lower()
+    return (
+        "jwt" in msg
+        or "invalid_grant" in msg
+        or "invalid token" in msg
+        or "invalid refresh" in msg
+        or "refresh token" in msg
+        or "unauthor" in msg            # "unauthorized"
+        or "user not found" in msg
+        or "user_not_found" in msg
+        or "session_not_found" in msg
+        or "auth session missing" in msg
+    )
+
+
 def get_current_user():
     """
     Return the currently authenticated Supabase user object, or None.
 
     Pulls fresh user info from the API on first call per rerun, then
     caches it on st.session_state["auth_user"] for the rest of the run.
+
+    Defensive: never clear the session on a transient error. A network
+    blip during a 30-60s pose-detection upload was bouncing logged-in
+    users straight back to login with no warning. Only clear when the
+    error is unambiguously an auth failure.
     """
     if "auth_user" in st.session_state:
-        return st.session_state["auth_user"]
+        cached = st.session_state["auth_user"]
+        if cached:
+            return cached
+        # Cached value is None — fall through and try once more rather
+        # than returning a stale "not logged in" answer.
 
     session = st.session_state.get("supabase_session")
     if not session:
@@ -219,12 +252,21 @@ def get_current_user():
         client = get_client()
         resp = client.auth.get_user()
         user = getattr(resp, "user", None)
-        st.session_state["auth_user"] = user
+        if user:
+            # Only cache truthy users. Caching None creates a sticky
+            # "logged out" state across reruns even if the very next
+            # call would have succeeded.
+            st.session_state["auth_user"] = user
         return user
-    except Exception:
-        # Stale token — purge and bounce them back to the login screen.
-        clear_session()
-        return None
+    except Exception as exc:
+        if _is_auth_error(exc):
+            # Real auth failure — purge and bounce them back to login.
+            clear_session()
+            return None
+        # Transient (network/5xx/etc): keep the session intact and
+        # return whatever's cached. Worst case the user sees one stale
+        # rerun, then the next call succeeds.
+        return st.session_state.get("auth_user")
 
 
 def is_logged_in() -> bool:
