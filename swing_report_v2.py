@@ -43,7 +43,7 @@ import streamlit as st
 # Set to False to skip the comparison block on every report — instant rollback
 # without redeploying. Leave True in normal operation.
 # ---------------------------------------------------------------------------
-USE_SWING_COMPARE = True
+USE_SWING_COMPARE = False
 
 # Reuse every data helper from swing_report.py — this file is render-only.
 from swing_report import (
