@@ -780,6 +780,9 @@ _HTML_TEMPLATE = r"""
       const mlbVH  = MLB.pose ? MLB.pose.video_height : '—';
       const anchorStr = _timeAnchors.map(
         p => '(' + fmt3(p[0]) + '→' + fmt3(p[1]) + ')').join(' ');
+      const relStr = _midPhasesReliable ? 'YES' : 'NO';
+      const fpcStr = (_fpToContact === null) ? '—'
+                     : (_fpToContact * 1000).toFixed(0) + 'ms';
       const lines = [
         'userPhases ' + JSON.stringify(USER.phases || {}),
         'mlbPhases  ' + JSON.stringify(MLB.phases || {}),
@@ -789,6 +792,7 @@ _HTML_TEMPLATE = r"""
         'mlbFrames  ' + mfLen + ' t=' + fmtRange(mfRange),
         'userBounds ' + (userBounds ? JSON.stringify(userBounds) : '—'),
         'mlbBounds  ' + JSON.stringify(mlbBounds),
+        'fp→contact ' + fpcStr + '  midPhasesReliable=' + relStr,
         'anchors[' + _timeAnchors.length + '] ' + anchorStr,
       ];
       const d = document.createElement('div');
@@ -800,7 +804,11 @@ _HTML_TEMPLATE = r"""
       document.body.appendChild(d);
     } catch (e) { /* swallow */ }
   }
-  _dbgOverlay();
+  // NB: _dbgOverlay() is called AFTER _timeAnchors / _midPhasesReliable
+  // are defined further below — calling it here would TDZ-throw inside
+  // the function body and the try/catch would silently swallow it
+  // (which is what was happening through 1.3.12 — the overlay was
+  // never actually rendering anchor or reliability info).
 
   // -----------------------------------------------------------------
   // Phase-anchored time warp.
@@ -816,14 +824,36 @@ _HTML_TEMPLATE = r"""
   // -----------------------------------------------------------------
   const _PHASE_ORDER = ['load_start','foot_plant','launch',
                         'contact','peak_rotation','finish'];
+
+  // Reliability heuristic for user mid-swing phases. Phase detection
+  // sometimes clusters foot_plant / launch / contact within tens of
+  // milliseconds (real values are 100-250ms between each), which then
+  // creates 5-10x slope amplifications in the piecewise time-warp —
+  // MLB visually blasts from load pose straight to follow-through in
+  // a single frame. When we detect that, we ignore the unreliable
+  // intermediate anchors and rely on the longer-baseline load_start
+  // and finish anchors instead.
+  const _fpToContact = (typeof userPhases.foot_plant === 'number'
+                        && typeof userPhases.contact === 'number')
+    ? (userPhases.contact - userPhases.foot_plant) : null;
+  const _midPhasesReliable = (_fpToContact === null)
+    || (_fpToContact >= 0.080);
+
   const _timeAnchors = (function() {
     const a = [];
     for (let i = 0; i < _PHASE_ORDER.length; i++) {
       const k = _PHASE_ORDER[i];
       const ut = userPhases[k], mt = mlbPhases[k];
-      if (typeof ut === 'number' && typeof mt === 'number') {
-        a.push([ut, mt]);
+      if (typeof ut !== 'number' || typeof mt !== 'number') continue;
+      // Skip intermediate phases when user detection clustered them.
+      // load_start and finish are long-baseline and stable, so we
+      // always keep those if present.
+      if (!_midPhasesReliable
+          && (k === 'foot_plant' || k === 'launch'
+              || k === 'contact'  || k === 'peak_rotation')) {
+        continue;
       }
+      a.push([ut, mt]);
     }
     // Tail safety: ensure there's an anchor at the very end of both
     // swings so post-contact playback paces sensibly. The user side
@@ -878,6 +908,9 @@ _HTML_TEMPLATE = r"""
     }
     return a;
   })();
+
+  // Now safe to render the debug overlay — all referenced vars exist.
+  _dbgOverlay();
 
   function userToMlbTime(userT) {
     // Fallback lockstep when user has no phases at all.
