@@ -282,12 +282,13 @@ def build_compare_section(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         user_handedness=user_hand,
     )
 
-    # Height heuristic: a 9:16 viewport at ~50% column width ≈ 480px tall.
-    # Plus controls (~120px) + label (~30px) = ~640px total. We give a
-    # little slack so the iframe never crops the jump-buttons row.
+    # Height heuristic: viewport capped at 480px (set in CSS), plus the
+    # panel label (~36px), controls block (~120px), and a small footnote
+    # row (~30px) = ~666px. Add a 20px slack so the iframe never crops
+    # the jump-buttons row.
     return {
         "html": html_bundle,
-        "height": 680,
+        "height": 690,
         "ready": bool(pose_payload),
     }
 
@@ -418,13 +419,19 @@ _HTML_TEMPLATE = r"""
     text-transform: none;
   }
   .viewport {
+    /* Constrain the viewport with a max-height so portrait 9:16 swings
+       don't blow up to ~1000px tall on desktop. The aspect ratio is
+       preserved and the panel centers itself in its column. */
     position: relative;
-    width: 100%;
     aspect-ratio: 9 / 16;
+    max-height: 480px;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto;
     background: #000;
     overflow: hidden;
   }
-  .viewport.mlb { aspect-ratio: 9 / 16; background: #050507; }
+  .viewport.mlb { background: #050507; }
   .viewport video, .viewport canvas {
     position: absolute;
     inset: 0;
