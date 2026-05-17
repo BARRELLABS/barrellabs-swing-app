@@ -5024,7 +5024,16 @@ if not st.button("Analyze swing", type="primary", width="stretch"):
 # Free users get FREE_SWING_LIMIT lifetime analyses. Any Pro plan is
 # unlimited. We check this AFTER the button click but BEFORE pose
 # detection runs so we don't waste 30–60s of compute on a blocked user.
-_plan_snapshot = load_my_plan()
+#
+# IMPORTANT: force_refresh=True bypasses the session_state cache. If a
+# user's tier changed mid-session (beta-code redemption, Stripe checkout
+# completion, manual comp), the cache could still hold the old "Free"
+# snapshot — causing this exact upload to be treated as Free even though
+# the DB row already says Pro. That stale read also bypasses pose
+# extraction at line ~5160, leaving the user side of the side-by-side
+# comparison empty. Always re-read fresh on a swing upload — DB hit is
+# cheap and entitlement correctness matters far more than the ~50ms.
+_plan_snapshot = load_my_plan(force_refresh=True)
 _swing_check = can_analyze_swing(_plan_snapshot)
 if not _swing_check.allowed:
     st.markdown(f"""
