@@ -680,6 +680,16 @@ _HTML_TEMPLATE = r"""
   const mlbFP  = mlbPhases.foot_plant || 0;
   const mlbSlowMo = (MLB.pose && MLB.pose.slow_mo_factor) || 1.0;
 
+  // Fallback mode: user has no phases_t (legacy record or non-Pro upload).
+  // We drive the timeline from MLB phases so the playback covers the
+  // actual swing window — otherwise we'd play through Trout's pre-pitch
+  // stance and stop before he ever swings. In fallback mode userT is
+  // interpreted directly as MLB video time (mlbT = userT, the existing
+  // lockstep branch in render()).
+  const useUserTimeline = (userFP !== undefined && userFP !== null);
+  const refPhases = useUserTimeline ? userPhases : mlbPhases;
+  const refFP     = useUserTimeline ? userFP     : mlbFP;
+
   // -----------------------------------------------------------------
   // DOM refs
   // -----------------------------------------------------------------
@@ -902,10 +912,21 @@ _HTML_TEMPLATE = r"""
   function timelineRange() {
     // Compute a tight window around the swing, with 200ms pad each side,
     // so the slider doesn't spend 80% of its width on empty setup time.
+    //
+    // In fallback mode (no user phases), we drive the range from MLB
+    // phases — otherwise the slider covers Trout's pre-pitch stance and
+    // stops before the actual swing begins.
     let lo, hi;
-    if (userPhases.load_start !== undefined && userPhases.finish !== undefined) {
+    if (useUserTimeline
+        && userPhases.load_start !== undefined
+        && userPhases.finish !== undefined) {
       lo = Math.max(0, userPhases.load_start - 0.2);
       hi = Math.min(userDuration(), userPhases.finish + 0.2);
+    } else if (mlbPhases.load_start !== undefined
+               && mlbPhases.finish !== undefined) {
+      // Fallback: MLB-driven range (userT directly = MLB video time).
+      lo = Math.max(0, mlbPhases.load_start - 0.2);
+      hi = mlbPhases.finish + 0.2;
     } else {
       lo = 0; hi = userDuration();
     }
@@ -939,7 +960,7 @@ _HTML_TEMPLATE = r"""
     const usable = rect.width - 14;  // account for thumb size
 
     Object.keys(labels).forEach(k => {
-      const t = userPhases[k];
+      const t = refPhases[k];
       if (t === undefined || t < lo || t > hi) return;
       const pct = (t - lo) / (hi - lo);
       const xpx = 7 + pct * usable;
@@ -984,8 +1005,12 @@ _HTML_TEMPLATE = r"""
   }
 
   function formatTime(t) {
-    if (userFP !== undefined) {
-      const rel = t - userFP;
+    // Always show time relative to the reference foot plant (user's or
+    // MLB's in fallback mode), so the label reads "−250ms" → "+0ms" →
+    // "+150ms" as we cross foot plant. Easier to interpret than raw
+    // video timestamps.
+    if (refFP !== undefined && refFP !== null) {
+      const rel = t - refFP;
       const sign = rel >= 0 ? '+' : '−';
       return sign + Math.abs(rel * 1000).toFixed(0) + 'ms';
     }
@@ -1001,7 +1026,7 @@ _HTML_TEMPLATE = r"""
   function updateJumpActive(t) {
     jumps.querySelectorAll('.jump-btn').forEach(b => {
       const phase = b.dataset.phase;
-      const pt = userPhases[phase];
+      const pt = refPhases[phase];
       const on = (pt !== undefined && Math.abs(pt - t) < 0.06);
       b.classList.toggle('active', on);
     });
@@ -1046,7 +1071,7 @@ _HTML_TEMPLATE = r"""
     const btn = e.target.closest('.jump-btn');
     if (!btn) return;
     const phase = btn.dataset.phase;
-    const t = userPhases[phase];
+    const t = refPhases[phase];
     if (t === undefined) return;
     if (USER.video_url) {
       userVideo.pause();
