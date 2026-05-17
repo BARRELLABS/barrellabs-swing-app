@@ -317,17 +317,43 @@ def _fetch_pose_payload(storage_path: Optional[str]) -> Optional[Dict[str, Any]]
                 from player_storage import get_swing_pose_signed_url
                 url = get_swing_pose_signed_url(path)
                 if not url:
+                    try:
+                        import streamlit as _st
+                        _st.warning(f"[pose-fetch] no signed URL returned for path: {path}")
+                    except Exception:
+                        pass
                     return None
                 import urllib.request, json as _json
                 with urllib.request.urlopen(url, timeout=15) as resp:
                     body = resp.read()
-                return _json.loads(body.decode("utf-8"))
-            except Exception:
+                payload = _json.loads(body.decode("utf-8"))
+                # Surface schema sanity so we can see if the file is the
+                # wrong shape vs a network/auth failure.
+                try:
+                    import streamlit as _st
+                    if not isinstance(payload, dict):
+                        _st.warning(f"[pose-fetch] payload is not a dict (type={type(payload).__name__})")
+                    elif "pose_frames" not in payload:
+                        _st.warning(f"[pose-fetch] payload missing 'pose_frames' key. keys={list(payload.keys())}")
+                except Exception:
+                    pass
+                return payload
+            except Exception as exc:
+                try:
+                    import streamlit as _st
+                    _st.warning(f"[pose-fetch] inner failure for {path}: {type(exc).__name__}: {exc}")
+                except Exception:
+                    pass
                 return None
         return _cached_fetch(storage_path)
-    except Exception:
+    except Exception as exc:
         # If anything (including streamlit import) goes sideways, just
         # render the MLB-only fallback rather than crashing the report.
+        try:
+            import streamlit as _st
+            _st.warning(f"[pose-fetch] outer failure: {type(exc).__name__}: {exc}")
+        except Exception:
+            pass
         return None
 
 
