@@ -85,22 +85,35 @@ def _pose_payload_from_record(record: Dict[str, Any]) -> Optional[Dict[str, Any]
 def _pose_payload_from_reference(ref: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Return the same-shaped pose payload for an MLB reference JSON.
 
-    MLB reference files store `frames` at the top level (each with
-    `{f, t, kp}`), `fps`, `slow_mo_factor`, and the source video dims.
+    MLB reference files store frames under `pose_frames` (matching the
+    user record schema), each with `{f, t, kp}`. Video dims live in
+    `pose_meta`. We also accept the legacy `frames` key for forward
+    compat in case someone hand-crafts a reference that way.
     """
-    frames = ref.get("frames")
+    frames = ref.get("pose_frames")
+    if not isinstance(frames, list) or not frames:
+        # Fallback: older / alternate schema with frames at top level.
+        frames = ref.get("frames")
     if not isinstance(frames, list) or not frames:
         return None
-    # The video dims sometimes live under `video_dims` or top-level.
-    vw = (ref.get("video_width")
+
+    # Video dims: prefer pose_meta (the canonical place for MLB refs),
+    # then top-level video_width/height, then a `video_dims` block.
+    meta = ref.get("pose_meta") or {}
+    vw = (meta.get("video_width")
+          or ref.get("video_width")
           or (ref.get("video_dims") or {}).get("width")
           or 1280)
-    vh = (ref.get("video_height")
+    vh = (meta.get("video_height")
+          or ref.get("video_height")
           or (ref.get("video_dims") or {}).get("height")
           or 720)
+
+    fps = meta.get("fps") or ref.get("fps") or 30.0
+
     return {
         "frames": frames,
-        "fps": float(ref.get("fps") or 30.0),
+        "fps": float(fps),
         "video_width": int(vw),
         "video_height": int(vh),
         # slow_mo_factor: MLB references are typically broadcast slow-mo
