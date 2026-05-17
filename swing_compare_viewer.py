@@ -846,43 +846,22 @@ _HTML_TEMPLATE = r"""
     function _mlbEnd() {
       // Best: MLB has a labeled finish phase.
       if (typeof mlbPhases.finish === 'number') return mlbPhases.finish;
-      // Next: synthesize from peak_rotation + proportional follow-through.
-      // The "follow-through ratio" = user_contact_to_finish /
-      //                              user_load_to_contact, clamped to [0.25, 1.5].
-      // We scale MLB's load→contact by that ratio and add to mlb.contact
-      // to estimate a natural finish point in MLB video time.
-      if (typeof mlbPhases.peak_rotation === 'number'
-          && typeof mlbPhases.contact === 'number'
-          && typeof mlbPhases.load_start === 'number') {
-        let ratio = 0.5;
-        if (typeof userPhases.finish === 'number'
-            && typeof userPhases.contact === 'number'
-            && typeof userPhases.load_start === 'number') {
-          const uFollow = userPhases.finish  - userPhases.contact;
-          const uSwing  = userPhases.contact - userPhases.load_start;
-          if (uSwing > 1e-3 && uFollow > 0) {
-            ratio = Math.max(0.25, Math.min(1.5, uFollow / uSwing));
-          }
-        }
-        const mlbSwing = mlbPhases.contact - mlbPhases.load_start;
-        let synth = mlbPhases.contact + mlbSwing * ratio;
-        // Clamp to MLB's last frame so we never extrapolate past data.
-        if (MLB.pose && MLB.pose.frames && MLB.pose.frames.length) {
-          const lf = MLB.pose.frames[MLB.pose.frames.length - 1];
-          if (lf && typeof lf.t === 'number') synth = Math.min(synth, lf.t);
-        }
-        // Always end strictly after peak_rotation (anchor monotonicity).
-        return Math.max(synth, mlbPhases.peak_rotation + 0.05);
+      // Without a labeled finish, pair the user's finish with MLB's
+      // very last captured frame. This guarantees the MLB stick figure
+      // plays through its complete motion (bat extension, top-hand
+      // release, body rotation completing into finish stance) during
+      // the user's playback window. Earlier synthesized estimates
+      // (peak_rotation, peak_rotation + small buffer) stopped MLB
+      // mid-follow-through, which is what users see as "MLB only
+      // showing the end of the swing".
+      if (MLB.pose && MLB.pose.frames && MLB.pose.frames.length) {
+        const lf = MLB.pose.frames[MLB.pose.frames.length - 1];
+        if (lf && typeof lf.t === 'number') return lf.t;
       }
       // Fallback: last available labeled phase.
       const keys = ['peak_rotation','contact','launch','foot_plant'];
       for (const k of keys) {
         if (typeof mlbPhases[k] === 'number') return mlbPhases[k];
-      }
-      // Last resort: last frame.
-      if (MLB.pose && MLB.pose.frames && MLB.pose.frames.length) {
-        const lf = MLB.pose.frames[MLB.pose.frames.length - 1];
-        if (lf && typeof lf.t === 'number') return lf.t;
       }
       return null;
     }
