@@ -764,7 +764,7 @@ _HTML_TEMPLATE = r"""
     ? computeFigureBounds(USER.pose.frames) : null;
   const mlbBounds  = computeFigureBounds(MLB.pose.frames);
 
-  // TEMP (Push 1.3.9): on-screen debug overlay so we can verify scale /
+  // TEMP (Push 1.3.10): on-screen debug overlay so we can verify scale /
   // sync state without browser dev tools. Remove once visuals are dialed.
   function _dbgOverlay() {
     try {
@@ -772,21 +772,29 @@ _HTML_TEMPLATE = r"""
       const mfLen = (MLB.pose && MLB.pose.frames) ? MLB.pose.frames.length : 0;
       const ufRange = ufLen ? [USER.pose.frames[0].t, USER.pose.frames[ufLen-1].t] : null;
       const mfRange = mfLen ? [MLB.pose.frames[0].t, MLB.pose.frames[mfLen-1].t] : null;
-      const fmt = (v) => (v === null || v === undefined)
-        ? '—'
-        : (typeof v === 'number' ? v.toFixed(3) : JSON.stringify(v));
+      const fmt3 = (v) => (typeof v === 'number') ? v.toFixed(3) : '—';
+      const fmtRange = (r) => r ? '[' + fmt3(r[0]) + ',' + fmt3(r[1]) + ']' : '—';
+      const userVW = USER.pose ? USER.pose.video_width : '—';
+      const userVH = USER.pose ? USER.pose.video_height : '—';
+      const mlbVW  = MLB.pose ? MLB.pose.video_width : '—';
+      const mlbVH  = MLB.pose ? MLB.pose.video_height : '—';
+      const anchorStr = _timeAnchors.map(
+        p => '(' + fmt3(p[0]) + '→' + fmt3(p[1]) + ')').join(' ');
       const lines = [
         'userPhases ' + JSON.stringify(USER.phases || {}),
         'mlbPhases  ' + JSON.stringify(MLB.phases || {}),
-        'userFrames ' + ufLen + ' t=' + fmt(ufRange),
-        'mlbFrames  ' + mfLen + ' t=' + fmt(mfRange),
+        'userVideo  ' + userVW + '×' + userVH
+          + '   mlbVideo ' + mlbVW + '×' + mlbVH,
+        'userFrames ' + ufLen + ' t=' + fmtRange(ufRange),
+        'mlbFrames  ' + mfLen + ' t=' + fmtRange(mfRange),
         'userBounds ' + (userBounds ? JSON.stringify(userBounds) : '—'),
         'mlbBounds  ' + JSON.stringify(mlbBounds),
+        'anchors[' + _timeAnchors.length + '] ' + anchorStr,
       ];
       const d = document.createElement('div');
       d.style.cssText = 'position:fixed;left:6px;top:6px;background:rgba(0,0,0,0.86);'
         + 'color:#0f0;font:10px/1.35 ui-monospace,Menlo,monospace;'
-        + 'padding:6px 8px;border-radius:6px;max-width:60vw;'
+        + 'padding:6px 8px;border-radius:6px;max-width:80vw;'
         + 'white-space:pre-wrap;z-index:9999;pointer-events:none;';
       d.textContent = lines.join('\n');
       document.body.appendChild(d);
@@ -815,6 +823,41 @@ _HTML_TEMPLATE = r"""
       const ut = userPhases[k], mt = mlbPhases[k];
       if (typeof ut === 'number' && typeof mt === 'number') {
         a.push([ut, mt]);
+      }
+    }
+    // Tail safety: if user has a `finish` (or any later phase) but the
+    // last common anchor is earlier (e.g., MLB has `peak_rotation` but
+    // not `finish`, so anchors stop at `contact`), the post-contact
+    // extrapolation can use a wildly wrong slope (e.g., 36ms user
+    // launch→contact paired with 209ms MLB launch→contact = 5.8x
+    // amplification, which rockets MLB past its last frame in a
+    // fraction of the user's follow-through).
+    //
+    // To prevent that, synthesize an explicit end anchor pairing the
+    // user's last known phase with MLB's last known phase, in priority
+    // order: finish > peak_rotation > last frame.
+    function pickLast(phases, fallbackFrames) {
+      const keys = ['finish', 'peak_rotation', 'contact'];
+      for (const k of keys) {
+        if (typeof phases[k] === 'number') return phases[k];
+      }
+      if (fallbackFrames && fallbackFrames.length) {
+        const lf = fallbackFrames[fallbackFrames.length - 1];
+        if (lf && typeof lf.t === 'number') return lf.t;
+      }
+      return null;
+    }
+    const userEnd = pickLast(userPhases,
+                             USER.pose && USER.pose.frames);
+    const mlbEnd  = pickLast(mlbPhases,
+                             MLB.pose && MLB.pose.frames);
+    if (typeof userEnd === 'number' && typeof mlbEnd === 'number') {
+      const last = a[a.length - 1];
+      // Only append if the new tail is genuinely after the last anchor
+      // on the user side. Avoids duplicate anchors when finish/finish
+      // is already paired in the loop above.
+      if (!last || last[0] < userEnd - 1e-3) {
+        a.push([userEnd, mlbEnd]);
       }
     }
     return a;
