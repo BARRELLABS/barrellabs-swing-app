@@ -717,6 +717,111 @@ _HTML_TEMPLATE = r"""
   const refFP     = useUserTimeline ? userFP     : mlbFP;
 
   // -----------------------------------------------------------------
+  // Figure-bounds (scale normalization).
+  //
+  // Each swing's pose data is normalized to its own source video frame,
+  // so a figure shot tight on iPhone portrait and a figure shot wide on
+  // a broadcast camera end up at very different on-screen sizes if we
+  // map them naively to the canvas. We fix this by computing each
+  // swing's bounding box across all frames (using stable torso+leg
+  // landmarks only — hands swing way outside the body envelope and
+  // would shrink the figure to a dot) and rendering the figure into
+  // a uniform ~92% of the canvas in both panels.
+  // -----------------------------------------------------------------
+  function computeFigureBounds(frames) {
+    // 0 = nose, 11/12 = shoulders, 23/24 = hips,
+    // 25/26 = knees, 27/28 = ankles. Stable across the swing.
+    const ANCHORS = [0, 11, 12, 23, 24, 25, 26, 27, 28];
+    let xMin = 1, xMax = 0, yMin = 1, yMax = 0, count = 0;
+    for (let i = 0; i < frames.length; i++) {
+      const kp = frames[i].kp;
+      if (!kp) continue;
+      for (let j = 0; j < ANCHORS.length; j++) {
+        const p = kp[ANCHORS[j]];
+        if (!p || p[2] < 0.3) continue;
+        if (p[0] < xMin) xMin = p[0];
+        if (p[0] > xMax) xMax = p[0];
+        if (p[1] < yMin) yMin = p[1];
+        if (p[1] > yMax) yMax = p[1];
+        count++;
+      }
+    }
+    if (count < 10 || xMax <= xMin || yMax <= yMin) {
+      return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+    }
+    // 10% pad horizontally (arm reach), 6% vertically (head/foot slack)
+    const padX = (xMax - xMin) * 0.10;
+    const padY = (yMax - yMin) * 0.06;
+    return {
+      xMin: Math.max(0, xMin - padX),
+      xMax: Math.min(1, xMax + padX),
+      yMin: Math.max(0, yMin - padY),
+      yMax: Math.min(1, yMax + padY),
+    };
+  }
+
+  const userBounds = (USER.pose && USER.pose.frames && USER.pose.frames.length)
+    ? computeFigureBounds(USER.pose.frames) : null;
+  const mlbBounds  = computeFigureBounds(MLB.pose.frames);
+
+  // -----------------------------------------------------------------
+  // Phase-anchored time warp.
+  //
+  // A single foot-plant anchor + constant slow-mo factor isn't enough
+  // to keep both swings aligned end-to-end — user swings vary in
+  // duration phase-to-phase, and so do MLB references. Instead we
+  // build a list of [userT, mlbT] anchors for every phase that exists
+  // on both sides, then map any user time by piecewise-linear interp
+  // through those anchors. Result: load ↔ load, foot_plant ↔ foot_plant,
+  // launch ↔ launch, contact ↔ contact, finish ↔ finish — both swings
+  // hit every key moment at the same playback position.
+  // -----------------------------------------------------------------
+  const _PHASE_ORDER = ['load_start','foot_plant','launch',
+                        'contact','peak_rotation','finish'];
+  const _timeAnchors = (function() {
+    const a = [];
+    for (let i = 0; i < _PHASE_ORDER.length; i++) {
+      const k = _PHASE_ORDER[i];
+      const ut = userPhases[k], mt = mlbPhases[k];
+      if (typeof ut === 'number' && typeof mt === 'number') {
+        a.push([ut, mt]);
+      }
+    }
+    return a;
+  })();
+
+  function userToMlbTime(userT) {
+    // Fallback lockstep when user has no phases at all.
+    if (!useUserTimeline) return userT;
+    // Degenerate case: not enough anchors for piecewise — fall back
+    // to the legacy single-anchor + slow_mo behavior so we still
+    // produce sensible motion instead of a frozen frame.
+    if (_timeAnchors.length < 2) {
+      return mlbFP + (userT - userFP) * mlbSlowMo;
+    }
+    // Before first anchor: extrapolate using first segment's slope.
+    if (userT <= _timeAnchors[0][0]) {
+      const u0 = _timeAnchors[0][0], m0 = _timeAnchors[0][1];
+      const u1 = _timeAnchors[1][0], m1 = _timeAnchors[1][1];
+      return m0 + (userT - u0) * (m1 - m0) / Math.max(1e-6, u1 - u0);
+    }
+    // In range: walk segments and linear-interp inside the right one.
+    for (let i = 0; i < _timeAnchors.length - 1; i++) {
+      const u0 = _timeAnchors[i][0],   m0 = _timeAnchors[i][1];
+      const u1 = _timeAnchors[i+1][0], m1 = _timeAnchors[i+1][1];
+      if (userT <= u1) {
+        const alpha = (userT - u0) / Math.max(1e-6, u1 - u0);
+        return m0 + alpha * (m1 - m0);
+      }
+    }
+    // After last anchor: extrapolate using last segment's slope.
+    const n = _timeAnchors.length;
+    const uA = _timeAnchors[n-2][0], mA = _timeAnchors[n-2][1];
+    const uB = _timeAnchors[n-1][0], mB = _timeAnchors[n-1][1];
+    return mB + (userT - uB) * (mB - mA) / Math.max(1e-6, uB - uA);
+  }
+
+  // -----------------------------------------------------------------
   // DOM refs
   // -----------------------------------------------------------------
   const userVideo = document.getElementById('user-video');
@@ -804,12 +909,55 @@ _HTML_TEMPLATE = r"""
     };
   }
 
+  // Fit the FIGURE (per bounds) into a uniform 92% of the canvas, in
+  // the figure's own aspect ratio. Returned rect carries bounds for
+  // drawSkeleton to remap kp coords by.
+  function fitFigureRect(canvasW, canvasH, bounds, srcW, srcH) {
+    const figW = Math.max(1e-3, bounds.xMax - bounds.xMin) * srcW;
+    const figH = Math.max(1e-3, bounds.yMax - bounds.yMin) * srcH;
+    const figAR = figW / figH;
+    const padFrac = 0.04;  // 4% margin around the figure
+    const targetW = canvasW * (1 - padFrac * 2);
+    const targetH = canvasH * (1 - padFrac * 2);
+    let w, h;
+    if (figAR > targetW / targetH) {
+      w = targetW;
+      h = w / figAR;
+    } else {
+      h = targetH;
+      w = h * figAR;
+    }
+    return {
+      x: (canvasW - w) / 2,
+      y: (canvasH - h) / 2,
+      w: w, h: h,
+      bounds: bounds,
+    };
+  }
+
   function drawSkeleton(ctx, kp, rect, opts) {
     if (!kp) return;
     const mirror = !!(opts && opts.mirror);
     const lineColor = (opts && opts.lineColor) || '#ff3b30';
     const dotColor  = (opts && opts.dotColor)  || '#ffffff';
     const lineWidth = (opts && opts.lineWidth) || 3;
+    // When rect.bounds is set, coords are remapped so the bounded
+    // figure fills the rect (scale-normalized mode). Otherwise the
+    // legacy video-aligned mapping is used.
+    const bounds = (rect && rect.bounds)
+      ? rect.bounds
+      : { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
+    const xRange = Math.max(1e-6, bounds.xMax - bounds.xMin);
+    const yRange = Math.max(1e-6, bounds.yMax - bounds.yMin);
+
+    function projX(raw) {
+      let xNorm = (raw - bounds.xMin) / xRange;
+      if (mirror) xNorm = 1 - xNorm;
+      return rect.x + xNorm * rect.w;
+    }
+    function projY(raw) {
+      return rect.y + (raw - bounds.yMin) / yRange * rect.h;
+    }
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -821,12 +969,9 @@ _HTML_TEMPLATE = r"""
       const a = CONNECTIONS[i][0], b = CONNECTIONS[i][1];
       const pa = kp[a], pb = kp[b];
       if (!pa || !pb || pa[2] < 0.3 || pb[2] < 0.3) continue;
-      let ax = pa[0] * rect.w;
-      let bx = pb[0] * rect.w;
-      if (mirror) { ax = rect.w - ax; bx = rect.w - bx; }
       ctx.beginPath();
-      ctx.moveTo(rect.x + ax, rect.y + pa[1] * rect.h);
-      ctx.lineTo(rect.x + bx, rect.y + pb[1] * rect.h);
+      ctx.moveTo(projX(pa[0]), projY(pa[1]));
+      ctx.lineTo(projX(pb[0]), projY(pb[1]));
       ctx.stroke();
     }
 
@@ -835,10 +980,8 @@ _HTML_TEMPLATE = r"""
     for (let i = 0; i < kp.length; i++) {
       const p = kp[i];
       if (!p || p[2] < 0.3) continue;
-      let x = p[0] * rect.w;
-      if (mirror) x = rect.w - x;
       ctx.beginPath();
-      ctx.arc(rect.x + x, rect.y + p[1] * rect.h,
+      ctx.arc(projX(p[0]), projY(p[1]),
               Math.max(2, lineWidth - 1), 0, Math.PI * 2);
       ctx.fill();
     }
@@ -864,30 +1007,35 @@ _HTML_TEMPLATE = r"""
   // Render frame at given user-video time.
   // -----------------------------------------------------------------
   function render(userT) {
-    // User side
+    // User side. With a video, we keep the legacy video-aligned fit so
+    // the red skeleton tracks the body inside the video. Without a video
+    // (skeleton-only fallback), we use figure-bounds fitting so the
+    // figure occupies a consistent fraction of the canvas and matches
+    // the MLB side's scale.
     if (hasUserPose) {
       userCtx.clearRect(0, 0, userCanvas.width, userCanvas.height);
       const r = userCanvas.getBoundingClientRect();
-      const rect = fitRect(r.width, r.height,
-                           USER.pose.video_width, USER.pose.video_height);
+      const rect = USER.video_url
+        ? fitRect(r.width, r.height,
+                  USER.pose.video_width, USER.pose.video_height)
+        : (userBounds
+            ? fitFigureRect(r.width, r.height, userBounds,
+                            USER.pose.video_width, USER.pose.video_height)
+            : fitRect(r.width, r.height,
+                      USER.pose.video_width, USER.pose.video_height));
       const f = findFrameAt(USER.pose.frames, userT);
       if (f) drawSkeleton(userCtx, f.kp, rect,
                           { lineColor: '#ff3b30', dotColor: '#fff', lineWidth: 3 });
     }
 
-    // MLB side
+    // MLB side — always figure-bounds fit, since there's no video to
+    // align against on this panel.
     mlbCtx.clearRect(0, 0, mlbCanvas.width, mlbCanvas.height);
     {
       const r = mlbCanvas.getBoundingClientRect();
-      const rect = fitRect(r.width, r.height,
-                           MLB.pose.video_width, MLB.pose.video_height);
-      let mlbT;
-      if (userFP !== undefined && userFP !== null) {
-        const relativeT = userT - userFP;
-        mlbT = mlbFP + relativeT * mlbSlowMo;
-      } else {
-        mlbT = userT; // user hasn't a foot-plant — play in lockstep
-      }
+      const rect = fitFigureRect(r.width, r.height, mlbBounds,
+                                 MLB.pose.video_width, MLB.pose.video_height);
+      const mlbT = userToMlbTime(userT);
       const f = findFrameAt(MLB.pose.frames, mlbT);
       if (f) drawSkeleton(mlbCtx, f.kp, rect, {
         lineColor: '#6ee7b7',
@@ -897,13 +1045,10 @@ _HTML_TEMPLATE = r"""
       });
     }
 
-    // Phase tags — light up when user is within ~80ms of a key phase.
+    // Phase tags — light up when each side is within ~80ms of a key
+    // phase on its own timeline.
     updatePhaseTag(userPhaseTag, userT, userPhases);
-    // MLB tag tracks the equivalent moment on MLB's timeline
-    const mlbEquivT = (userFP !== undefined && userFP !== null)
-      ? mlbFP + (userT - userFP) * mlbSlowMo
-      : userT;
-    updatePhaseTag(mlbPhaseTag, mlbEquivT, mlbPhases);
+    updatePhaseTag(mlbPhaseTag, userToMlbTime(userT), mlbPhases);
   }
 
   function updatePhaseTag(el, t, phases) {
