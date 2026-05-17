@@ -1077,6 +1077,14 @@ _HTML_TEMPLATE = r"""
     const lineColor = (opts && opts.lineColor) || '#ff3b30';
     const dotColor  = (opts && opts.dotColor)  || '#ffffff';
     const lineWidth = (opts && opts.lineWidth) || 3;
+    // Configurable confidence threshold. Broadcast slow-mo on MLB clips
+    // often drops wrist/elbow confidence below 0.30 during the actual
+    // swing motion (bat blur), which made the bat arm disappear right
+    // when the swing was happening — the user only saw the start and
+    // end pose, looking like "MLB barely animates the end". Lower
+    // threshold lets the arm render through the full swing.
+    const confMin = (opts && typeof opts.confMin === 'number')
+                    ? opts.confMin : 0.3;
     // When rect.bounds is set, coords are remapped so the bounded
     // figure fills the rect (scale-normalized mode). Otherwise the
     // legacy video-aligned mapping is used.
@@ -1104,7 +1112,7 @@ _HTML_TEMPLATE = r"""
     for (let i = 0; i < CONNECTIONS.length; i++) {
       const a = CONNECTIONS[i][0], b = CONNECTIONS[i][1];
       const pa = kp[a], pb = kp[b];
-      if (!pa || !pb || pa[2] < 0.3 || pb[2] < 0.3) continue;
+      if (!pa || !pb || pa[2] < confMin || pb[2] < confMin) continue;
       ctx.beginPath();
       ctx.moveTo(projX(pa[0]), projY(pa[1]));
       ctx.lineTo(projX(pb[0]), projY(pb[1]));
@@ -1115,7 +1123,7 @@ _HTML_TEMPLATE = r"""
     ctx.fillStyle = dotColor;
     for (let i = 0; i < kp.length; i++) {
       const p = kp[i];
-      if (!p || p[2] < 0.3) continue;
+      if (!p || p[2] < confMin) continue;
       ctx.beginPath();
       ctx.arc(projX(p[0]), projY(p[1]),
               Math.max(2, lineWidth - 1), 0, Math.PI * 2);
@@ -1178,6 +1186,10 @@ _HTML_TEMPLATE = r"""
         dotColor: '#ffffff',
         lineWidth: 2.5,
         mirror: !!MLB.mirror,
+        // Broadcast slow-mo blurs the bat arm during the swing —
+        // accept lower-confidence keypoints so the arm draws through
+        // contact and follow-through instead of dropping out.
+        confMin: 0.10,
       });
     }
 
@@ -1260,19 +1272,25 @@ _HTML_TEMPLATE = r"""
     let lo, hi;
     const poseExt = userPoseExtent();
 
+    // Tight 50ms padding around the swing — was 200ms on each side, but
+    // that wasted ~18% of slider width on pre-pitch setup and post-finish
+    // hold where neither figure moves. With 50ms, ~95% of slider is
+    // actual swing motion, so the user sees meaningful animation across
+    // the entire slider scrub instead of dead zones at the ends.
+    const PAD = 0.05;
     if (useUserTimeline
         && userPhases.load_start !== undefined
         && userPhases.finish !== undefined) {
-      lo = Math.max(0, userPhases.load_start - 0.2);
-      hi = userPhases.finish + 0.2;
+      lo = Math.max(0, userPhases.load_start - PAD);
+      hi = userPhases.finish + PAD;
     } else if (useUserTimeline && poseExt) {
       // Partial phases — anchor what we have, fall back to pose extents
       // for the unknown endpoints.
       lo = (userPhases.load_start !== undefined)
-         ? Math.max(0, userPhases.load_start - 0.2)
+         ? Math.max(0, userPhases.load_start - PAD)
          : poseExt[0];
       hi = (userPhases.finish !== undefined)
-         ? userPhases.finish + 0.2
+         ? userPhases.finish + PAD
          : poseExt[1];
     } else if (mlbPhases.load_start !== undefined
                && mlbPhases.finish !== undefined) {
