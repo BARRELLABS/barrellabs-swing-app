@@ -802,6 +802,20 @@ _HTML_TEMPLATE = r"""
         + 'white-space:pre-wrap;z-index:9999;pointer-events:none;';
       d.textContent = lines.join('\n');
       document.body.appendChild(d);
+
+      // Live readout — updates every render() call. Sits just below the
+      // static overlay so we can watch userT/mlbT change as the slider
+      // moves. Helps isolate whether the slider drives the full range
+      // or only a fraction of it.
+      const live = document.createElement('div');
+      live.id = '_dbg_live';
+      live.style.cssText = 'position:fixed;left:6px;top:200px;'
+        + 'background:rgba(0,0,0,0.86);color:#ff0;'
+        + 'font:11px/1.35 ui-monospace,Menlo,monospace;'
+        + 'padding:6px 8px;border-radius:6px;max-width:80vw;'
+        + 'white-space:pre-wrap;z-index:9999;pointer-events:none;';
+      live.textContent = 'LIVE — scrub the slider';
+      document.body.appendChild(live);
     } catch (e) { /* swallow */ }
   }
   // NB: _dbgOverlay() is called AFTER _timeAnchors / _midPhasesReliable
@@ -1171,6 +1185,27 @@ _HTML_TEMPLATE = r"""
     // phase on its own timeline.
     updatePhaseTag(userPhaseTag, userT, userPhases);
     updatePhaseTag(mlbPhaseTag, userToMlbTime(userT), mlbPhases);
+
+    // Live debug readout — show actual userT, mlbT, and which MLB frame
+    // was chosen. If userT never reaches the expected ends, the slider /
+    // playback engine is broken. If mlbT clamps to the tail regardless
+    // of userT, the time-warp or findFrameAt is broken.
+    try {
+      const _live = document.getElementById('_dbg_live');
+      if (_live) {
+        const _mlbT = userToMlbTime(userT);
+        const _mf = findFrameAt(MLB.pose.frames, _mlbT);
+        const _uf = USER.pose ? findFrameAt(USER.pose.frames, userT) : null;
+        const _fmt = (v) => (typeof v === 'number') ? v.toFixed(3) : '—';
+        _live.textContent =
+          'LIVE  userT=' + _fmt(userT)
+          + '  mlbT=' + _fmt(_mlbT)
+          + '\n      userFrame f=' + (_uf ? _uf.f : '—')
+          + '  t=' + (_uf ? _fmt(_uf.t) : '—')
+          + '\n      mlbFrame  f=' + (_mf ? _mf.f : '—')
+          + '  t=' + (_mf ? _fmt(_mf.t) : '—');
+      }
+    } catch (e) { /* swallow */ }
   }
 
   function updatePhaseTag(el, t, phases) {
