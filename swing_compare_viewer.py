@@ -764,6 +764,36 @@ _HTML_TEMPLATE = r"""
     ? computeFigureBounds(USER.pose.frames) : null;
   const mlbBounds  = computeFigureBounds(MLB.pose.frames);
 
+  // TEMP (Push 1.3.9): on-screen debug overlay so we can verify scale /
+  // sync state without browser dev tools. Remove once visuals are dialed.
+  function _dbgOverlay() {
+    try {
+      const ufLen = (USER.pose && USER.pose.frames) ? USER.pose.frames.length : 0;
+      const mfLen = (MLB.pose && MLB.pose.frames) ? MLB.pose.frames.length : 0;
+      const ufRange = ufLen ? [USER.pose.frames[0].t, USER.pose.frames[ufLen-1].t] : null;
+      const mfRange = mfLen ? [MLB.pose.frames[0].t, MLB.pose.frames[mfLen-1].t] : null;
+      const fmt = (v) => (v === null || v === undefined)
+        ? '—'
+        : (typeof v === 'number' ? v.toFixed(3) : JSON.stringify(v));
+      const lines = [
+        'userPhases ' + JSON.stringify(USER.phases || {}),
+        'mlbPhases  ' + JSON.stringify(MLB.phases || {}),
+        'userFrames ' + ufLen + ' t=' + fmt(ufRange),
+        'mlbFrames  ' + mfLen + ' t=' + fmt(mfRange),
+        'userBounds ' + (userBounds ? JSON.stringify(userBounds) : '—'),
+        'mlbBounds  ' + JSON.stringify(mlbBounds),
+      ];
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;left:6px;top:6px;background:rgba(0,0,0,0.86);'
+        + 'color:#0f0;font:10px/1.35 ui-monospace,Menlo,monospace;'
+        + 'padding:6px 8px;border-radius:6px;max-width:60vw;'
+        + 'white-space:pre-wrap;z-index:9999;pointer-events:none;';
+      d.textContent = lines.join('\n');
+      document.body.appendChild(d);
+    } catch (e) { /* swallow */ }
+  }
+  _dbgOverlay();
+
   // -----------------------------------------------------------------
   // Phase-anchored time warp.
   //
@@ -1080,28 +1110,64 @@ _HTML_TEMPLATE = r"""
     return (userVideo.duration && isFinite(userVideo.duration))
       ? userVideo.duration : 2.0;
   }
+  // User's actual pose-frame extents — fallback when user phases are
+  // incomplete (e.g., load_start/finish missing). Without this fallback
+  // the slider gets clamped to userDuration()=2s which can chop off the
+  // back half of a 2.5s swing.
+  function userPoseExtent() {
+    const f = USER.pose && USER.pose.frames;
+    if (!f || !f.length) return null;
+    const firstT = (typeof f[0].t === 'number') ? f[0].t : 0;
+    const lastT  = (typeof f[f.length-1].t === 'number') ? f[f.length-1].t : 2.0;
+    return [firstT, lastT];
+  }
   function timelineRange() {
     // Compute a tight window around the swing, with 200ms pad each side,
     // so the slider doesn't spend 80% of its width on empty setup time.
     //
-    // In fallback mode (no user phases), we drive the range from MLB
-    // phases — otherwise the slider covers Trout's pre-pitch stance and
-    // stops before the actual swing begins.
+    // Preference order:
+    //   1. User phases load_start + finish (best case — proper bracket)
+    //   2. Whatever user phases we have, padded by pose-frame extents
+    //   3. MLB phases (lockstep fallback when user has no phases)
+    //   4. Raw video duration (worst case)
     let lo, hi;
+    const poseExt = userPoseExtent();
+
     if (useUserTimeline
         && userPhases.load_start !== undefined
         && userPhases.finish !== undefined) {
       lo = Math.max(0, userPhases.load_start - 0.2);
-      hi = Math.min(userDuration(), userPhases.finish + 0.2);
+      hi = userPhases.finish + 0.2;
+    } else if (useUserTimeline && poseExt) {
+      // Partial phases — anchor what we have, fall back to pose extents
+      // for the unknown endpoints.
+      lo = (userPhases.load_start !== undefined)
+         ? Math.max(0, userPhases.load_start - 0.2)
+         : poseExt[0];
+      hi = (userPhases.finish !== undefined)
+         ? userPhases.finish + 0.2
+         : poseExt[1];
     } else if (mlbPhases.load_start !== undefined
                && mlbPhases.finish !== undefined) {
       // Fallback: MLB-driven range (userT directly = MLB video time).
       lo = Math.max(0, mlbPhases.load_start - 0.2);
       hi = mlbPhases.finish + 0.2;
+    } else if (poseExt) {
+      lo = poseExt[0]; hi = poseExt[1];
     } else {
       lo = 0; hi = userDuration();
     }
-    if (hi - lo < 0.4) { lo = 0; hi = userDuration(); }
+
+    // Cap by user video duration ONLY when we have a real video; in
+    // skeleton-only mode the userDuration() fallback (2.0s) would
+    // truncate longer swings.
+    if (USER.video_url) hi = Math.min(hi, userDuration());
+
+    if (hi - lo < 0.4) {
+      // Sanity floor — never produce a degenerate range
+      if (poseExt) { lo = poseExt[0]; hi = poseExt[1]; }
+      else { lo = 0; hi = userDuration(); }
+    }
     return [lo, hi];
   }
 
