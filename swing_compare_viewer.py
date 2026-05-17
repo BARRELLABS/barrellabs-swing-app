@@ -825,37 +825,74 @@ _HTML_TEMPLATE = r"""
         a.push([ut, mt]);
       }
     }
-    // Tail safety: if user has a `finish` (or any later phase) but the
-    // last common anchor is earlier (e.g., MLB has `peak_rotation` but
-    // not `finish`, so anchors stop at `contact`), the post-contact
-    // extrapolation can use a wildly wrong slope (e.g., 36ms user
-    // launch→contact paired with 209ms MLB launch→contact = 5.8x
-    // amplification, which rockets MLB past its last frame in a
-    // fraction of the user's follow-through).
-    //
-    // To prevent that, synthesize an explicit end anchor pairing the
-    // user's last known phase with MLB's last known phase, in priority
-    // order: finish > peak_rotation > last frame.
-    function pickLast(phases, fallbackFrames) {
-      const keys = ['finish', 'peak_rotation', 'contact'];
-      for (const k of keys) {
-        if (typeof phases[k] === 'number') return phases[k];
-      }
-      if (fallbackFrames && fallbackFrames.length) {
-        const lf = fallbackFrames[fallbackFrames.length - 1];
+    // Tail safety: ensure there's an anchor at the very end of both
+    // swings so post-contact playback paces sensibly. The user side
+    // uses their `finish` phase (or last frame fallback). The MLB side
+    // prefers `finish` if labeled, otherwise synthesizes a finish point
+    // past `peak_rotation` using a follow-through duration scaled to
+    // the user's swing — so MLB animates through its full motion
+    // (impact extension, top-hand release, post-rotation pose) rather
+    // than freezing at peak_rotation (which is just past bat impact,
+    // not the visual end of the swing).
+    function _userEnd() {
+      if (typeof userPhases.finish === 'number') return userPhases.finish;
+      if (typeof userPhases.peak_rotation === 'number') return userPhases.peak_rotation;
+      if (USER.pose && USER.pose.frames && USER.pose.frames.length) {
+        const lf = USER.pose.frames[USER.pose.frames.length - 1];
         if (lf && typeof lf.t === 'number') return lf.t;
       }
       return null;
     }
-    const userEnd = pickLast(userPhases,
-                             USER.pose && USER.pose.frames);
-    const mlbEnd  = pickLast(mlbPhases,
-                             MLB.pose && MLB.pose.frames);
+    function _mlbEnd() {
+      // Best: MLB has a labeled finish phase.
+      if (typeof mlbPhases.finish === 'number') return mlbPhases.finish;
+      // Next: synthesize from peak_rotation + proportional follow-through.
+      // The "follow-through ratio" = user_contact_to_finish /
+      //                              user_load_to_contact, clamped to [0.25, 1.5].
+      // We scale MLB's load→contact by that ratio and add to mlb.contact
+      // to estimate a natural finish point in MLB video time.
+      if (typeof mlbPhases.peak_rotation === 'number'
+          && typeof mlbPhases.contact === 'number'
+          && typeof mlbPhases.load_start === 'number') {
+        let ratio = 0.5;
+        if (typeof userPhases.finish === 'number'
+            && typeof userPhases.contact === 'number'
+            && typeof userPhases.load_start === 'number') {
+          const uFollow = userPhases.finish  - userPhases.contact;
+          const uSwing  = userPhases.contact - userPhases.load_start;
+          if (uSwing > 1e-3 && uFollow > 0) {
+            ratio = Math.max(0.25, Math.min(1.5, uFollow / uSwing));
+          }
+        }
+        const mlbSwing = mlbPhases.contact - mlbPhases.load_start;
+        let synth = mlbPhases.contact + mlbSwing * ratio;
+        // Clamp to MLB's last frame so we never extrapolate past data.
+        if (MLB.pose && MLB.pose.frames && MLB.pose.frames.length) {
+          const lf = MLB.pose.frames[MLB.pose.frames.length - 1];
+          if (lf && typeof lf.t === 'number') synth = Math.min(synth, lf.t);
+        }
+        // Always end strictly after peak_rotation (anchor monotonicity).
+        return Math.max(synth, mlbPhases.peak_rotation + 0.05);
+      }
+      // Fallback: last available labeled phase.
+      const keys = ['peak_rotation','contact','launch','foot_plant'];
+      for (const k of keys) {
+        if (typeof mlbPhases[k] === 'number') return mlbPhases[k];
+      }
+      // Last resort: last frame.
+      if (MLB.pose && MLB.pose.frames && MLB.pose.frames.length) {
+        const lf = MLB.pose.frames[MLB.pose.frames.length - 1];
+        if (lf && typeof lf.t === 'number') return lf.t;
+      }
+      return null;
+    }
+    const userEnd = _userEnd();
+    const mlbEnd  = _mlbEnd();
     if (typeof userEnd === 'number' && typeof mlbEnd === 'number') {
       const last = a[a.length - 1];
-      // Only append if the new tail is genuinely after the last anchor
-      // on the user side. Avoids duplicate anchors when finish/finish
-      // is already paired in the loop above.
+      // Append only if the synthetic tail is genuinely past the last
+      // existing anchor on the user side. Prevents duplicate / inverted
+      // anchors when finish/finish was already added by the loop above.
       if (!last || last[0] < userEnd - 1e-3) {
         a.push([userEnd, mlbEnd]);
       }
