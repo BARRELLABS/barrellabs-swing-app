@@ -76,6 +76,7 @@ def _logo_data_uri() -> str:
             _LOGO_DATA_URI_CACHE = ""
             return ""
         img = Image.open(_LOGO_PATH).convert("RGBA").resize((256, 256), Image.LANCZOS)
+        # The PNG ships with real transparency now — no runtime knockout needed.
         buf = io.BytesIO()
         img.save(buf, "PNG", optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("ascii")

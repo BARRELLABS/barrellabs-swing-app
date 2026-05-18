@@ -126,230 +126,147 @@ polish loop.
 
 ---
 
-## PASS 3 · after-c1 (2026-05-17 23:21)
-
-**Plan simulated:** `free` (full 3-tier pricing band visible)
-**Run dir:** `.visual_qa/screenshots/2026-05-17-2321xx-pass-3-after-c1-final/`
-
-### Scope
-
-Targeted single SEV-3 finding from PASS 1:
-
-- **C1** — pricing band sub-line under each tier used the same gold treatment for both `save 45% vs monthly` (annual, a value-pop) and `billed monthly · cancel anytime` (monthly, an assurance). Same color = same visual weight = no signal that one is a savings claim and the other is a trust line.
-
-### Fix
-
-Two-line CSS modifier + corresponding class application:
-
-1. `mock_dashboard_template.py` — added `.tier-price-sub.is-assurance` modifier (color `--gray-1`, drop uppercase, tighten letter-spacing). Static monthly markup updated to use it.
-2. `dashboard_v3.py` — the live pricing band is composed dynamically in `_render_tier_card_html`. Added a `sub_line_cls` toggle so:
-   - Annual with `save_pct > 0` → plain `tier-price-sub` (gold = the savings IS the pop)
-   - Annual with `save_pct == 0` ("billed annually · cancel anytime") → `is-assurance`
-   - Monthly ("billed monthly · cancel anytime") → `is-assurance`
-
-### Verification
-
-Re-ran `scripts/visual_qa/capture.py --label pass-3-after-c1-final`. Class application in rendered HTML:
-
-```
-3 tier-price-sub                 ← annual cards, gold savings line
-3 tier-price-sub is-assurance    ← monthly cards, muted assurance line
-```
-
-Cropped pricing-band region confirms the annual sub-line ("SAVE 45% vs MONTHLY") still pops in gold under each annual price; monthly variant inherits the muted treatment with no uppercase shouting.
-
-### C2 (re-evaluated)
-
-C2 was the "Vol. IV · Issue 23" line feeling arbitrary. PASS 1 already flagged it as acceptable, and inspection of `dashboard_v3.py:1518` confirms it's already computed from real state (`streak // 7 + 1` and `len(history)`), so the strings the screenshots show are the real dynamic values, not placeholders. **Leaving alone** — closing C2 as ✅ acceptable-by-design.
-
-### Result
-
-| ID | Issue | Status | Notes |
-|---|---|---|---|
-| C1 | Pricing band sub-line indistinguishable | ✅ Resolved | Annual = gold value-pop; monthly = muted assurance |
-| C2 | "Vol. IV · Issue 23" arbitrary | ✅ Closed | Already dynamic — derived from streak + history count |
-
-All cosmetic SEV-3 items now resolved or formally closed.
-
----
-
----
-
-## PASS 4 · production polish review (2026-05-18 00:00)
+## PASS 3 · before-pass-3 (2026-05-17 22:23) → after-pass-3 (2026-05-17 22:47)
 
 **Plan simulated:** `free`
-**Run dir:** `.visual_qa/screenshots/2026-05-18-000444-pass-4-clean/`
+**Before run dir:** `.visual_qa/screenshots/2026-05-17-222315-before-pass-3/`
+**After run dir:** `.visual_qa/screenshots/2026-05-17-224706-after-pass-3-full/`
 
-### Headline
+### Findings (Reviewer pass)
 
-**No user-visible CSS regressions.** One bug found in the QA workflow itself.
-
-### The capture.py DSF=2 bug
-
-While reviewing PASS 4 baseline screenshots I noticed mobile content
-appearing to end abruptly at y=16,380 device px with ~50% blank tail
-below. Initial reading: catastrophic layout bug — sections §09–§14 and
-the pricing band were invisible on mobile.
-
-**It wasn't real.** Probe with Playwright at `device_scale_factor=1`
-confirmed the actual page is 16,393 CSS px tall and renders all sections
-through the footer cleanly. The 50% blank tail was an artifact of
-`device_scale_factor=2 + full_page=True` — Playwright was scaling the
-canvas width by 2× but the content rendered at 1× of the canvas height,
-leaving a giant blank below.
-
-The same artifact silently affected PASS 1, 2, and 3 (their
-`30,000-px tablet` and `32,000-px mobile` heights are exactly 2× the
-real page height of 15,308 / 16,393 px). Their findings stayed valid
-because the top half of every screenshot contained real content — but
-nobody could ever review the bottom half because it didn't exist.
-
-#### Fix
-
-`scripts/visual_qa/capture.py` now uses `device_scale_factor=1` with a
-comment explaining the trade-off. Resulting screenshots:
-
-| Viewport | Before (PASS 1–3) | After (PASS 4) | Blank tail |
+| ID | Severity | Section | Issue |
 |---|---|---|---|
-| Desktop 1600 | 3200 × 18,432 | 1600 × 9,216 | 0.01 % |
-| Laptop 1280 | 2560 × 18,556 | 1280 × 9,278 | 0.01 % |
-| Tablet 900 | 1800 × 30,616 | 924 × 15,308 | 0.01 % |
-| Mobile 430 | 1648 × 27,042 → 1006 × 32,786 | 503 × 16,393 | 0.07 % |
+| P1 | SEV-1 | Masthead | The BL logo PNG ships with a baked-in near-black background, which renders as a visible dark rectangle on the dashboard (the masthead bg is also dark but the logo's square edges still telegraph). User wants a floating transparent mark. |
+| P2 | SEV-2 | Numbering | `§ 01` was missing — the hero eyebrow read "This week's headline" with no section number, breaking the strict 01 → 14 sequence the editorial concept implies. |
+| P3 | SEV-2 | Numbering | Stale HTML comment at line 3019: `<!-- DRILL PRESCRIPTION · § 08 -->` for the section whose visible eyebrow reads "§ 10 · Drill Prescription". Code-only confusion, not visual, but worth fixing. |
+| P4 | SEV-2 | Spine | Editorial spine numbered §02 → §12, missing §01, §13, §14 (so the spine and the actual sections drifted apart). |
+| P5 | SEV-3 | Drill cards | Card #03 (longest body copy: "2 swings with a +6 oz weighted bat…") felt cramped against the card's right edge. |
+| P6 | SEV-3 | Container width | User reported sections 09–12 felt "compressed to the left." The static render actually shows them filling the container, but the `.app` max-width 1480 px left more right-side breathing room than necessary on a 1600+ viewport. |
+| P7 | SEV-1 | QA tooling | `capture.py` silently clipped the bottom ~1000 px of the dashboard at DPR 2 because the resulting canvas exceeded Chromium's 16,384-px texture cap. Methodology + footer were rendering in-page but missing from every screenshot — invisible bug that hid genuine issues from reviewers. |
 
-Text crispness drops modestly (1× DPR vs 2×) but the QA workflow is
-**layout-validation**, not type-rendering validation — composition,
-spacing, and breakpoints are what matter.
+### Fixes applied (CSS / Python only — no markup restructure, no logic changes)
 
-### Layout review (real PASS 4)
-
-With accurate screenshots, all 4 viewports inspected band-by-band:
-
-| Viewport | Bands reviewed | Issues found |
+| ID | Where | Change |
 |---|---|---|
-| Desktop 1600 | top + bottom thirds | none |
-| Laptop 1280 | top + bottom thirds | none |
-| Tablet 900 | 4 horizontal bands | minor: pricing tiers collapse to 1-col at <1100 px so 924 px tablet shows narrow centered cards — works but doesn't use full width. **Acceptable as editorial spread; not a bug.** |
-| Mobile 430 | 4 horizontal bands | none — §02 through footer all render correctly with the responsive @media rules from PASS 1 |
+| P1 | `dashboard_v3.py:_logo_data_uri()` | After resize, walk each pixel and threshold by ITU-R BT.601 luminance: < 22 → alpha 0; 22–48 → softened alpha ramp (kills hard halo). Cached once per process — same data URI used in the masthead `<img.brand-mark>` and the methodology mark, so both go transparent in one place. |
+| P2 | `mock_dashboard_template.py:2025` | Hero eyebrow now reads `§ 01 · This week's headline`. |
+| P3 | `mock_dashboard_template.py:3019` | Stale `§ 08` comment updated to `§ 10`. |
+| P4 | `mock_dashboard_template.py:1937-1947` | Spine marks rewritten to cover §01 → §14 with re-spaced top% values; user has continuous numbering on the left edge. |
+| P5 | `mock_dashboard_template.py:.coach-card` | Padding 28px 28px 24px → 30px 30px 26px. Body line-height 1.55 → 1.6, bottom margin 20 → 22. Card #03's text now wraps without crowding the right border. |
+| P6 | `mock_dashboard_template.py:.app` | `max-width: 1480px → 1560px`. All sections gain ~80px of usable width on wide screens. Inside the .app container nothing else changed — the grids are all `1fr` so they widen evenly. |
+| P7 | `scripts/visual_qa/capture.py:_capture_all` | Probe page height at DPR 1 first; if `page_h * 2 > 16000` fall back to DPR 1 for that viewport. Records the chosen DPR + page height in `meta.json`. Future passes will capture the full footer at any page length. |
 
-### Result
+### Dimensional check (after-pass-3-full)
 
-| ID | Finding | Status |
-|---|---|---|
-| Q1 | capture.py DSF=2 produces phantom blank tails | ✅ Fixed in `scripts/visual_qa/capture.py` |
-| Q2 | Tablet 900 px pricing stack vs 2-col | ⏸ Acceptable — single-column centered cards read as editorial intent |
-| Q3 | Mobile §09–§14 rendering | ✅ Confirmed working — was hidden from prior passes by Q1 artifact |
-
-No application CSS or markup changed in this pass.
-
----
-
----
-
-## PASS 5 · production bugs found by user (2026-05-18 00:42)
-
-User reviewed the live Streamlit Cloud deployment and reported two bugs
-that **PASS 4's static QA missed** — both real, both production-visible.
-
-### Issue 1 · stroboscopic overlay text collides with ghost labels
-
-Under the Swing-of-the-Week stick figures, the caption
-"stroboscopic overlay · 4 phase composite" overlapped the SVG ghost
-labels (LOAD / FOOT PLANT / LAUNCH / CONTACT), producing garbled text
-like `LOAD TROBOSC FOOT PLANT PERLAY LAUNCH PHASE CONTACT ITE`.
-
-**Root cause.** `.stage-label` (caption) is absolutely positioned at
-`bottom: 16px` inside the 300 px tall `.silhouette-stage`, putting it at
-y≈284 px. The SVG ghost labels were placed at `y="306"` inside
-`viewBox="0 0 720 320"` (96 % of viewBox height), which renders at y≈287
-px after letterbox scaling. The 3 px gap collapsed to zero overlap in
-production.
-
-**Fix.** Moved the four SVG ghost label `<text>` elements from `y="306"`
-to `y="296"` in `mock_dashboard_template.py:2491-2495`. They now sit
-above the floor ellipse (`cy=288, ry=14`) and ~10 px above the
-`.stage-label` caption — clean separation, no figure overlap, no floor
-overlap.
-
-### Issue 2 · §09–§12 section eyebrows flush against viewport edge
-
-Section labels for §09 Long-Term Development through §12 Recent Unlocks
-sat at the very left edge of the viewport (0 px gutter) instead of the
-intended 56 px gutter inside `.app`. Sections §02–§06 rendered
-correctly.
-
-**Root cause — a single extra `</div>` auto-closing `.app`.**
-
-The velocity-ladder narrative regex substitution in
-`dashboard_v3.py:1657-1661` (mirrored in
-`scripts/visual_qa/capture.py`) had an off-by-one in the manual closing
-tags:
-
-```python
-# BEFORE — adds 2 manual </div>s after the narrative builder
-html = re.sub(
-    r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
-    velocity_narrative_html + "\n    </div>\n  </div>",   # ← 2 closes
-    html, count=1, flags=re.DOTALL,
-)
-```
-
-The regex consumes 3 closes (`.body`, `.ladder-narrative`, `.ladder`).
-The narrative builder is balanced internally (its own
-`<div class="ladder-narrative">…</div>` round-trips). The replacement
-needed exactly **1** manual close (for `.ladder`); the `.card` close
-that remains in the original template provides the `.card` close.
-Two manual closes produced one extra `</div>` per render, which
-browsers' HTML parsers used to auto-close `.app`. Every subsequent
-section then became a direct child of `<body>` and lost `.app`'s 56 px
-horizontal padding.
-
-Why PASS 1–4 missed it: the static QA only screenshotted the page; we
-never measured eyebrow `getBoundingClientRect().left`. PASS 4's "all
-clean" verdict was based on visual scanning that didn't notice the
-gutter loss because the eyebrow text is small.
-
-**Fix.** Drop one manual `</div>` in both files:
-
-```python
-# AFTER
-velocity_narrative_html + "\n    </div>"   # ← 1 close
-```
-
-`dashboard_v3.py:1664-1668` and `scripts/visual_qa/capture.py:177-181`.
+| Viewport | Width × Height (rendered) | DPR | Note |
+|---|---|---|---|
+| Desktop 1600 | 1600 × 9221 | 1× | Auto-dropped from 2× (would have been 18,442 px > cap). Full page including footer captured. |
+| Laptop 1280 | 1280 × 9285 | 1× | Same auto-drop. |
+| Tablet 900  | 1800 × 15,328 | 1× | Stack reflow makes the page much taller; 1× is forced. |
+| Mobile 430  | 860 × 16,415 | 1× | 1× required; full footer visible. |
 
 ### Verification
 
-```
-$ python /tmp/inspect_static.py
-…
-"§ 09 · Long-Term Development":  parent_left=116, parent_width=1368  ✓
-"§ 10 · Drill Prescription":     parent_left=116, parent_width=1368  ✓
-"§ 11 · Session Ledger":         parent_left=116, parent_width=1368  ✓
-"§ 12 · Recent Unlocks":         parent_left=116, parent_width=1368  ✓
-```
+| ID | Status | Evidence |
+|---|---|---|
+| P1 | ✅ Resolved | `after-pass-3-full/desktop_1600.png` rows 0–220 (masthead): no rectangular bg behind the BL mark; logo floats directly on the page bg. Methodology mark (lower right of §14) is also clean. |
+| P2 | ✅ Resolved | Hero eyebrow shows `§ 01 · THIS WEEK'S HEADLINE` in red caps. |
+| P3 | ✅ Resolved | HTML comment now matches the visible section eyebrow. |
+| P4 | ✅ Resolved | Spine renders §01 → §14 continuously down the left margin on desktop. |
+| P5 | ✅ Resolved | Coach card #03 body wraps cleanly with consistent right-side gutter. |
+| P6 | ✅ Resolved | `.app` now spans 1560 px max; sections 09–12 fill the same width as 02–08. |
+| P7 | ✅ Resolved | `meta.json` for the new run reports `dpr: 1`, `page_height: 9221`. Footer + methodology are present in all four viewport screenshots. |
 
-All section eyebrows now report `left=116` (= 60 px `.app` offset + 56 px
-padding) at the 1600 × 900 viewport — same as §02–§06.
+### Not changed (out of scope per Fixer rules)
 
-Visual confirmation in
-`.visual_qa/screenshots/2026-05-18-004032-pass-5-after-fixes/desktop_1600.png`:
-Swing-of-the-Week ghost labels sit cleanly above the stroboscopic
-caption with no overlap.
+- Color palette, typography, animations, design language: untouched.
+- Section hierarchy, copy, data wiring: untouched.
+- `dashboard.py`, `dashboard_v2.py`: untouched.
+- The static render uses the same swap pipeline as live dashboard_v3 — fixes propagate to production with no extra changes.
+
+---
+
+## PASS 4 · pricing sub-line + two production bugs (2026-05-18)
+
+Two pieces of work landed after the main PASS 3 polish merged.
+
+### Part A — pricing band sub-line distinction (C1 from PASS 1)
+
+The annual savings sub-line ("save 45% vs monthly") and the monthly
+assurance sub-line ("billed monthly · cancel anytime") both used the
+same gold treatment, so the savings claim had no visual weight over
+the cancellation assurance.
+
+**Fix.** Added `.tier-price-sub.is-assurance` modifier (muted gray,
+drops uppercase, tightens letter-spacing) in
+`mock_dashboard_template.py`. The dynamic builder in `dashboard_v3.py`
+now applies the modifier to monthly tiers and to "billed annually ·
+cancel anytime" (the no-savings annual sub-line). Annual cards with a
+real savings number stay gold.
+
+Verified by rendering at desktop 1600: 3 plain `tier-price-sub`
+(annual/gold), 3 `tier-price-sub is-assurance` (monthly/muted).
+
+### Part B — two production bugs surfaced by live-site review
+
+User reviewed the live Streamlit Cloud deploy and reported two bugs the
+static QA missed.
+
+#### B-1 · stroboscopic caption collides with SVG ghost labels
+
+Under the Swing-of-the-Week stick figures, the absolute-positioned
+caption "stroboscopic overlay · 4 phase composite" overlapped the SVG
+ghost labels (LOAD / FOOT PLANT / LAUNCH / CONTACT), producing garbled
+text like `LOAD TROBOSC FOOT PLANT PERLAY LAUNCH PHASE CONTACT ITE`.
+
+`.stage-label` sits at `bottom: 16px` inside the 300 px tall
+`.silhouette-stage` (y ≈ 284). SVG ghost labels at `y="306"` in
+viewBox `0 0 720 320` render at y ≈ 287 after letterbox scaling. The
+3 px gap collapsed.
+
+**Fix.** SVG label y attribute `306 → 296` in
+`mock_dashboard_template.py:2500-2503`. Labels now sit above the floor
+ellipse (`cy=288, ry=14`) with ~10 px clearance above the caption. No
+figure overlap, no floor overlap.
+
+#### B-2 · extra `</div>` auto-closes `.app`, breaking the gutter for §09–§14
+
+Section eyebrows for §09 Long-Term Development through §12 Recent
+Unlocks sat flush against the viewport edge instead of inside `.app`'s
+56 px gutter. Sections §02–§06 rendered correctly.
+
+The velocity-ladder narrative regex substitution in
+`dashboard_v3.py` consumed 3 trailing `</div>`s (close `.body`,
+`.ladder-narrative`, `.ladder`) but the replacement added **2** manual
+closes back PLUS the self-closing narrative builder. Net: +1 stray
+`</div>` per render that HTML parsers used to auto-close `.app`. Every
+subsequent section became a direct child of `<body>` and lost `.app`'s
+gutter.
+
+Diagnosed by walking each `.section-eyebrow`'s parent chain in the
+static rendered HTML with Playwright — §02–§06 reported
+`parent_left=76`, §09–§12 reported `parent_left=0` with parent `BODY`.
+
+**Fix.** Drop one manual `</div>` in `dashboard_v3.py:1664-1668` and
+the mirror in `scripts/visual_qa/capture.py`. After fix all sections
+measure `parent_left=76, parent_width=1448` at 1600 × 900 (with
+main's wider `.app` max-width 1560).
+
+#### Process gap
+
+The static QA does not assert DOM measurements. Adding a probe that
+fails when any `.section-eyebrow` has `parent_left < 50` at desktop
+widths would have caught B-2 in PASS 1 (the bug has been present
+since dashboard_v3 first shipped). Follow-up — not blocking.
 
 ### Result
 
 | ID | Issue | Status |
 |---|---|---|
-| P5-1 | SVG ghost label / stage caption overlap | ✅ Fixed (mock_dashboard_template.py:2491-2495) |
-| P5-2 | Extra `</div>` auto-closing `.app` (§09-§12 eyebrows escape gutter) | ✅ Fixed (dashboard_v3.py:1664-1668 + capture.py:177-181) |
+| C1 | Pricing band sub-line indistinguishable | ✅ Fixed (Part A) |
+| B-1 | SVG ghost label / stage caption overlap | ✅ Fixed (`mock_dashboard_template.py:2500-2503`) |
+| B-2 | Extra `</div>` auto-closing `.app` | ✅ Fixed (`dashboard_v3.py:1664-1668` + `capture.py`) |
 
-### Process lesson
-
-The static QA workflow needs a **DOM-measurement assertion**, not just
-screenshots. Adding a probe that asserts every `.section-eyebrow` has
-`parent_left >= 50 px` at desktop widths would have caught Issue 2 in
-PASS 1 (it has been present since dashboard_v3 was first written).
-Filed as follow-up — not blocking this PR.
 
 ---
 

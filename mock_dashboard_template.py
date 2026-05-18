@@ -111,7 +111,7 @@ body::before {
   opacity: 0.035; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
-.app { max-width: 1480px; margin: 0 auto; padding: 0 56px 80px; position: relative; z-index: 1; }
+.app { max-width: 1560px; margin: 0 auto; padding: 0 56px 80px; position: relative; z-index: 1; }
 
 /* =========================================================
    MASTHEAD + NAV PILLS
@@ -836,7 +836,7 @@ body::before {
   gap: 20px; margin-top: 8px;
 }
 .coach-card {
-  position: relative; padding: 28px 28px 24px;
+  position: relative; padding: 30px 30px 26px;
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--bg-glass);
   display: flex; flex-direction: column;
@@ -862,8 +862,8 @@ body::before {
 .coach-card .drill .ital { font-style: italic; }
 .coach-card .body {
   font-family: var(--sans); font-size: 13.5px;
-  line-height: 1.55; color: var(--bone-dim);
-  flex: 1; margin: 0 0 20px;
+  line-height: 1.6; color: var(--bone-dim);
+  flex: 1; margin: 0 0 22px;
 }
 .coach-card .target {
   font-family: var(--mono); font-size: 10px;
@@ -1939,17 +1939,20 @@ body::before {
 <body>
 <div class="app">
   <div class="spine">
-    <span class="spine-mark" style="top: 6%;">§ 02 / MLB Match</span>
-    <span class="spine-mark" style="top: 16%;">§ 03 / Numbers This Week</span>
-    <span class="spine-mark" style="top: 26%;">§ 04 / Highlight Reel</span>
-    <span class="spine-mark" style="top: 36%;">§ 05 / Swing of the Week</span>
-    <span class="spine-mark" style="top: 46%;">§ 06 / Form &amp; Timing</span>
-    <span class="spine-mark" style="top: 56%;">§ 07 / Phase Clock</span>
-    <span class="spine-mark" style="top: 66%;">§ 08 / Trajectory</span>
-    <span class="spine-mark" style="top: 74%;">§ 09 / Long-Term Development</span>
-    <span class="spine-mark" style="top: 82%;">§ 10 / Drill Prescription</span>
-    <span class="spine-mark" style="top: 89%;">§ 11 / Session Ledger</span>
-    <span class="spine-mark" style="top: 95%;">§ 12 / Recent Unlocks</span>
+    <span class="spine-mark" style="top: 4%;">§ 01 / This Week's Headline</span>
+    <span class="spine-mark" style="top: 11%;">§ 02 / MLB Match</span>
+    <span class="spine-mark" style="top: 19%;">§ 03 / Numbers This Week</span>
+    <span class="spine-mark" style="top: 27%;">§ 04 / Highlight Reel</span>
+    <span class="spine-mark" style="top: 35%;">§ 05 / Swing of the Week</span>
+    <span class="spine-mark" style="top: 43%;">§ 06 / Form &amp; Timing</span>
+    <span class="spine-mark" style="top: 51%;">§ 07 / Phase Clock</span>
+    <span class="spine-mark" style="top: 59%;">§ 08 / Trajectory</span>
+    <span class="spine-mark" style="top: 67%;">§ 09 / Long-Term Development</span>
+    <span class="spine-mark" style="top: 75%;">§ 10 / Drill Prescription</span>
+    <span class="spine-mark" style="top: 82%;">§ 11 / Session Ledger</span>
+    <span class="spine-mark" style="top: 88%;">§ 12 / Recent Unlocks</span>
+    <span class="spine-mark" style="top: 93%;">§ 13 / Edge Pro Upsell</span>
+    <span class="spine-mark" style="top: 97%;">§ 14 / What We Measure</span>
   </div>
 
   <!-- MASTHEAD -->
@@ -2027,7 +2030,7 @@ body::before {
     </div>
 
     <div class="fade-in d4">
-      <div class="hero-eyebrow"><span class="swatch"></span>This week's headline</div>
+      <div class="hero-eyebrow"><span class="swatch"></span>§ 01 · This week's headline</div>
       <h1 class="hero-headline">Your separation<br>hit <span class="ital">42°</span><span class="pr-burst" style="width:22px;height:22px;margin:0 6px 0 8px;"></span>— MLB <span class="red">territory.</span></h1>
       <p class="hero-deck">Across 42 swings this week, your peak hip-shoulder separation climbed to 42° — a personal best by 2° and within four degrees of Mookie Betts's signature delay. Your overall match score against your MLB match ticked up to 91%, the cleanest week your pose data has registered to date.</p>
       <div class="hero-meta">
@@ -3027,7 +3030,7 @@ body::before {
     </div>
   </div>
 
-  <!-- DRILL PRESCRIPTION · § 08 · the personalized action plan -->
+  <!-- DRILL PRESCRIPTION · § 10 · the personalized action plan -->
   <div class="section-head fade-in d11">
     <div>
       <div class="section-eyebrow">§ 10 · Drill Prescription</div>
