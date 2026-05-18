@@ -1938,17 +1938,20 @@ body::before {
       <img class="brand-mark" src="{{LOGO_DATA_URI}}" alt="BarrelLabs">
       <div class="wordmark">Barrellabs <span class="sep">/</span><span class="product"> Edge</span></div>
     </div>
-    <!-- Pills navigate the PARENT window. The dashboard lives inside a
-         Streamlit components.html iframe, so relative hrefs would only
-         reload the iframe. The inline onclick uses window.top.location
-         to navigate the outer page; the `?page=X` URL is consumed by
-         app.py's URL→session-state bridge to set st.session_state["page"]. -->
+    <!-- In-iframe nav pills are DECORATIVE only. The dashboard lives
+         inside a Streamlit components.html iframe, so any onclick inside
+         here can only trigger a HARD browser navigation — which Streamlit
+         treats as a new session, wiping Supabase auth tokens (stored in
+         session_state, not browser cookies) and forcing the user to
+         re-login. Functional navigation is rendered by Python in
+         render_dashboard_v3() ABOVE this iframe as Streamlit-native
+         buttons. They trigger in-app reruns and preserve auth. -->
     <nav class="nav">
-      <a class="active" href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=dashboard'); } catch(e){}">Dashboard</a>
-      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=saved_reports'); } catch(e){}">Sessions</a>
-      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=compare_swings'); } catch(e){}">Compare</a>
-      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=development_tracker'); } catch(e){}">Drills</a>
-      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=historical_charts'); } catch(e){}">Library</a>
+      <a class="active" href="#" onclick="event.preventDefault();">Dashboard</a>
+      <a href="#" onclick="event.preventDefault();">Sessions</a>
+      <a href="#" onclick="event.preventDefault();">Compare</a>
+      <a href="#" onclick="event.preventDefault();">Drills</a>
+      <a href="#" onclick="event.preventDefault();">Library</a>
     </nav>
     <div class="user-chip">
       <span class="user-streak"><span class="dot"></span>17-day streak</span>
