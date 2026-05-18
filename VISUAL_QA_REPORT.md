@@ -124,6 +124,68 @@ polish loop.
 
 ---
 
+---
+
+## PASS 3 · before-pass-3 (2026-05-17 22:23) → after-pass-3 (2026-05-17 22:47)
+
+**Plan simulated:** `free`
+**Before run dir:** `.visual_qa/screenshots/2026-05-17-222315-before-pass-3/`
+**After run dir:** `.visual_qa/screenshots/2026-05-17-224706-after-pass-3-full/`
+
+### Findings (Reviewer pass)
+
+| ID | Severity | Section | Issue |
+|---|---|---|---|
+| P1 | SEV-1 | Masthead | The BL logo PNG ships with a baked-in near-black background, which renders as a visible dark rectangle on the dashboard (the masthead bg is also dark but the logo's square edges still telegraph). User wants a floating transparent mark. |
+| P2 | SEV-2 | Numbering | `§ 01` was missing — the hero eyebrow read "This week's headline" with no section number, breaking the strict 01 → 14 sequence the editorial concept implies. |
+| P3 | SEV-2 | Numbering | Stale HTML comment at line 3019: `<!-- DRILL PRESCRIPTION · § 08 -->` for the section whose visible eyebrow reads "§ 10 · Drill Prescription". Code-only confusion, not visual, but worth fixing. |
+| P4 | SEV-2 | Spine | Editorial spine numbered §02 → §12, missing §01, §13, §14 (so the spine and the actual sections drifted apart). |
+| P5 | SEV-3 | Drill cards | Card #03 (longest body copy: "2 swings with a +6 oz weighted bat…") felt cramped against the card's right edge. |
+| P6 | SEV-3 | Container width | User reported sections 09–12 felt "compressed to the left." The static render actually shows them filling the container, but the `.app` max-width 1480 px left more right-side breathing room than necessary on a 1600+ viewport. |
+| P7 | SEV-1 | QA tooling | `capture.py` silently clipped the bottom ~1000 px of the dashboard at DPR 2 because the resulting canvas exceeded Chromium's 16,384-px texture cap. Methodology + footer were rendering in-page but missing from every screenshot — invisible bug that hid genuine issues from reviewers. |
+
+### Fixes applied (CSS / Python only — no markup restructure, no logic changes)
+
+| ID | Where | Change |
+|---|---|---|
+| P1 | `dashboard_v3.py:_logo_data_uri()` | After resize, walk each pixel and threshold by ITU-R BT.601 luminance: < 22 → alpha 0; 22–48 → softened alpha ramp (kills hard halo). Cached once per process — same data URI used in the masthead `<img.brand-mark>` and the methodology mark, so both go transparent in one place. |
+| P2 | `mock_dashboard_template.py:2025` | Hero eyebrow now reads `§ 01 · This week's headline`. |
+| P3 | `mock_dashboard_template.py:3019` | Stale `§ 08` comment updated to `§ 10`. |
+| P4 | `mock_dashboard_template.py:1937-1947` | Spine marks rewritten to cover §01 → §14 with re-spaced top% values; user has continuous numbering on the left edge. |
+| P5 | `mock_dashboard_template.py:.coach-card` | Padding 28px 28px 24px → 30px 30px 26px. Body line-height 1.55 → 1.6, bottom margin 20 → 22. Card #03's text now wraps without crowding the right border. |
+| P6 | `mock_dashboard_template.py:.app` | `max-width: 1480px → 1560px`. All sections gain ~80px of usable width on wide screens. Inside the .app container nothing else changed — the grids are all `1fr` so they widen evenly. |
+| P7 | `scripts/visual_qa/capture.py:_capture_all` | Probe page height at DPR 1 first; if `page_h * 2 > 16000` fall back to DPR 1 for that viewport. Records the chosen DPR + page height in `meta.json`. Future passes will capture the full footer at any page length. |
+
+### Dimensional check (after-pass-3-full)
+
+| Viewport | Width × Height (rendered) | DPR | Note |
+|---|---|---|---|
+| Desktop 1600 | 1600 × 9221 | 1× | Auto-dropped from 2× (would have been 18,442 px > cap). Full page including footer captured. |
+| Laptop 1280 | 1280 × 9285 | 1× | Same auto-drop. |
+| Tablet 900  | 1800 × 15,328 | 1× | Stack reflow makes the page much taller; 1× is forced. |
+| Mobile 430  | 860 × 16,415 | 1× | 1× required; full footer visible. |
+
+### Verification
+
+| ID | Status | Evidence |
+|---|---|---|
+| P1 | ✅ Resolved | `after-pass-3-full/desktop_1600.png` rows 0–220 (masthead): no rectangular bg behind the BL mark; logo floats directly on the page bg. Methodology mark (lower right of §14) is also clean. |
+| P2 | ✅ Resolved | Hero eyebrow shows `§ 01 · THIS WEEK'S HEADLINE` in red caps. |
+| P3 | ✅ Resolved | HTML comment now matches the visible section eyebrow. |
+| P4 | ✅ Resolved | Spine renders §01 → §14 continuously down the left margin on desktop. |
+| P5 | ✅ Resolved | Coach card #03 body wraps cleanly with consistent right-side gutter. |
+| P6 | ✅ Resolved | `.app` now spans 1560 px max; sections 09–12 fill the same width as 02–08. |
+| P7 | ✅ Resolved | `meta.json` for the new run reports `dpr: 1`, `page_height: 9221`. Footer + methodology are present in all four viewport screenshots. |
+
+### Not changed (out of scope per Fixer rules)
+
+- Color palette, typography, animations, design language: untouched.
+- Section hierarchy, copy, data wiring: untouched.
+- `dashboard.py`, `dashboard_v2.py`: untouched.
+- The static render uses the same swap pipeline as live dashboard_v3 — fixes propagate to production with no extra changes.
+
+---
+
 ## Workflow summary
 
 | Step | Outcome |

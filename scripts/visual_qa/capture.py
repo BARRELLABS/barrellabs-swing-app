@@ -228,13 +228,28 @@ def _render_static(plan_id: str, output_html: Path) -> None:
 
 async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
     from playwright.async_api import async_playwright
+    # Chromium's screenshot canvas tops out around 16,384 px. The full
+    # dashboard at DPR 2 exceeds that and silently clips the bottom
+    # (methodology + footer disappear into a white slab). Probe page
+    # height per viewport and drop DPR to 1 when DPR-2 would overflow.
+    MAX_CANVAS_PX = 16000
     results = []
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
         for name, w, h in VIEWPORTS:
+            # First pass at DPR 1 just to learn the rendered scrollHeight.
+            probe_ctx = await browser.new_context(
+                viewport={"width": w, "height": h}, device_scale_factor=1,
+            )
+            probe = await probe_ctx.new_page()
+            await probe.goto(f"file://{html_path}", wait_until="networkidle")
+            await probe.wait_for_timeout(500)
+            page_h = await probe.evaluate("document.body.scrollHeight")
+            await probe_ctx.close()
+            dpr = 2 if page_h * 2 <= MAX_CANVAS_PX else 1
+
             ctx = await browser.new_context(
-                viewport={"width": w, "height": h},
-                device_scale_factor=2,
+                viewport={"width": w, "height": h}, device_scale_factor=dpr,
             )
             page = await ctx.new_page()
             await page.goto(f"file://{html_path}", wait_until="networkidle")
@@ -243,8 +258,9 @@ async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
             await page.screenshot(path=str(out), full_page=True)
             size = out.stat().st_size
             results.append({"viewport": name, "width": w, "height": h,
+                            "dpr": dpr, "page_height": page_h,
                             "file": out.name, "bytes": size})
-            print(f"  ✓ {name:7s} {w}x{h}: {out.name} ({size/1024:,.0f} KB)")
+            print(f"  ✓ {name:7s} {w}x{h} @{dpr}x: {out.name} ({size/1024:,.0f} KB, page {page_h}px)")
             await ctx.close()
         await browser.close()
     return results
