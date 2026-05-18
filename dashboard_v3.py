@@ -1795,24 +1795,25 @@ def render_dashboard_v3(user: Dict[str, Any],
 
     # Load full history (needed for trends / streaks / unlocks regardless of
     # which specific swing we render).
-    history = _safe_history(user) or []
-    # When force_record is supplied (open-report flow), use it as `latest`
-    # so the entire editorial template renders that specific swing. Trend
-    # / progression sections still use `history` (which we filter to records
-    # up to and including the forced one, so the trend reflects history at
-    # that point in time).
+    full_history = _safe_history(user) or []
+
     if force_record is not None:
+        # Open-report flow: render the editorial template against this
+        # specific swing. Build a "history-as-of-that-swing" so trend
+        # and progression sections reflect the state at that point in
+        # time (not the user's current state, which would be misleading).
         latest = force_record
-        # Show history up through the forced record. We identify by
-        # timestamp when available; falls back to identity comparison.
-        target_ts = force_record.get("timestamp")
-        if target_ts:
-            history = [r for r in history
-                       if (r.get("timestamp") or "") <= target_ts]
-        # Ensure latest is the final element (for any history[-1] calls).
-        if history and history[-1] is not force_record:
-            history = history + [force_record] if force_record not in history else history
+        target_ts = force_record.get("timestamp") or ""
+        # Records strictly older than the forced one, in chronological
+        # order. Append the forced record itself so history[-1] is the
+        # one we're rendering. ID-based filtering when records are
+        # the same dict instance; timestamp comparison otherwise.
+        prior = [r for r in full_history
+                 if r is not force_record
+                 and (r.get("timestamp") or "") < target_ts]
+        history = prior + [force_record]
     else:
+        history = full_history
         latest = history[-1] if history else None
 
     if not latest:
