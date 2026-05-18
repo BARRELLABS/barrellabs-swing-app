@@ -142,11 +142,13 @@ def _ensure_css_v2():
   .bld2-hdr-meta span.sep { margin: 0 0.65rem; opacity: 0.4; }
 
   /* ===== CARDS ===== */
+  /* Padding standardized to 1.25rem 1.4rem and inter-card gap tightened to
+     0.85rem so the report scans faster — tighter rhythm = more "premium". */
   .bld2-card {
     background: var(--bld2-surface-0);
     border: 1px solid var(--bld2-line);
     border-radius: 14px;
-    padding: 1.4rem 1.5rem;
+    padding: 1.25rem 1.4rem;
     position: relative;
   }
   .bld2-eyebrow {
@@ -156,13 +158,13 @@ def _ensure_css_v2():
     color: var(--bld2-ink-60);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 0.95rem;
+    margin-bottom: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.4rem;
   }
-  .bld2-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-  .bld2-grid-2-tilt { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 1rem; margin-bottom: 1rem; }
+  .bld2-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem; }
+  .bld2-grid-2-tilt { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 0.85rem; margin-bottom: 0.85rem; }
 
   /* ===== HERO ===== */
   .bld2-score-body { display: grid; grid-template-columns: 1fr 140px; gap: 1.3rem; align-items: center; }
@@ -243,7 +245,7 @@ def _ensure_css_v2():
   .bld2-radar-host { display: flex; align-items: center; justify-content: center; min-height: 220px; }
 
   /* ===== KEY METRICS ===== */
-  .bld2-km-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.7rem; margin-bottom: 1rem; }
+  .bld2-km-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.7rem; margin-bottom: 0.85rem; }
   .bld2-km {
     background: var(--bld2-surface-0);
     border: 1px solid var(--bld2-line);
@@ -822,6 +824,25 @@ def _ensure_css_v2():
     .bld2-mlb-grid { grid-template-columns: 1fr; }
     .bld2-score-body { grid-template-columns: 1fr; }
     .bld2-hdr-actions .bld2-btn { font-size: 0.74rem; padding: 0.55rem 0.75rem; }
+  }
+  /* Phone-sized viewports — tighten card padding, scale the hero score down
+     so it doesn't overflow, and stack priority/drill rows so the numbered
+     thumb stays prominent above the title instead of competing for width. */
+  @media (max-width: 640px) {
+    .bld2-card { padding: 1rem 1.05rem; }
+    .bld2-score-num { font-size: 3.2rem; }
+    .bld2-radar-host svg { max-width: 220px; }
+    .bld2-pri, .bld2-drill {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.55rem;
+    }
+    .bld2-pri-num, .bld2-drill-thumb {
+      width: auto;
+      min-width: 2.25rem;
+    }
+    .bld2-drill-check { display: none; }
+    .bld2-eyebrow { margin-bottom: 0.7rem; }
   }
   @media (max-width: 480px) {
     .bld2-km-row { grid-template-columns: 1fr; }
@@ -1958,11 +1979,15 @@ def render_swing_report_v2(
         except Exception:
             pass
 
-    # Chunk 3: rest of the report
+    # Chunk 3: rest of the report.
+    # ORDER IS DELIBERATE — actionable insights (priorities + drills) come
+    # immediately after the hero so the user sees WHAT TO FIX before they
+    # scroll into the diagnostic charts and breakdown table. This mirrors
+    # the section priority of TrackMan / Hudl-style premium reports.
     bottom_html = (
-        _build_v2_key_metrics(record, history)
+        _build_v2_priorities_and_drills(record, history)
+        + _build_v2_key_metrics(record, history)
         + _build_v2_breakdown_and_viz(record, phase_chart_path)
-        + _build_v2_priorities_and_drills(record, history)
         + _build_v2_progress_and_next(record, history)
         + _build_v2_accordions(record, history)
     )
