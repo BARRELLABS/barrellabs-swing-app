@@ -270,6 +270,75 @@ since dashboard_v3 first shipped). Follow-up — not blocking.
 
 ---
 
+## PASS 5 · §03 redesign + real gamification + DOM-assertion QA (2026-05-18)
+
+Scope: replace all hardcoded mock data with real metrics (the "wire-up
+pass") AND redesign §03 from the 5-cell sparkline scoreboard into a
+single comparative radar card. Plus extend the visual QA tooling to
+catch the bug classes that PR #9 missed.
+
+### What changed
+
+| Area | Change | Files |
+|---|---|---|
+| §03 redesign | Replaced 5-cell sparkline `.scoreboard` + 20-item `.ticker` scrolling strip with a single `.comp-radar-card`: 5-axis pentagon (you, bone-white solid) inside your matched MLB comp's reference pentagon (red dashed), one-sentence editorial narrative, top-3 delta line, gold pill CTA to the drill prescription. | `mock_dashboard_template.py` (CSS + markup), `dashboard_v3.py` (`_build_comp_radar_html`, `_five_axis_polygon_points`) |
+| §12 Recent Unlocks | Wired real gamification state into the `.rail` block. Previously the 4 medal tiles were hardcoded; now they reflect the player's actual earned achievements (top 2) plus next-to-unlock with progress bars (top 2 by completion %). Fixed `_gamification_state()` which had been calling `compute_player_state` with the wrong arg signature for months, silently returning `{}`. | `dashboard_v3.py` (`_gamification_state`, `_build_unlocks_rail_html`) |
+| Stroboscopic overlap (PR #9 bug) | The user reported after merge that PR #9 didn't actually fix the overlap. DOM assertions confirmed the gap was still −3 to −4 px (still overlapping). Removed the `.stage-label` caption entirely — `.stage-tag` chip already identifies the section, so the caption was redundant. | `mock_dashboard_template.py` (CSS + markup) |
+| QA workflow | Added DOM-measurement assertions to `scripts/visual_qa/capture.py`. Two invariants enforced per viewport: (1) every `.section-eyebrow` traces to a `.app` ancestor (catches the auto-closed-`.app` bug class); (2) SVG ghost labels under stick figures have ≥6 px gap above any `.stage-label` (catches the overlap bug class). `capture.py` now exits non-zero on any violation — bounded stopping criterion for QA iteration. | `scripts/visual_qa/capture.py` |
+| Live-prod probe | New gitignored helper `tools/debug/probe_prod.py` runs the same assertions against the live Streamlit Cloud deployment. Requires the user to provide their session cookies (production needs login). | `tools/debug/probe_prod.py` |
+
+### Persona critique → design synthesis
+
+Before implementing the §03 radar, ran three persona critiques in
+parallel — Creative Director, Sports Science Director, CRO Specialist
+— and synthesized:
+
+- **Creative Director** said "kill the 6 delta chips, make it a portrait" → 5 axes, one shape vs. one shape, no chips orbiting the radar.
+- **Sports Science Director** said "drop MLB match axis — it's a composite of the others" → 5 independent axes (rotation, kinematic sequencing, knee drive, head stability, swing duration). Renamed "timing → sequencing" and "tempo → swing duration" so a parent can distinguish them.
+- **CRO Specialist** said "the headline writes a check the radar bounces — reframe from verdict to roadmap" → headline "You vs. {Player}.", narrative copy ends with "Close the gap on {axis}.", CTA links to the drill prescription.
+
+The final §03 ships all three corrections. See
+`/Users/logancollins/.claude/plans/giggly-meandering-steele.md` for the
+full plan.
+
+### Deferred (explicitly out of scope for this PR)
+
+- **§03 MLB reference percentile band** (Sports Science Director's full
+  suggestion — show shaded 25th-75th percentile across the comp pool
+  behind the user's polygon) — requires population stats we don't
+  have ready.
+- **§02 dynamic MLB comp name** — already wired in
+  `dashboard_v3.py:1689` for records that carry `reference_name`; data
+  pipeline for setting that field is upstream and out of scope.
+- **§06 phase timing band labels** — no central `MLB_REFERENCE` dict to
+  pull from; defer.
+- **Video-to-metric callouts** on actual swing frames — multi-week
+  effort, needs video overlay pipeline.
+- **Failure-mode diagnosis copy** ("you swing this way BECAUSE X") —
+  needs threshold + copy library + sports science review.
+
+### Verification
+
+```
+$ .venv/bin/python scripts/visual_qa/capture.py --label pass-7-radar
+  ✓ desktop 1600x900 @1x: ... asserts 13/13
+  ✓ laptop  1280x800 @1x: ... asserts 13/13
+  ✓ tablet  900x1100 @1x: ... asserts 13/13
+  ✓ mobile  430x900  @1x: ... asserts 13/13
+  ✅ all DOM assertions passed across 4 viewports.
+```
+
+`_build_unlocks_rail_html` falls back to the static template when
+gamification state is unavailable (the synthetic QA history has no
+player_id, so the QA capture exercises the fallback path). The dynamic
+path will be exercised in production.
+
+`_build_comp_radar_html` swaps in dynamic 5-axis polygon points from
+`_six_axis_scores(latest)` and writes a top-3 delta line + narrative
+naming the player's two strengths and one focus area.
+
+---
+
 ## Workflow summary
 
 | Step | Outcome |

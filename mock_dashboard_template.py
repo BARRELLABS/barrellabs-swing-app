@@ -349,48 +349,56 @@ body::before {
 .card-title .ital { font-style: italic; }
 
 /* =========================================================
-   SCOREBOARD STRIP
+   §03 COMP RADAR CARD (replaces the prior 5-cell scoreboard +
+   horizontal ticker strip — see PASS 7 / persona-critique synthesis).
+   One image, not six cards: your 5-axis biomechanical shape inside
+   your matched MLB comp's reference shape. Five axes only — the
+   "MLB match" axis was dropped because it is itself a composite of
+   the other axes (Sports Science Director critique).
    ========================================================= */
-.scoreboard {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  border: 1px solid var(--line); border-radius: var(--radius);
-  overflow: hidden; background: var(--bg-glass);
+.comp-radar-card {
+  display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px;
+  align-items: center;
+  padding: 56px 48px;
+  margin: 8px 0 8px;
+  border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background:
+    radial-gradient(60% 80% at 0% 50%, rgba(232,193,112,0.06), transparent 70%),
+    linear-gradient(135deg, #14171d 0%, #0a0b0e 100%);
 }
-.score-cell {
-  padding: 24px 22px 22px;
-  border-right: 1px solid var(--line); position: relative;
-  transition: background 0.2s;
+.comp-radar-vis { display: grid; place-items: center; }
+.comp-radar-svg { width: 100%; max-width: 440px; height: auto; }
+.comp-radar-narrative { display: flex; flex-direction: column; gap: 18px; }
+.comp-radar-line {
+  font-family: var(--serif); font-size: 28px; line-height: 1.3;
+  color: var(--bone); margin: 0; max-width: 460px; font-weight: 400;
 }
-.score-cell:hover { background: var(--bg-glass-hi); }
-.score-cell:last-child { border-right: none; }
-.score-cell .label {
-  font-family: var(--mono); font-size: 10px;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--gray-1);
-  display: flex; justify-content: space-between; align-items: center;
+.comp-radar-line .em { font-style: italic; color: var(--gold); }
+.comp-radar-deltas {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--bone-dim); margin: 0;
 }
-.score-cell .delta {
+.comp-radar-legend {
+  display: flex; gap: 18px; font-family: var(--mono);
+  font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gray-1);
+}
+.comp-radar-legend .row { display: flex; align-items: center; gap: 8px; }
+.comp-radar-legend .swatch.you  { width: 12px; height: 2px; background: var(--bone); border-radius: 1px; }
+.comp-radar-legend .swatch.comp { width: 12px; height: 0; border-top: 1px dashed var(--red); }
+.comp-radar-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  padding: 12px 18px;
+  border: 1px solid var(--gold); border-radius: 100px;
+  background: var(--gold-soft);
   font-family: var(--mono); font-size: 10.5px;
-  padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold); text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  margin-top: 4px;
 }
-.delta.up   { color: var(--gold);  background: var(--gold-soft); }
-.delta.down { color: #ff7a6f;         background: rgba(255,122,111,0.08); }
-.delta.flat { color: var(--gray-1);   background: rgba(255,255,255,0.04); }
-.score-cell .value {
-  font-family: var(--mono); font-feature-settings: "tnum";
-  font-weight: 500; font-size: 38px; letter-spacing: -0.02em;
-  color: var(--bone); margin-top: 14px;
-  display: flex; align-items: baseline; gap: 6px; line-height: 1;
-}
-.score-cell .value .unit {
-  font-family: var(--sans); font-size: 13px; font-weight: 400;
-  color: var(--gray-1); letter-spacing: 0;
-}
-.score-cell .spark { margin-top: 18px; height: 36px; width: 100%; }
-.score-cell .floor {
-  display: flex; justify-content: space-between; margin-top: 8px;
-  font-family: var(--mono); font-size: 9.5px;
-  letter-spacing: 0.06em; text-transform: uppercase; color: var(--gray-2);
-}
+.comp-radar-cta:hover { background: var(--gold); color: var(--bg); }
 
 /* =========================================================
    HIGHLIGHTS REEL
@@ -1375,11 +1383,10 @@ body::before {
   .edge-score-svg { width: 220px; height: 220px; }
   .edge-num .v { font-size: 72px; }
 
-  /* R2 — scoreboard: 5 → 2 cols, equal-height cells */
-  .scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .score-cell { border-right: none; border-bottom: 1px solid var(--line); }
-  .score-cell:nth-child(2n) { border-right: none; }
-  .score-cell:nth-last-child(-n+1) { border-bottom: none; }
+  /* R2 — comp-radar card: stack radar above narrative on tablet/mobile */
+  .comp-radar-card { grid-template-columns: 1fr; gap: 32px; padding: 36px 24px; }
+  .comp-radar-svg { max-width: 380px; }
+  .comp-radar-line { font-size: 22px; }
 
   /* R3 — highlight reel: 3 → 1 vertical scroll on narrow tablet/mobile */
   .reel { grid-template-columns: 1fr; gap: 16px; }
@@ -1430,7 +1437,7 @@ body::before {
   /* Phase Clock 12-week SVG inner trend: reduce viewbox padding */
   .progress-trend-card { padding: 22px; }
   .trend { padding: 22px 22px 8px; }
-  .scoreboard, .card { border-radius: 12px; }
+  .card { border-radius: 12px; }
 
   /* Section heads tighten */
   .section-head { padding: 36px 0 18px; }
@@ -1456,9 +1463,9 @@ body::before {
   .edge-num .v { font-size: 56px; }
   .edge-score-cats { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
 
-  /* R2 mobile: scoreboard 5 → 1 col */
-  .scoreboard { grid-template-columns: 1fr; }
-  .score-cell { border-right: none; }
+  /* R2 mobile: comp-radar card tightens further on phones */
+  .comp-radar-svg { max-width: 320px; }
+  .comp-radar-line { font-size: 20px; }
 
   /* R7 mobile: 12-Week stats 3 → 2 cols */
   .progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1818,39 +1825,10 @@ body::before {
   50%      { filter: drop-shadow(0 0 22px rgba(232,193,112,0.16)); }
 }
 
-/* =========================================================
-   TICKER TAPE
-   ========================================================= */
-.ticker {
-  margin: 28px -56px 0;
-  padding: 14px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(230,69,48,0.04), transparent);
-  overflow: hidden;
-  position: relative;
-}
-.ticker-track {
-  display: flex; gap: 40px;
-  white-space: nowrap;
-  animation: ticker 60s linear infinite;
-  font-family: var(--mono); font-size: 11.5px;
-  letter-spacing: 0.10em; text-transform: uppercase;
-  color: var(--gray-1);
-}
-@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.ticker-item { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.ticker-item .lab { color: var(--gray-2); }
-.ticker-item .v { color: var(--bone); font-weight: 500; }
-.ticker-item.up .v { color: var(--gold); }
-.ticker-item .arr { color: var(--gold); font-size: 10px; }
-.ticker-item .pill {
-  font-family: var(--mono); font-size: 9.5px;
-  padding: 2px 7px; border-radius: 3px;
-  background: var(--red-soft); color: var(--red);
-  letter-spacing: 0.14em;
-}
-.ticker-item .sep { color: var(--gray-3); }
+/* Ticker tape removed in PASS 7 — its 20+ scrolling metrics were
+   "look-what-we-measure" theater that competed with the new §03 comp
+   radar for attention. Persona critics flagged it as redundant once
+   the radar exists. */
 
 /* =========================================================
    SECTION SPINE  (editorial running numbers on left edge)
@@ -1893,12 +1871,11 @@ body::before {
   from { stroke-dasharray: 240; stroke-dashoffset: 240; opacity: 0; }
   to   { stroke-dasharray: 240; stroke-dashoffset: 0;   opacity: 0.85; }
 }
-.stage-label {
-  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-  font-family: var(--mono); font-size: 9.5px;
-  letter-spacing: 0.20em; text-transform: uppercase;
-  color: var(--gray-2);
-}
+/* `.stage-label` removed — its absolute positioning conflicted with the
+   SVG ghost pose labels under the figures, producing overlap (PR #9 +
+   QA assertions confirmed). The `.stage-tag` chip at top-right of the
+   stage already identifies what the user is looking at, so this caption
+   was redundant. */
 .stage-tag {
   position: absolute; top: 16px; right: 18px;
   padding: 4px 10px; border-radius: 100px;
@@ -2074,51 +2051,6 @@ body::before {
     </aside>
   </section>
 
-  <!-- TICKER TAPE -->
-  <div class="ticker fade-in d5">
-    <div class="ticker-track">
-      <div class="ticker-item up"><span class="lab">Hip-Sh sep · peak</span><span class="v">42°</span><span class="pill">PR</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Match score</span><span class="v">91%</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Sep @ contact</span><span class="v">38°</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Hip rotation</span><span class="v">+ 6°</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Knee re-extension</span><span class="v">+ 24°</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Launch → contact</span><span class="v">184 ms</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Head drift · normalized</span><span class="v">0.18</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">MLB match</span><span class="v">Mookie Betts · 91%</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Streak</span><span class="v">17 days</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Edge Score</span><span class="v">88 / 100</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Bat speed</span><span class="v">74.6 mph</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Peak</span><span class="v">78.2 mph</span><span class="pill">PR</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Attack ∠</span><span class="v">12.4°</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Hip-Sh sep</span><span class="v">42°</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Barrel</span><span class="v">34%</span><span class="arr">▲</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Time to contact</span><span class="v">0.184 s</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Bat path eff.</span><span class="v">87%</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">MLB match</span><span class="v">Mookie Betts · 91%</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item"><span class="lab">Streak</span><span class="v">17 days</span></div>
-      <div class="ticker-item"><span class="sep">·</span></div>
-      <div class="ticker-item up"><span class="lab">Edge Score</span><span class="v">88 / 100</span><span class="arr">▲</span></div>
-    </div>
-  </div>
-
   <!-- CLOSEST MLB MATCH · § 02 · MOVED TO TOP OF PAGE PER USER HIERARCHY -->
   <div class="section-head fade-in d5">
     <div>
@@ -2228,71 +2160,52 @@ body::before {
   <!-- SCOREBOARD -->
   <div class="section-head fade-in d6">
     <div>
-      <div class="section-eyebrow">§ 03 · Numbers This Week</div>
-      <h2 class="section-title">The numbers, <span class="ital">this week.</span></h2>
+      <div class="section-eyebrow">§ 03 · Your shape, vs. theirs</div>
+      <h2 class="section-title">You <span class="ital">vs.</span> Mookie Betts.</h2>
     </div>
-    <div class="section-sub">vs trailing 4-week median &nbsp;·&nbsp; tap a card for breakdown</div>
+    <div class="section-sub">Five biomechanical axes. One footprint. The shape you're chasing.</div>
   </div>
 
-  <div class="scoreboard fade-in d6">
-    <div class="score-cell">
-      <div class="label">Match score <span class="delta up">+ 4 pts</span></div>
-      <div class="value">91<span class="unit">% match</span></div>
-      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
-        <defs><linearGradient id="sp1" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(244,239,230,0.32)"/><stop offset="100%" stop-color="rgba(244,239,230,0)"/></linearGradient></defs>
-        <path d="M0,28 L14,27 L28,25 L42,26 L56,22 L70,21 L84,20 L98,22 L112,17 L126,16 L140,13 L154,14 L168,10 L182,11 L196,6 L200,5 L200,40 L0,40 Z" fill="url(#sp1)"/>
-        <path d="M0,28 L14,27 L28,25 L42,26 L56,22 L70,21 L84,20 L98,22 L112,17 L126,16 L140,13 L154,14 L168,10 L182,11 L196,6 L200,5" fill="none" stroke="#F4EFE6" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="200" cy="5" r="3" fill="#E8C170"/>
-      </svg>
-      <div class="floor"><span>4 wk</span><span>peak 91%</span></div>
-    </div>
-    <div class="score-cell">
-      <div class="label">Hip rotation @ contact <span class="delta up">+ 4°</span></div>
-      <div class="value">52° <span class="unit">avg</span></div>
-      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
-        <path d="M0,24 L14,22 L28,23 L42,20 L56,18 L70,17 L84,16 L98,14 L112,13 L126,12 L140,11 L154,10 L168,9 L182,8 L196,7 L200,6" fill="none" stroke="#F4EFE6" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="200" cy="6" r="3" fill="#E8C170"/>
-      </svg>
-      <div class="floor"><span>4 wk</span><span>MLB med 54°</span></div>
-    </div>
-    <div class="score-cell">
-      <div class="label">Launch → contact <span class="delta up">− 8 ms</span></div>
-      <div class="value">184 <span class="unit">ms</span></div>
-      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
-        <defs><linearGradient id="sp3" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(232,193,112,0.20)"/><stop offset="100%" stop-color="rgba(232,193,112,0)"/></linearGradient></defs>
-        <path d="M0,10 L14,11 L28,13 L42,12 L56,15 L70,17 L84,16 L98,19 L112,20 L126,22 L140,23 L154,24 L168,26 L182,25 L196,27 L200,28 L200,40 L0,40 Z" fill="url(#sp3)"/>
-        <path d="M0,10 L14,11 L28,13 L42,12 L56,15 L70,17 L84,16 L98,19 L112,20 L126,22 L140,23 L154,24 L168,26 L182,25 L196,27 L200,28" fill="none" stroke="#F4EFE6" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="200" cy="28" r="3" fill="#E8C170"/>
-      </svg>
-      <div class="floor"><span>4 wk</span><span>MLB med 175 ms</span></div>
-    </div>
-    <div class="score-cell">
-      <div class="label">Hip-Shoulder sep <span class="delta up">+ 2°</span></div>
-      <div class="value">42° <span class="unit">peak</span></div>
-      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
-        <defs><linearGradient id="sp4" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="rgba(244,239,230,0.28)"/><stop offset="100%" stop-color="rgba(244,239,230,0)"/></linearGradient></defs>
-        <path d="M0,28 L14,27 L28,28 L42,26 L56,24 L70,22 L84,23 L98,20 L112,19 L126,17 L140,15 L154,14 L168,12 L182,10 L196,8 L200,7 L200,40 L0,40 Z" fill="url(#sp4)"/>
-        <path d="M0,28 L14,27 L28,28 L42,26 L56,24 L70,22 L84,23 L98,20 L112,19 L126,17 L140,15 L154,14 L168,12 L182,10 L196,8 L200,7" fill="none" stroke="#F4EFE6" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="200" cy="7" r="3" fill="#E8C170"/>
-      </svg>
-      <div class="floor"><span>4 wk</span><span>target 40+</span></div>
-    </div>
-    <div class="score-cell">
-      <div class="label">Knee re-extension <span class="delta up">+ 3°</span></div>
-      <div class="value">24° <span class="unit">avg</span></div>
-      <svg class="spark" viewBox="0 0 200 40" preserveAspectRatio="none">
-        <g fill="rgba(244,239,230,0.85)">
-          <rect x="2"   y="28" width="8" height="12"/><rect x="14"  y="26" width="8" height="14"/>
-          <rect x="26"  y="24" width="8" height="16"/><rect x="38"  y="28" width="8" height="12"/>
-          <rect x="50"  y="22" width="8" height="18"/><rect x="62"  y="20" width="8" height="20"/>
-          <rect x="74"  y="26" width="8" height="14"/><rect x="86"  y="20" width="8" height="20"/>
-          <rect x="98"  y="18" width="8" height="22"/><rect x="110" y="16" width="8" height="24"/>
-          <rect x="122" y="20" width="8" height="20"/><rect x="134" y="14" width="8" height="26"/>
-          <rect x="146" y="16" width="8" height="24"/><rect x="158" y="12" width="8" height="28"/>
-          <rect x="170" y="14" width="8" height="26"/><rect x="182" y="10" width="8" height="30" fill="#E8C170"/>
+  <div class="comp-radar-card fade-in d6">
+    <div class="comp-radar-vis">
+      <svg width="440" height="440" viewBox="-220 -220 440 440" class="comp-radar-svg" xmlns="http://www.w3.org/2000/svg">
+        <!-- background concentric guides -->
+        <circle cx="0" cy="0" r="170" fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <circle cx="0" cy="0" r="120" fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <circle cx="0" cy="0" r="70"  fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <!-- 5 axis spokes -->
+        <g stroke="rgba(244,239,230,0.12)" stroke-width="0.8">
+          <line x1="0" y1="0" x2="0"     y2="-170"/>
+          <line x1="0" y1="0" x2="162"   y2="-52"/>
+          <line x1="0" y1="0" x2="100"   y2="136"/>
+          <line x1="0" y1="0" x2="-100"  y2="136"/>
+          <line x1="0" y1="0" x2="-162"  y2="-52"/>
+        </g>
+        <!-- comp polygon (red dashed) at radius=170 (perfect reference) -->
+        <polygon class="comp-poly" points="0,-170 162,-52 100,136 -100,136 -162,-52"
+                 fill="none" stroke="#E64530" stroke-width="1.5"
+                 stroke-dasharray="5 4" opacity="0.85"/>
+        <!-- YOU polygon — replaced at render time -->
+        <polygon class="you-poly" points="0,-130 124,-40 76,104 -76,104 -124,-40"
+                 fill="rgba(244,239,230,0.16)" stroke="#F4EFE6" stroke-width="2"/>
+        <!-- axis labels at vertex tips -->
+        <g font-family="Geist Mono, monospace" font-size="10.5" fill="#8B8E94" letter-spacing="0.14em" text-anchor="middle">
+          <text x="0"    y="-186">ROTATION</text>
+          <text x="184"  y="-50" text-anchor="start">SEQUENCING</text>
+          <text x="116"  y="160">KNEE DRIVE</text>
+          <text x="-116" y="160">HEAD STABILITY</text>
+          <text x="-184" y="-50" text-anchor="end">SWING DURATION</text>
         </g>
       </svg>
-      <div class="floor"><span>4 wk</span><span>target 20+</span></div>
+    </div>
+    <div class="comp-radar-narrative">
+      <p class="comp-radar-line">You match Betts on <span class="em">rotation</span> and <span class="em">sequencing</span>. Close the gap on <span class="em">head stability</span>.</p>
+      <p class="comp-radar-deltas">−12 ROT · −8 SEQ · −22 HEAD</p>
+      <div class="comp-radar-legend">
+        <div class="row"><span class="swatch you"></span><span>your shape</span></div>
+        <div class="row"><span class="swatch comp"></span><span>Mookie Betts</span></div>
+      </div>
+      <a class="comp-radar-cta" href="/?page=drills">Open my plan to close the gap →</a>
     </div>
   </div>
 
@@ -2504,7 +2417,6 @@ body::before {
             </g>
           </svg>
           <div class="stage-tag">CONTACT · 42° SEP</div>
-          <div class="stage-label">stroboscopic overlay · 4 phase composite</div>
         </div>
       </div>
 
