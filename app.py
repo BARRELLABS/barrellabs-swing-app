@@ -1658,6 +1658,31 @@ if not any(
     st.session_state["page"] = "dashboard"
 
 
+# ---------- URL → session-state routing bridge ----------
+# Lets deep-links like `/?page=saved_reports` actually navigate. Without
+# this bridge the dashboard would render no matter what `?page=` you passed,
+# because the routing dispatch below only reads `session_state["page"]`.
+# Bug surfaced when the v3 dashboard hid the sidebar (display:none on
+# data-testid=stSidebar) — users had no way to reach Saved Reports.
+_ALLOWED_PAGES_FROM_URL = {
+    "dashboard", "saved_reports", "compare_swings", "development_tracker",
+    "historical_charts", "billing", "launch_progress", "pricing", "upload",
+}
+try:
+    _url_page = st.query_params.get("page")
+    if _url_page and _url_page in _ALLOWED_PAGES_FROM_URL:
+        st.session_state["page"] = _url_page
+        # Don't leave it lingering — once consumed, drop it so refreshes
+        # don't keep forcing us back to the URL-specified page after
+        # in-app navigation (e.g. the sidebar "Dashboard" button).
+        try:
+            del st.query_params["page"]
+        except Exception:
+            pass
+except Exception:
+    pass
+
+
 # ---------- HELPERS ----------
 @st.cache_data(show_spinner=False)
 def list_library_references():
