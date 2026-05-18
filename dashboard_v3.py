@@ -49,6 +49,44 @@ from dashboard import (
 
 
 # ---------------------------------------------------------------------------
+# Logo data URI (embedded so the components.html iframe doesn't need to
+# fetch an external file). Cached per-process since the PNG never
+# changes mid-session.
+# ---------------------------------------------------------------------------
+
+_LOGO_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "barrellabs_logo.png",
+)
+_LOGO_DATA_URI_CACHE: Optional[str] = None
+
+
+def _logo_data_uri() -> str:
+    """Return a base64 PNG data URI for the BarrelLabs logo, resized to
+    256×256 and PNG-optimized. Empty string if the file is missing — the
+    template still renders; the masthead just shows a blank circle."""
+    global _LOGO_DATA_URI_CACHE
+    if _LOGO_DATA_URI_CACHE is not None:
+        return _LOGO_DATA_URI_CACHE
+    try:
+        import base64
+        import io
+        from PIL import Image
+        if not os.path.exists(_LOGO_PATH):
+            _LOGO_DATA_URI_CACHE = ""
+            return ""
+        img = Image.open(_LOGO_PATH).convert("RGBA").resize((256, 256), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, "PNG", optimize=True)
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        _LOGO_DATA_URI_CACHE = "data:image/png;base64," + b64
+        return _LOGO_DATA_URI_CACHE
+    except Exception:
+        _LOGO_DATA_URI_CACHE = ""
+        return ""
+
+
+# ---------------------------------------------------------------------------
 # Template loading
 # ---------------------------------------------------------------------------
 
@@ -1359,13 +1397,21 @@ def _build_swap_pairs(
 # ---------------------------------------------------------------------------
 
 def _render_empty() -> None:
+    logo_uri = _logo_data_uri()
+    logo_html = (
+        f'<img src="{logo_uri}" alt="BarrelLabs" style="width:96px;height:96px;'
+        'object-fit:contain;margin:0 auto 28px;display:block;'
+        'filter:drop-shadow(0 4px 18px rgba(0,0,0,0.5));">'
+        if logo_uri else
+        '<div style="font-family:\'Instrument Serif\',Georgia,serif;font-style:italic;'
+        'font-size:64px;line-height:1;color:#E8C170;margin-bottom:24px;">⌖</div>'
+    )
     st.markdown(
-        """
+        f"""
         <div style="
             max-width: 720px; margin: 14vh auto; text-align: center;
             font-family: 'Geist', system-ui, sans-serif; color: #F4EFE6;">
-          <div style="font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
-                      font-size: 64px; line-height: 1; color: #E8C170; margin-bottom: 24px;">⌖</div>
+          {logo_html}
           <h1 style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
                      font-size: 48px; line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 16px;">
             Your first swing<br><span style="font-style: italic; color: #E8C170;">unlocks everything.</span>
@@ -1458,6 +1504,9 @@ def render_dashboard_v3(user: Dict[str, Any]) -> None:
         return
 
     swaps: List[Tuple[str, str]] = [
+        # Logo (real PNG, embedded as base64 data URI for iframe safety)
+        ("{{LOGO_DATA_URI}}", _logo_data_uri()),
+
         # Identity / chrome
         ("Logan Collins", name),
         (">L<", f">{initial}<"),

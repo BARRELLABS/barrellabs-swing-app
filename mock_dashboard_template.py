@@ -129,16 +129,13 @@ body::before {
 }
 .brand { display: flex; align-items: baseline; gap: 14px; }
 .brand-mark {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--bg); border: 1.5px solid var(--bone);
-  position: relative; transform: translateY(6px); flex-shrink: 0;
+  width: 38px; height: 38px;
+  display: block; flex-shrink: 0;
+  transform: translateY(8px);
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  filter: drop-shadow(0 1px 6px rgba(0,0,0,0.4));
 }
-.brand-mark::before, .brand-mark::after {
-  content: ""; position: absolute;
-  left: 14px; top: 3px; width: 0; height: 24px;
-  border-left: 1.5px dashed var(--red); opacity: 0.85;
-}
-.brand-mark::after { transform: rotate(90deg); transform-origin: center; }
 .wordmark {
   font-family: var(--sans); font-weight: 600; font-size: 14px;
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--bone);
@@ -1714,7 +1711,7 @@ body::before {
   <!-- MASTHEAD -->
   <header class="masthead fade-in d1">
     <div class="brand">
-      <div class="brand-mark"></div>
+      <img class="brand-mark" src="{{LOGO_DATA_URI}}" alt="BarrelLabs">
       <div class="wordmark">Barrellabs <span class="sep">/</span><span class="product"> Edge</span></div>
     </div>
     <nav class="nav">
