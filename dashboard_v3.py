@@ -76,20 +76,7 @@ def _logo_data_uri() -> str:
             _LOGO_DATA_URI_CACHE = ""
             return ""
         img = Image.open(_LOGO_PATH).convert("RGBA").resize((256, 256), Image.LANCZOS)
-        # The source PNG has a baked-in near-black background. Knock it out
-        # by setting pixels whose luminance is below a low threshold to alpha 0,
-        # so the logo reads as a floating mark on the dashboard's dark bg.
-        pixels = img.load()
-        w, h = img.size
-        for y in range(h):
-            for x in range(w):
-                r, g, b, a = pixels[x, y]
-                lum = (r * 299 + g * 587 + b * 114) // 1000  # ITU-R BT.601
-                if lum < 22:
-                    pixels[x, y] = (r, g, b, 0)
-                elif lum < 48:
-                    # soften the edge so we don't get a hard halo
-                    pixels[x, y] = (r, g, b, int(a * (lum - 22) / 26))
+        # The PNG ships with real transparency now — no runtime knockout needed.
         buf = io.BytesIO()
         img.save(buf, "PNG", optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("ascii")
