@@ -4162,20 +4162,31 @@ with st.sidebar:
 # Render the BarrelLabs dashboard. Acts as the default landing screen
 # for authenticated users; sits above the legacy upload flow.
 #
-# v2 is now the DEFAULT dashboard. The legacy v1 layout is still in the
+# v2 is the DEFAULT dashboard. The legacy v1 layout is still in the
 # build as a safety net — pass ?v2=0 in the URL to fall back for the
 # current session if anything breaks in prod.
+#
+# v3 = "Edge" — the new editorial mock wired to real data. OPT-IN ONLY
+# via `?v3=1` URL flag (or st.session_state["use_dashboard_v3"]=True).
+# This lets us preview the new design with real user data without
+# changing the default experience for anyone else. To revert: drop the
+# flag and v2 renders exactly as before.
 if st.session_state.get("page") == "dashboard":
-    # Allow ?v2=1 / ?v2=0 in the URL to override per-session.
+    # URL overrides — per-session toggles.
     try:
         qp = st.query_params
         if "v2" in qp:
             st.session_state["use_dashboard_v2"] = str(qp["v2"]).strip() in ("1", "true", "yes", "on")
+        if "v3" in qp:
+            st.session_state["use_dashboard_v3"] = str(qp["v3"]).strip() in ("1", "true", "yes", "on")
     except Exception:
         pass
 
-    # Default to v2 unless explicitly opted out via ?v2=0.
-    if st.session_state.get("use_dashboard_v2", True):
+    # v3 takes precedence when explicitly opted in.
+    if st.session_state.get("use_dashboard_v3", False):
+        from dashboard_v3 import render_dashboard_v3
+        render_dashboard_v3(user)
+    elif st.session_state.get("use_dashboard_v2", True):
         render_dashboard_v2(user)
     else:
         render_dashboard(user)
