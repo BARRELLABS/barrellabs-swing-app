@@ -107,7 +107,7 @@ breaks every responsive design). Now mobile renders at the expected
 | D1 | "1 sw" thin label | ✅ Resolved | Column widened to 80px; reads cleaner |
 | D2 | backdrop-filter fallback | ⚠️ Deferred | Streamlit Cloud renders this fine in real browsers; only fails in headless screenshot — leaving alone |
 | D3 | Trend chart annotation pin crowding | ✅ Resolved | Reduced annotation font-size to 8 px |
-| C1 / C2 | Cosmetic | ⏸ Acceptable | Not addressed in this pass |
+| C1 / C2 | Cosmetic | ⏸ Acceptable | Not addressed in this pass — see PASS 3 for C1 |
 
 ### New findings from PASS 2
 
@@ -121,6 +121,125 @@ inside a fluid container — the chart shrinks but stays readable. Not
 ideal but acceptable; a true responsive multi-line chart would require
 re-computing coordinates per viewport which is out of scope for this
 polish loop.
+
+---
+
+---
+
+## PASS 3 · after-c1 (2026-05-17 23:21)
+
+**Plan simulated:** `free` (full 3-tier pricing band visible)
+**Run dir:** `.visual_qa/screenshots/2026-05-17-2321xx-pass-3-after-c1-final/`
+
+### Scope
+
+Targeted single SEV-3 finding from PASS 1:
+
+- **C1** — pricing band sub-line under each tier used the same gold treatment for both `save 45% vs monthly` (annual, a value-pop) and `billed monthly · cancel anytime` (monthly, an assurance). Same color = same visual weight = no signal that one is a savings claim and the other is a trust line.
+
+### Fix
+
+Two-line CSS modifier + corresponding class application:
+
+1. `mock_dashboard_template.py` — added `.tier-price-sub.is-assurance` modifier (color `--gray-1`, drop uppercase, tighten letter-spacing). Static monthly markup updated to use it.
+2. `dashboard_v3.py` — the live pricing band is composed dynamically in `_render_tier_card_html`. Added a `sub_line_cls` toggle so:
+   - Annual with `save_pct > 0` → plain `tier-price-sub` (gold = the savings IS the pop)
+   - Annual with `save_pct == 0` ("billed annually · cancel anytime") → `is-assurance`
+   - Monthly ("billed monthly · cancel anytime") → `is-assurance`
+
+### Verification
+
+Re-ran `scripts/visual_qa/capture.py --label pass-3-after-c1-final`. Class application in rendered HTML:
+
+```
+3 tier-price-sub                 ← annual cards, gold savings line
+3 tier-price-sub is-assurance    ← monthly cards, muted assurance line
+```
+
+Cropped pricing-band region confirms the annual sub-line ("SAVE 45% vs MONTHLY") still pops in gold under each annual price; monthly variant inherits the muted treatment with no uppercase shouting.
+
+### C2 (re-evaluated)
+
+C2 was the "Vol. IV · Issue 23" line feeling arbitrary. PASS 1 already flagged it as acceptable, and inspection of `dashboard_v3.py:1518` confirms it's already computed from real state (`streak // 7 + 1` and `len(history)`), so the strings the screenshots show are the real dynamic values, not placeholders. **Leaving alone** — closing C2 as ✅ acceptable-by-design.
+
+### Result
+
+| ID | Issue | Status | Notes |
+|---|---|---|---|
+| C1 | Pricing band sub-line indistinguishable | ✅ Resolved | Annual = gold value-pop; monthly = muted assurance |
+| C2 | "Vol. IV · Issue 23" arbitrary | ✅ Closed | Already dynamic — derived from streak + history count |
+
+All cosmetic SEV-3 items now resolved or formally closed.
+
+---
+
+---
+
+## PASS 4 · production polish review (2026-05-18 00:00)
+
+**Plan simulated:** `free`
+**Run dir:** `.visual_qa/screenshots/2026-05-18-000444-pass-4-clean/`
+
+### Headline
+
+**No user-visible CSS regressions.** One bug found in the QA workflow itself.
+
+### The capture.py DSF=2 bug
+
+While reviewing PASS 4 baseline screenshots I noticed mobile content
+appearing to end abruptly at y=16,380 device px with ~50% blank tail
+below. Initial reading: catastrophic layout bug — sections §09–§14 and
+the pricing band were invisible on mobile.
+
+**It wasn't real.** Probe with Playwright at `device_scale_factor=1`
+confirmed the actual page is 16,393 CSS px tall and renders all sections
+through the footer cleanly. The 50% blank tail was an artifact of
+`device_scale_factor=2 + full_page=True` — Playwright was scaling the
+canvas width by 2× but the content rendered at 1× of the canvas height,
+leaving a giant blank below.
+
+The same artifact silently affected PASS 1, 2, and 3 (their
+`30,000-px tablet` and `32,000-px mobile` heights are exactly 2× the
+real page height of 15,308 / 16,393 px). Their findings stayed valid
+because the top half of every screenshot contained real content — but
+nobody could ever review the bottom half because it didn't exist.
+
+#### Fix
+
+`scripts/visual_qa/capture.py` now uses `device_scale_factor=1` with a
+comment explaining the trade-off. Resulting screenshots:
+
+| Viewport | Before (PASS 1–3) | After (PASS 4) | Blank tail |
+|---|---|---|---|
+| Desktop 1600 | 3200 × 18,432 | 1600 × 9,216 | 0.01 % |
+| Laptop 1280 | 2560 × 18,556 | 1280 × 9,278 | 0.01 % |
+| Tablet 900 | 1800 × 30,616 | 924 × 15,308 | 0.01 % |
+| Mobile 430 | 1648 × 27,042 → 1006 × 32,786 | 503 × 16,393 | 0.07 % |
+
+Text crispness drops modestly (1× DPR vs 2×) but the QA workflow is
+**layout-validation**, not type-rendering validation — composition,
+spacing, and breakpoints are what matter.
+
+### Layout review (real PASS 4)
+
+With accurate screenshots, all 4 viewports inspected band-by-band:
+
+| Viewport | Bands reviewed | Issues found |
+|---|---|---|
+| Desktop 1600 | top + bottom thirds | none |
+| Laptop 1280 | top + bottom thirds | none |
+| Tablet 900 | 4 horizontal bands | minor: pricing tiers collapse to 1-col at <1100 px so 924 px tablet shows narrow centered cards — works but doesn't use full width. **Acceptable as editorial spread; not a bug.** |
+| Mobile 430 | 4 horizontal bands | none — §02 through footer all render correctly with the responsive @media rules from PASS 1 |
+
+### Result
+
+| ID | Finding | Status |
+|---|---|---|
+| Q1 | capture.py DSF=2 produces phantom blank tails | ✅ Fixed in `scripts/visual_qa/capture.py` |
+| Q2 | Tablet 900 px pricing stack vs 2-col | ⏸ Acceptable — single-column centered cards read as editorial intent |
+| Q3 | Mobile §09–§14 rendering | ✅ Confirmed working — was hidden from prior passes by Q1 artifact |
+
+No application CSS or markup changed in this pass.
 
 ---
 

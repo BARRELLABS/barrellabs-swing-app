@@ -227,6 +227,15 @@ def _render_static(plan_id: str, output_html: Path) -> None:
 # ---------------------------------------------------------------------------
 
 async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
+    """Screenshot the page at each viewport.
+
+    NOTE: We intentionally use device_scale_factor=1 (not 2). The combo of
+    `full_page=True` + `device_scale_factor=2` produces a PNG that is 2x
+    taller than the real rendered content — leaving a 50% blank tail on
+    tall pages like ours. 1x DPR + full_page=True gives an accurate
+    screenshot. The trade-off (less crisp text) is acceptable for layout
+    QA where we care about composition, not pixel-perfect type rendering.
+    """
     from playwright.async_api import async_playwright
     results = []
     async with async_playwright() as pw:
@@ -234,17 +243,23 @@ async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
         for name, w, h in VIEWPORTS:
             ctx = await browser.new_context(
                 viewport={"width": w, "height": h},
-                device_scale_factor=2,
+                device_scale_factor=1,
             )
             page = await ctx.new_page()
             await page.goto(f"file://{html_path}", wait_until="networkidle")
             await page.wait_for_timeout(2000)
+            real_h = await page.evaluate(
+                "() => Math.max(document.documentElement.scrollHeight, "
+                "document.body.scrollHeight)"
+            )
             out = out_dir / f"{name}_{w}.png"
             await page.screenshot(path=str(out), full_page=True)
             size = out.stat().st_size
             results.append({"viewport": name, "width": w, "height": h,
+                            "rendered_height": int(real_h),
                             "file": out.name, "bytes": size})
-            print(f"  ✓ {name:7s} {w}x{h}: {out.name} ({size/1024:,.0f} KB)")
+            print(f"  ✓ {name:7s} {w}x{h} (rendered h={int(real_h)}): "
+                  f"{out.name} ({size/1024:,.0f} KB)")
             await ctx.close()
         await browser.close()
     return results

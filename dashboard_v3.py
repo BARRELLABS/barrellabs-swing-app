@@ -797,15 +797,23 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
     seats   = int(p.get("seats") or 1)
     seats_lbl = f"{seats} seat" + ("s" if seats != 1 else "")
 
+    # sub_line_cls toggles between gold (value-pop) and muted gray (assurance)
+    # so the two states aren't visually indistinguishable in the pricing band.
     if interval == "annual":
         num_disp = format_cents(p.get("annual_cents") or 0).replace("$", "").strip()
         per_lbl  = "/yr"
         save_pct = annual_savings_pct(plan_id)
-        sub_line = f"save {save_pct}% vs monthly" if save_pct > 0 else "billed annually · cancel anytime"
+        if save_pct > 0:
+            sub_line = f"save {save_pct}% vs monthly"
+            sub_line_cls = ""           # gold — actual savings is the value-pop
+        else:
+            sub_line = "billed annually · cancel anytime"
+            sub_line_cls = " is-assurance"
     else:
         num_disp = format_cents(p.get("monthly_cents") or 0).replace("$", "").strip()
         per_lbl  = "/mo"
         sub_line = "billed monthly · cancel anytime"
+        sub_line_cls = " is-assurance"
 
     # Feature lists — sourced from pricing.py for single-source-of-truth.
     try:
@@ -845,7 +853,7 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
   <div class="tier-price">
     <span class="dollar">$</span><span class="num">{num_disp}</span><span class="per">{per_lbl}</span>
   </div>
-  <div class="tier-price-sub">{sub_line}</div>
+  <div class="tier-price-sub{sub_line_cls}">{sub_line}</div>
   <ul class="tier-features">{base_lis}{extra_lis}</ul>
   <a class="tier-cta" href="/?page=pricing">Upgrade now ↗</a>
 </div>'''.strip()

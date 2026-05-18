@@ -1240,6 +1240,11 @@ body::before {
   letter-spacing: 0.10em; text-transform: uppercase; color: var(--gold);
   margin-top: 6px; min-height: 14px;
 }
+/* Monthly tier sub-line is an assurance ("cancel anytime"), not a savings pop —
+   mute it so the gold sub-line is reserved for the annual value proposition. */
+.tier-price-sub.is-assurance {
+  color: var(--gray-1); text-transform: none; letter-spacing: 0.04em;
+}
 
 .tier-features {
   margin: 22px 0 24px; padding: 22px 0 0;
@@ -3251,7 +3256,7 @@ body::before {
         <div class="tier-price">
           <span class="dollar">$</span><span class="num">{{SOLO_PRO_MONTHLY_NUM}}</span><span class="per">/mo</span>
         </div>
-        <div class="tier-price-sub">billed monthly · cancel anytime</div>
+        <div class="tier-price-sub is-assurance">billed monthly · cancel anytime</div>
         <ul class="tier-features">
           <li>Unlimited swing analyses</li>
           <li>Full personalized drill plan</li>
@@ -3274,7 +3279,7 @@ body::before {
         <div class="tier-price">
           <span class="dollar">$</span><span class="num">{{FAMILY_PRO_MONTHLY_NUM}}</span><span class="per">/mo</span>
         </div>
-        <div class="tier-price-sub">billed monthly · cancel anytime</div>
+        <div class="tier-price-sub is-assurance">billed monthly · cancel anytime</div>
         <ul class="tier-features">
           <li>Unlimited swing analyses</li>
           <li>Full personalized drill plan</li>
@@ -3299,7 +3304,7 @@ body::before {
         <div class="tier-price">
           <span class="dollar">$</span><span class="num">{{COACH_PRO_MONTHLY_NUM}}</span><span class="per">/mo</span>
         </div>
-        <div class="tier-price-sub">billed monthly · cancel anytime</div>
+        <div class="tier-price-sub is-assurance">billed monthly · cancel anytime</div>
         <ul class="tier-features">
           <li>Unlimited swing analyses</li>
           <li>Full personalized drill plan</li>
