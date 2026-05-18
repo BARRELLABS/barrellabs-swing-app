@@ -15,6 +15,11 @@ from datetime import datetime, timedelta
 import streamlit as st
 
 from bl_theme import inject_global_theme
+from bl_edge_chrome import (
+    render_edge_masthead,
+    render_edge_page_wrapper_open,
+    render_edge_page_wrapper_close,
+)
 from player_storage import (
     load_swing_history,
     delete_swing_record,
@@ -375,6 +380,162 @@ _SR_LOCAL_CSS = """
     background: rgba(255,59,48,0.05) !important;
     transform: translateX(-2px);
 }
+
+/* =========================================================
+   EDGE EDITORIAL OVERRIDES — bring the Saved Reports page
+   into the same visual language as the v3 dashboard.
+   These layer ON TOP of the base styles above.
+   ========================================================= */
+.sr-hero {
+    background:
+        radial-gradient(ellipse at 95% -20%, rgba(230,69,48,0.10) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
+    border-color: rgba(244,239,230,0.08);
+    border-radius: 24px;
+}
+.sr-eyebrow {
+    font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.24em !important;
+    color: #E64530 !important;
+}
+.sr-title {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 3rem !important;
+    letter-spacing: -0.01em !important;
+    color: #F4EFE6 !important;
+    line-height: 1.0 !important;
+    margin-bottom: 0.85rem !important;
+}
+.sr-sub {
+    color: #C8C4BB !important;
+    font-family: 'Geist', -apple-system, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    max-width: 560px !important;
+}
+.sr-mode-pill {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.22em !important;
+    color: #E64530 !important;
+    background: rgba(230,69,48,0.08) !important;
+    border-color: rgba(230,69,48,0.32) !important;
+}
+.sr-filter-card {
+    border-color: rgba(244,239,230,0.08) !important;
+    border-radius: 18px !important;
+    background: rgba(255,255,255,0.018) !important;
+}
+.sr-filter-eyebrow {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.24em !important;
+    color: #E64530 !important;
+}
+.sr-result-count {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.20em !important;
+    color: #8B8E94 !important;
+}
+.sr-result-count strong { color: #F4EFE6 !important; }
+.sr-card-wrap {
+    border-color: rgba(244,239,230,0.08) !important;
+    border-radius: 20px !important;
+    background: rgba(255,255,255,0.018) !important;
+    padding: 1.5rem 1.6rem 1.3rem !important;
+    transition: border-color 0.25s ease, transform 0.25s ease,
+                box-shadow 0.25s ease;
+}
+.sr-card-wrap:hover {
+    border-color: rgba(244,239,230,0.18) !important;
+    background: rgba(255,255,255,0.028) !important;
+}
+.sr-card-num {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.22em !important;
+    color: #E64530 !important;
+    background: rgba(230,69,48,0.08) !important;
+    border-color: rgba(230,69,48,0.30) !important;
+}
+.sr-card-date {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.18em !important;
+    color: #8B8E94 !important;
+}
+.sr-card-meta-eyebrow,
+.sr-card-meta-sub-label {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10px !important;
+    letter-spacing: 0.22em !important;
+    color: #8B8E94 !important;
+}
+.sr-card-meta-value {
+    font-family: 'Instrument Serif', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 2rem !important;
+    color: #F4EFE6 !important;
+}
+.sr-card-meta-value.is-red { color: #E64530 !important; }
+.sr-card-meta-sub-value {
+    font-family: 'Geist', sans-serif !important;
+    color: #F4EFE6 !important;
+    font-weight: 500 !important;
+}
+.sr-open-btn .stButton > button {
+    background: #F4EFE6 !important;
+    border-color: #F4EFE6 !important;
+    color: #0A0B0E !important;
+    border-radius: 100px !important;
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    box-shadow: none !important;
+}
+.sr-open-btn .stButton > button:hover {
+    background: #FFFFFF !important;
+    border-color: #FFFFFF !important;
+    box-shadow: 0 0 24px -8px rgba(244,239,230,0.5) !important;
+}
+.sr-card-actions [data-testid="stButton"] button,
+.sr-card-actions [data-testid="stDownloadButton"] button {
+    font-family: 'Geist Mono', monospace !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    border-color: rgba(244,239,230,0.10) !important;
+    color: #C8C4BB !important;
+    border-radius: 100px !important;
+}
+.sr-card-actions [data-testid="stButton"] button:hover,
+.sr-card-actions [data-testid="stDownloadButton"] button:hover {
+    color: #F4EFE6 !important;
+    border-color: rgba(244,239,230,0.22) !important;
+    background: rgba(244,239,230,0.04) !important;
+    transform: none;
+}
+.sr-empty {
+    background: rgba(255,255,255,0.018) !important;
+    border-color: rgba(244,239,230,0.12) !important;
+}
+.sr-empty-title {
+    font-family: 'Instrument Serif', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.6rem !important;
+    color: #F4EFE6 !important;
+}
+.sr-empty-sub {
+    font-family: 'Geist', sans-serif !important;
+    color: #C8C4BB !important;
+}
 </style>
 """
 
@@ -483,17 +644,17 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
             each report card gets a Download PDF button.
     """
     inject_global_theme()
+
+    # Unified Edge masthead — the ONLY nav system in the app.
+    # This replaces the old "← Back to Dashboard" button row, since the
+    # Dashboard pill in the masthead handles that already.
+    render_edge_masthead(user, active_page="saved_reports")
+
+    # Edge-styled page wrapper (kills Streamlit chrome, applies max-width)
+    render_edge_page_wrapper_open()
+
     st.markdown(_SR_LOCAL_CSS, unsafe_allow_html=True)
     st.markdown('<div class="bl-page">', unsafe_allow_html=True)
-
-    # ---- Back nav ----
-    st.markdown('<div class="sr-back">', unsafe_allow_html=True)
-    back_l, _ = st.columns([1, 5])
-    with back_l:
-        if st.button("← Back to Dashboard", key="sr_back_btn"):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ---- Hero ----
     hero_html = textwrap.dedent("""
@@ -520,6 +681,7 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
             "Your saved reports are tied to your BarrelLabs account.",
         )
         st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
         return
 
     player_id = user.get("slug") or user.get("id")
@@ -534,6 +696,7 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
             icon="↗",
         )
         st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
         return
 
     # ---- Filter bar ----
@@ -582,6 +745,7 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
             icon="≡",
         )
         st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
         return
 
     # ---- Render cards (one per row in this column-based layout, since
@@ -643,13 +807,19 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
         with a_open:
             st.markdown('<div class="sr-open-btn">', unsafe_allow_html=True)
             if st.button("Open Report  →", key=f"sr_open_{rec_id}"):
+                # Set the record + route to the DEDICATED swing report
+                # page (not back to dashboard). The page key drives the
+                # app.py dispatcher to swing_report_page.render(),
+                # which renders a focused single-swing view with the
+                # redesigned comparison at the bottom.
                 st.session_state["view_swing_record"] = rec
+                st.session_state["view_swing_report_id"] = rec_id
                 rp = rec.get("_record_path")
                 if rp:
                     st.session_state["view_swing_path"] = rp
                 else:
                     st.session_state.pop("view_swing_path", None)
-                st.session_state.pop("page", None)
+                st.session_state["page"] = "swing_report"
                 st.session_state.pop("view", None)
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -717,3 +887,4 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
         st.markdown('<div style="height:.45rem;"></div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)  # close .bl-page
+    render_edge_page_wrapper_close()
