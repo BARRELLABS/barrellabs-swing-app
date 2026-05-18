@@ -332,11 +332,134 @@ def _six_axis_scores(record: Dict[str, Any]) -> Dict[str, int]:
 # ---------------------------------------------------------------------------
 
 def _gamification_state(user: Dict[str, Any], history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Compute the full gamification state for the §12 Recent Unlocks rail.
+
+    Returns the dict produced by `gamification.compute_player_state` —
+    keys we use here: `achievements_earned` (list of IDs),
+    `current_streak_days`, `longest_streak_days`, `total_swings`,
+    `best_score`, `next_achievement`. Returns {} on any failure so the
+    caller can fall back to the static template content.
+    """
     try:
-        from gamification import compute_player_state  # type: ignore
-        return compute_player_state(user, history) or {}
+        from gamification import compute_player_state, achievement_by_id  # type: ignore
+        from player_storage import (  # type: ignore
+            load_all_swing_meta, load_player_progress,
+        )
+        player_id = user.get("id") or user.get("slug")
+        if not player_id:
+            return {}
+        meta_map  = load_all_swing_meta(player_id) or {}
+        persisted = load_player_progress(player_id) or {}
+        return compute_player_state(
+            history=history, drill_meta_map=meta_map, persisted=persisted,
+        ) or {}
     except Exception:
         return {}
+
+
+def _build_unlocks_rail_html(state: Dict[str, Any]) -> Optional[str]:
+    """Build the §12 Recent Unlocks rail from real gamification state.
+
+    Returns the HTML for the `<div class="rail">...</div>` block, or None
+    if `state` is empty (caller leaves the template's static fallback).
+
+    Composition: up to 2 most-recently-earned achievements (gold tiles)
+    plus up to 2 in-progress next-to-unlock (progress tiles). If fewer
+    than 2 of either exist, we still show whatever we have.
+    """
+    if not state:
+        return None
+    try:
+        from gamification import achievement_by_id, ACHIEVEMENTS  # type: ignore
+    except Exception:
+        return None
+
+    earned_ids: List[str] = list(state.get("achievements_earned") or [])
+    unlocked_dates = (state.get("persisted") or {}).get("achievements_unlocked") or {}
+
+    # Sort earned by unlock date (most recent first); fall back to list order.
+    earned_sorted = sorted(
+        earned_ids,
+        key=lambda i: unlocked_dates.get(i) or "",
+        reverse=True,
+    )
+
+    # Find in-progress next-to-unlock (highest-progress unearned).
+    interim = {
+        "total_swings":           int(state.get("total_swings") or 0),
+        "total_drills_completed": int(state.get("total_drills_completed") or 0),
+        "best_score":             int(state.get("best_score") or 0),
+        "current_streak_days":    int(state.get("current_streak_days") or 0),
+        "longest_streak_days":    int(state.get("longest_streak_days") or 0),
+        "max_score_improvement":  int(state.get("max_score_improvement") or 0),
+    }
+    in_progress: List[Tuple[Dict[str, Any], float]] = []
+    for ach in ACHIEVEMENTS:
+        if ach["id"] in earned_ids:
+            continue
+        cat = ach.get("category")
+        tgt = ach.get("target", 1)
+        if cat == "swing":
+            cur = interim["total_swings"]
+        elif cat == "drill":
+            cur = interim["total_drills_completed"]
+        elif cat == "score":
+            cur = interim["best_score"]
+        elif cat == "streak":
+            cur = interim["longest_streak_days"]
+        elif cat == "improvement":
+            cur = interim["max_score_improvement"]
+        else:
+            continue
+        pct = min(100.0, (cur / tgt) * 100.0) if tgt else 0.0
+        in_progress.append((ach, pct, cur, tgt))
+    in_progress.sort(key=lambda r: -r[1])
+
+    tiles: List[str] = []
+
+    # Up to 2 gold (earned).
+    for aid in earned_sorted[:2]:
+        ach = achievement_by_id(aid)
+        if not ach:
+            continue
+        title = ach.get("title", aid)
+        desc  = ach.get("description", "")
+        when  = unlocked_dates.get(aid) or ""
+        when_str = f"Unlocked · {when}" if when else "Unlocked"
+        # Reuse the existing medal icons by category.
+        icon = {"swing": "★", "drill": "◆", "score": "✦", "streak": "◇",
+                "improvement": "▲"}.get(ach.get("category"), "★")
+        tiles.append(
+            f'<div class="medal gold">'
+            f'<div class="icon">{icon}</div>'
+            f'<div class="name">{title}</div>'
+            f'<div class="when">{when_str} · {desc}</div>'
+            f'</div>'
+        )
+
+    # Pad with up to 2 progress tiles.
+    needed = 4 - len(tiles)
+    for ach, pct, cur, tgt in in_progress[:needed]:
+        title = ach.get("title", ach["id"])
+        desc  = ach.get("description", "")
+        icon  = {"swing": "★", "drill": "◆", "score": "✦", "streak": "◇",
+                 "improvement": "▲"}.get(ach.get("category"), "◆")
+        locked_cls = " locked" if pct < 50 else ""
+        tiles.append(
+            f'<div class="medal progress{locked_cls}">'
+            f'<div class="icon">{icon}</div>'
+            f'<div class="name">{title}</div>'
+            f'<div class="when">{desc} · {int(cur)} / {int(tgt)}</div>'
+            f'<div class="bar"><div class="fill" style="width:{pct:.0f}%"></div></div>'
+            f'<div class="pct">{pct:.0f}% complete</div>'
+            f'</div>'
+        )
+
+    # Edge case: state was empty enough to produce zero tiles → leave template alone.
+    if not tiles:
+        return None
+
+    return '<div class="rail fade-in d11">\n  ' + "\n  ".join(tiles) + '\n</div>'
 
 
 def _personal_records_count(history: List[Dict[str, Any]]) -> int:
@@ -529,6 +652,22 @@ def _radar_polygon_points(scores: Dict[str, int],
                           score_max: float = 100.0) -> str:
     """6-axis polygon points string. Axes plotted at -90, -30, 30, 90, 150, 210 degrees."""
     angles = [-90 + i * 60 for i in range(6)]
+    pts = []
+    for axis, deg in zip(axis_order, angles):
+        score = max(0, min(score_max, scores.get(axis, 50)))
+        r = (score / score_max) * max_radius
+        rad = math.radians(deg)
+        x = round(r * math.cos(rad), 1)
+        y = round(r * math.sin(rad), 1)
+        pts.append(f"{x},{y}")
+    return " ".join(pts)
+
+
+def _five_axis_polygon_points(scores: Dict[str, int], axis_order: List[str],
+                              max_radius: float = 170.0, score_max: float = 100.0) -> str:
+    """5-axis polygon for the §03 comp radar. Vertices placed at -90, -18, 54, 126, 198
+    degrees so axes spread evenly around the circle. Used by `_build_comp_radar_html`."""
+    angles = [-90 + i * 72 for i in range(5)]
     pts = []
     for axis, deg in zip(axis_order, angles):
         score = max(0, min(score_max, scores.get(axis, 50)))
@@ -858,6 +997,110 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
   <ul class="tier-features">{base_lis}{extra_lis}</ul>
   <a class="tier-cta" href="/?page=pricing">Upgrade now ↗</a>
 </div>'''.strip()
+
+
+_COMP_RADAR_AXES = [
+    # (six_axis_key, on-radar label, short label for delta line)
+    ("rotation", "ROTATION",       "ROT"),
+    ("timing",   "SEQUENCING",     "SEQ"),
+    ("knee",     "KNEE DRIVE",     "KNEE"),
+    ("head",     "HEAD STABILITY", "HEAD"),
+    ("tempo",    "SWING DURATION", "DUR"),
+]
+
+
+def _build_comp_radar_html(latest: Dict[str, Any], ref_name: str, ref_last: str) -> str:
+    """Build the §03 comp-radar card from real 5-axis scores.
+
+    Five axes (the circular "MLB match" axis is dropped — it is a
+    composite of the other five and double-counts). The comp polygon
+    sits at radius=170 on every axis (the comp is the reference, so it
+    is 100% on every axis by definition) and the user's polygon sits
+    inside it, scaled by their sim_pct on each axis.
+
+    Narrative copy:
+      - top line names the two axes where the user scores highest and
+        the one where they score lowest (the "next-up" axis)
+      - delta line shows the three largest gaps with signed magnitudes
+      - CTA links to the drill page (the §10 prescription)
+    """
+    sx = _six_axis_scores(latest)
+    # Build (key, label, short, score) tuples — the canonical 5 axes.
+    scored = [
+        (key, label, short, int(sx.get(key, 0)))
+        for key, label, short in _COMP_RADAR_AXES
+    ]
+
+    # YOU polygon
+    you_pts = _five_axis_polygon_points(
+        {k: s for (k, _, _, s) in scored},
+        [k for (k, _, _, _) in scored],
+        max_radius=170,
+    )
+
+    # Sort by score: highest two = strengths, lowest = focus
+    by_score = sorted(scored, key=lambda r: -r[3])
+    strengths = by_score[:2]
+    focus = by_score[-1]
+
+    # Top-3 largest gaps for the delta line (gap = 100 - score)
+    top3 = sorted(scored, key=lambda r: (100 - r[3]), reverse=True)[:3]
+    delta_strs = []
+    for _key, _label, short, score in top3:
+        diff = score - 100   # always ≤ 0 since comp is at 100
+        sign = "+" if diff >= 0 else "−"
+        delta_strs.append(f"{sign}{abs(diff)} {short}")
+    delta_line = " · ".join(delta_strs)
+
+    # Narrative sentence
+    s1 = strengths[0][1].lower()
+    s2 = strengths[1][1].lower()
+    focus_lower = focus[1].lower()
+    if s1 == s2:
+        narrative = (f'You match {ref_last} on <span class="em">{s1}</span>. '
+                     f'Close the gap on <span class="em">{focus_lower}</span>.')
+    else:
+        narrative = (f'You match {ref_last} on <span class="em">{s1}</span> '
+                     f'and <span class="em">{s2}</span>. '
+                     f'Close the gap on <span class="em">{focus_lower}</span>.')
+
+    return f'''<div class="comp-radar-card fade-in d6">
+    <div class="comp-radar-vis">
+      <svg width="440" height="440" viewBox="-220 -220 440 440" class="comp-radar-svg" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="0" cy="0" r="170" fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <circle cx="0" cy="0" r="120" fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <circle cx="0" cy="0" r="70"  fill="none" stroke="rgba(244,239,230,0.05)"/>
+        <g stroke="rgba(244,239,230,0.12)" stroke-width="0.8">
+          <line x1="0" y1="0" x2="0"     y2="-170"/>
+          <line x1="0" y1="0" x2="162"   y2="-52"/>
+          <line x1="0" y1="0" x2="100"   y2="136"/>
+          <line x1="0" y1="0" x2="-100"  y2="136"/>
+          <line x1="0" y1="0" x2="-162"  y2="-52"/>
+        </g>
+        <polygon class="comp-poly" points="0,-170 162,-52 100,136 -100,136 -162,-52"
+                 fill="none" stroke="#E64530" stroke-width="1.5"
+                 stroke-dasharray="5 4" opacity="0.85"/>
+        <polygon class="you-poly" points="{you_pts}"
+                 fill="rgba(244,239,230,0.16)" stroke="#F4EFE6" stroke-width="2"/>
+        <g font-family="Geist Mono, monospace" font-size="10.5" fill="#8B8E94" letter-spacing="0.14em" text-anchor="middle">
+          <text x="0"    y="-186">ROTATION</text>
+          <text x="184"  y="-50" text-anchor="start">SEQUENCING</text>
+          <text x="116"  y="160">KNEE DRIVE</text>
+          <text x="-116" y="160">HEAD STABILITY</text>
+          <text x="-184" y="-50" text-anchor="end">SWING DURATION</text>
+        </g>
+      </svg>
+    </div>
+    <div class="comp-radar-narrative">
+      <p class="comp-radar-line">{narrative}</p>
+      <p class="comp-radar-deltas">{delta_line}</p>
+      <div class="comp-radar-legend">
+        <div class="row"><span class="swatch you"></span><span>your shape</span></div>
+        <div class="row"><span class="swatch comp"></span><span>{ref_name}</span></div>
+      </div>
+      <a class="comp-radar-cta" href="/?page=drills">Open my plan to close the gap →</a>
+    </div>
+  </div>'''
 
 
 def _build_pricing_band_html(current_plan_id: str) -> str:
@@ -1670,47 +1913,40 @@ def render_dashboard_v3(user: Dict[str, Any]) -> None:
         html, count=1, flags=re.DOTALL,
     )
 
+    # §12 Recent Unlocks — wire real gamification state into the .rail block.
+    # If state is unavailable (e.g., no player_id, gamification module errors)
+    # we leave the template's static fallback in place rather than blank the
+    # section. Lookahead on `<!-- PRICING BAND` anchors on the next sibling
+    # in the template so the non-greedy `.*?` doesn't stop at the first
+    # inner medal close.
+    gm_state = _gamification_state(user, history)
+    unlocks_html = _build_unlocks_rail_html(gm_state)
+    if unlocks_html:
+        html = re.sub(
+            r'<div class="rail fade-in d11">.*?</div>\s*(?=<!--\s*PRICING BAND)',
+            unlocks_html + "\n\n  ",
+            html, count=1, flags=re.DOTALL,
+        )
+
     # ===== Chart geometry replacements (path generation from history) =====
 
-    # 1) Scoreboard sparklines: 5 cells, each its own SVG. We identify each
-    #    by the mock's distinctive endpoint coord/fill_id so the regex is
-    #    unambiguous, then swap the entire <svg class="spark"> block.
-    match_series   = [int(round(_similarity_pct(r) or 0)) for r in history]
-    hip_rot_series = _metric_value_series(history, "hip", "rotation", "contact") or _metric_value_series(history, "hip rotation")
-    launch_series  = _metric_value_series(history, "launch") or _metric_value_series(history, "contact", "ms")
-    sep_series     = _metric_value_series(history, "hip", "shoulder", "sep") or _metric_value_series(history, "separation")
-    knee_series    = _metric_value_series(history, "knee", "re-ext") or _metric_value_series(history, "knee", "extension")
-
-    # Cell 1 — Match score (area + line)
-    html = re.sub(
-        r'<svg class="spark" viewBox="0 0 200 40"[^>]*>\s*<defs><linearGradient id="sp1".*?</svg>',
-        _sparkline_svg(match_series, fill_id="sp1"),
-        html, count=1, flags=re.DOTALL,
-    )
-    # Cell 2 — Hip rotation @ contact (line only)
-    html = re.sub(
-        r'<svg class="spark" viewBox="0 0 200 40"[^>]*>\s*<path d="M0,24.*?</svg>',
-        _sparkline_svg(hip_rot_series, fill_id=None),
-        html, count=1, flags=re.DOTALL,
-    )
-    # Cell 3 — Launch → contact (gold-tinted area + line)
-    html = re.sub(
-        r'<svg class="spark" viewBox="0 0 200 40"[^>]*>\s*<defs><linearGradient id="sp3".*?</svg>',
-        _sparkline_svg(launch_series, fill_id="sp3", fill_color="rgba(232,193,112,0.20)"),
-        html, count=1, flags=re.DOTALL,
-    )
-    # Cell 4 — Hip-Shoulder sep (area + line)
-    html = re.sub(
-        r'<svg class="spark" viewBox="0 0 200 40"[^>]*>\s*<defs><linearGradient id="sp4".*?</svg>',
-        _sparkline_svg(sep_series, fill_id="sp4", fill_color="rgba(244,239,230,0.28)"),
-        html, count=1, flags=re.DOTALL,
-    )
-    # Cell 5 — Knee re-extension (bar chart, last bar gold)
-    html = re.sub(
-        r'<svg class="spark" viewBox="0 0 200 40"[^>]*>\s*<g fill="rgba\(244,239,230,0\.85\)">.*?</svg>',
-        _sparkline_bars_svg(knee_series),
-        html, count=1, flags=re.DOTALL,
-    )
+    # 1) §03 comp-radar card — replaces the previous 5-cell scoreboard +
+    #    ticker tape strip. See PASS 7 / persona-critique synthesis. Five
+    #    biomechanical axes only (the "MLB match" axis was dropped to fix
+    #    circular double-counting). Falls back to the static template card
+    #    if `_build_comp_radar_html` raises.
+    #
+    # Regex uses a lookahead on the next sibling comment so the non-greedy
+    # `.*?` doesn't stop inside the nested legend rows.
+    try:
+        comp_radar_html = _build_comp_radar_html(latest, ref_name, ref_last)
+        html = re.sub(
+            r'<div class="comp-radar-card fade-in d6">.*?(?=<!--\s*HIGHLIGHTS REEL)',
+            comp_radar_html.rstrip() + "\n\n  ",
+            html, count=1, flags=re.DOTALL,
+        )
+    except Exception:
+        pass  # leave template fallback in place
 
     # 2) DNA Radar polygon — replace the "You · this wk" polygon (the bone
     #    filled one, not the dashed MLB / peak overlays).

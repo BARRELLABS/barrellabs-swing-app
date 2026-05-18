@@ -232,17 +232,23 @@ def _render_static(plan_id: str, output_html: Path) -> None:
 # ---------------------------------------------------------------------------
 
 async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
-    """Screenshot the page at each viewport.
+    """Screenshot the page at each viewport AND run DOM assertions.
 
     Chromium's full-page screenshot canvas tops out around 16,384 px.
     The full dashboard at DPR 2 exceeds that and silently clips the
     bottom (methodology + footer disappear into a white slab). We
     probe page height per viewport at DPR 1 and use DPR 2 only when
     the resulting canvas fits.
+
+    After each viewport's screenshot, we also run DOM assertions
+    (eyebrow gutter, stroboscopic gap) and collect violations. The
+    capture script exits non-zero if any viewport reports a violation
+    — this is the bounded stopping criterion for QA iteration.
     """
     from playwright.async_api import async_playwright
     MAX_CANVAS_PX = 16000
     results = []
+    all_violations: List[Dict[str, Any]] = []
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
         for name, w, h in VIEWPORTS:
@@ -266,13 +272,115 @@ async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
             out = out_dir / f"{name}_{w}.png"
             await page.screenshot(path=str(out), full_page=True)
             size = out.stat().st_size
+
+            # DOM assertions — same page, after the screenshot.
+            assertions = await _run_dom_assertions(page, viewport_w=w)
+            for v in assertions["violations"]:
+                v["viewport"] = name
+                all_violations.append(v)
+
             results.append({"viewport": name, "width": w, "height": h,
                             "dpr": dpr, "page_height": page_h,
-                            "file": out.name, "bytes": size})
-            print(f"  ✓ {name:7s} {w}x{h} @{dpr}x: {out.name} ({size/1024:,.0f} KB, page {page_h}px)")
+                            "file": out.name, "bytes": size,
+                            "assertions": assertions})
+            status = "✓" if not assertions["violations"] else "✗"
+            print(f"  {status} {name:7s} {w}x{h} @{dpr}x: {out.name} "
+                  f"({size/1024:,.0f} KB, page {page_h}px, "
+                  f"asserts {assertions['passed']}/{assertions['total']})")
             await ctx.close()
         await browser.close()
+    # Surface all violations at the end so the user sees them in one place.
+    if all_violations:
+        print(f"\n  ❌ {len(all_violations)} DOM assertion violation(s):")
+        for v in all_violations[:20]:
+            print(f"     [{v['viewport']:7s}] {v['type']}: {v.get('detail','')}")
     return results
+
+
+# ---------------------------------------------------------------------------
+# DOM assertions — these gate the QA loop
+# ---------------------------------------------------------------------------
+
+# Minimum gap (px) between the bottom of an SVG ghost-pose label inside
+# `.silhouette-stage` and the top of `.stage-label` (the stroboscopic
+# caption). Catches the §05 overlap bug class.
+MIN_STROBO_GAP_PX = 6
+
+
+async def _run_dom_assertions(page, *, viewport_w: int) -> Dict[str, Any]:
+    """Measure layout invariants in the rendered page. Returns
+    {passed, total, violations, measurements}.
+
+    Two invariants enforced:
+
+    1. **Eyebrow parentage** — every `.section-eyebrow` must trace back
+       to a `<div class="app">` ancestor. The PR #9 bug class was a
+       stray `</div>` auto-closing `.app`, putting the lower sections
+       as siblings of `.app` (parent = `body`). An absolute-px threshold
+       doesn't work because `.app`'s gutter shrinks responsively (56 →
+       32 → 18 px); parent-chain membership is the real invariant.
+
+    2. **Stroboscopic gap** — SVG ghost labels under the stick figures
+       must have ≥6 px clearance above the absolute-positioned
+       `.stage-label` caption.
+    """
+    measurements = await page.evaluate("""(vw) => {
+        const eyebrows = document.querySelectorAll('.section-eyebrow');
+        const stageLabel = document.querySelector('.stage-label');
+        const ghostLabels = document.querySelectorAll('.silhouette-stage svg text');
+        const ghostLabelData = Array.from(ghostLabels)
+            .filter(el => ['LOAD','FOOT PLANT','LAUNCH','CONTACT'].includes((el.textContent||'').trim()))
+            .map(el => {
+                const r = el.getBoundingClientRect();
+                return {text: el.textContent.trim(), top: Math.round(r.top), bottom: Math.round(r.bottom)};
+            });
+        // For each eyebrow, walk up and report whether `.app` is an ancestor.
+        const eyebrowData = Array.from(eyebrows).map(el => {
+            let node = el.parentElement;
+            let inApp = false;
+            while (node && node.tagName !== 'HTML') {
+                if (node.classList && node.classList.contains('app')) { inApp = true; break; }
+                node = node.parentElement;
+            }
+            return {
+                text: el.textContent.trim().slice(0, 35),
+                left: Math.round(el.getBoundingClientRect().left),
+                in_app: inApp,
+            };
+        });
+        return {
+            eyebrows: eyebrowData,
+            stage_label_top: stageLabel ? Math.round(stageLabel.getBoundingClientRect().top) : null,
+            ghost_labels: ghostLabelData,
+        };
+    }""", viewport_w)
+
+    violations: List[Dict[str, Any]] = []
+
+    # 1. Eyebrow parentage — must be inside .app
+    for eb in measurements["eyebrows"]:
+        if not eb["in_app"]:
+            violations.append({
+                "type": "eyebrow_escaped_app",
+                "detail": f'"{eb["text"]}" is not inside .app (left={eb["left"]}px)',
+            })
+
+    # 2. Stroboscopic overlap
+    sl_top = measurements.get("stage_label_top")
+    if sl_top is not None and measurements["ghost_labels"]:
+        for gl in measurements["ghost_labels"]:
+            gap = sl_top - gl["bottom"]
+            if gap < MIN_STROBO_GAP_PX:
+                violations.append({
+                    "type": "strobo_overlap",
+                    "detail": f'ghost label "{gl["text"]}" bottom={gl["bottom"]}, '
+                              f'stage-label top={sl_top}, gap={gap}px (min {MIN_STROBO_GAP_PX})',
+                })
+
+    total = len(measurements["eyebrows"]) + len(measurements["ghost_labels"])
+    passed = total - len(violations)
+    return {"passed": passed, "total": total,
+            "violations": violations, "measurements": measurements}
 
 
 # ---------------------------------------------------------------------------
@@ -312,7 +420,15 @@ def main() -> int:
         "viewports": results,
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
-    print(f"\n  meta.json saved\n  done.\n")
+    total_violations = sum(len(r.get("assertions", {}).get("violations", []))
+                           for r in results)
+    print(f"\n  meta.json saved")
+    if total_violations:
+        print(f"  ❌ FAIL — {total_violations} DOM assertion violation(s) across viewports.")
+        print(f"\n  See {out_dir / 'meta.json'} for the full per-viewport breakdown.\n")
+        return 1
+    print(f"  ✅ all DOM assertions passed across {len(results)} viewports.")
+    print(f"  done.\n")
     print(f"Reviewer: open the PNGs and write findings into")
     print(f"  {REPO_ROOT / 'VISUAL_QA_REPORT.md'}\n")
     return 0
