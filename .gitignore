@@ -27,6 +27,7 @@ Thumbs.db
 *_backup*.py
 *_before_*.py
 backups/
+_backup_dashboards_*/
 
 # ===== Local player data (Supabase is source of truth) =====
 players/
