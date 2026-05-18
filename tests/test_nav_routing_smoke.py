@@ -91,6 +91,9 @@ class _StreamlitStub(types.ModuleType):
         n = spec if isinstance(spec, int) else len(spec)
         return [_ColCtx(self) for _ in range(n)]
 
+    def container(self, key=None, **kw):
+        return _ColCtx(self)
+
     def download_button(self, label, **kw):
         self._buttons_rendered.append((label, kw.get("key"), "download"))
         return False
