@@ -4702,7 +4702,23 @@ if "view_swing_record" in st.session_state or "view_swing_path" in st.session_st
         saved_record = load_saved_swing_record(st.session_state.view_swing_path)
 
     if saved_record:
-        render_saved_swing_report(saved_record)
+        # Route saved-report opens through the new v3 editorial template
+        # (force_record so any past swing renders in the same design as
+        # the live dashboard). The old swing_report.py renderer is kept
+        # as a fallback via `?legacy=1`.
+        _use_legacy = "1" in (st.query_params.get("legacy") or "")
+        if not _use_legacy and st.session_state.get("use_dashboard_v3", True):
+            try:
+                from dashboard_v3 import render_dashboard_v3
+                render_dashboard_v3(user, force_record=saved_record)
+            except Exception as _v3_err:
+                # If the v3 path errors on this record (e.g., missing
+                # phase data), fall back to the legacy renderer rather
+                # than show nothing.
+                st.warning(f"Could not render in new template: {_v3_err}. Falling back.")
+                render_saved_swing_report(saved_record)
+        else:
+            render_saved_swing_report(saved_record)
 
         # Practice log lives between the report and the compare block.
         # Lets the player check off drills + leave notes for this swing.

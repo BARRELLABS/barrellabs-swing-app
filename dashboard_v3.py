@@ -1684,8 +1684,96 @@ def _render_empty() -> None:
 # Public entry
 # ---------------------------------------------------------------------------
 
-def render_dashboard_v3(user: Dict[str, Any]) -> None:
-    """Render the Edge mock dashboard, populated with the user's real data."""
+def _render_v3_nav() -> None:
+    """Render a Streamlit-native top nav above the iframe.
+
+    Critical: this nav must NOT be inside the components.html iframe,
+    because in-iframe HTML can only trigger a hard browser navigation
+    (which Streamlit treats as a new session and wipes Supabase auth
+    tokens stored in `session_state`). The in-iframe pills are now
+    decorative-only; this Streamlit-native row handles real routing
+    via in-app reruns that preserve auth.
+
+    Pills are styled to mirror the editorial design (mono caps, gold
+    accents, dark surface, pill borders).
+    """
+    st.markdown(
+        """
+        <style>
+          /* Inject the editorial pill style onto the buttons in this row. */
+          div[data-bl-v3-nav] {
+            background: #0A0B0E;
+            border-bottom: 1px solid rgba(244,239,230,0.06);
+            padding: 18px 56px 16px;
+          }
+          div[data-bl-v3-nav] [data-testid="stHorizontalBlock"] { gap: 6px !important; }
+          div[data-bl-v3-nav] button {
+            background: transparent !important;
+            border: 1px solid transparent !important;
+            color: #8B8E94 !important;
+            font-family: 'Geist Mono', monospace !important;
+            font-size: 11px !important;
+            letter-spacing: 0.18em !important;
+            text-transform: uppercase !important;
+            font-weight: 400 !important;
+            padding: 10px 20px !important;
+            border-radius: 100px !important;
+            transition: color 0.18s, background 0.18s;
+            width: 100% !important;
+          }
+          div[data-bl-v3-nav] button:hover {
+            color: #F4EFE6 !important;
+            background: rgba(244,239,230,0.05) !important;
+            border-color: rgba(244,239,230,0.10) !important;
+          }
+          div[data-bl-v3-nav] button[kind="primary"],
+          div[data-bl-v3-nav] button[data-testid="baseButton-primary"] {
+            color: #0A0B0E !important;
+            background: #F4EFE6 !important;
+            border-color: #F4EFE6 !important;
+          }
+          /* Center the row at the same max-width as the iframe content. */
+          div[data-bl-v3-nav] > div { max-width: 1560px; margin: 0 auto; }
+        </style>
+        <div data-bl-v3-nav>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    nav_entries = [
+        ("Dashboard", "dashboard"),
+        ("Sessions",  "saved_reports"),
+        ("Compare",   "compare_swings"),
+        ("Drills",    "development_tracker"),
+        ("Library",   "historical_charts"),
+    ]
+    active_page = st.session_state.get("page", "dashboard")
+    cols = st.columns([1, 1, 1, 1, 1, 4])  # last col absorbs remaining width
+    for i, (label, page_key) in enumerate(nav_entries):
+        with cols[i]:
+            btn_type = "primary" if active_page == page_key else "secondary"
+            if st.button(label, key=f"_v3nav_{page_key}", type=btn_type, width="stretch"):
+                st.session_state["page"] = page_key
+                # Clear any open-report state so a deep-linked record
+                # doesn't override the new page.
+                st.session_state.pop("view_swing_record", None)
+                st.session_state.pop("view_swing_path", None)
+                st.session_state.pop("view", None)
+                st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_dashboard_v3(user: Dict[str, Any],
+                        force_record: Optional[Dict[str, Any]] = None) -> None:
+    """Render the Edge mock dashboard, populated with the user's real data.
+
+    Args:
+        user: the logged-in profile dict.
+        force_record: optional. If provided, render the dashboard against
+            this specific saved swing record INSTEAD of the most recent
+            one in history. Used by the saved-reports → open-report flow
+            so any past swing renders in the new editorial template.
+    """
     # Hide Streamlit chrome so the page feels like a real app, not a notebook.
     st.markdown(
         """
@@ -1702,8 +1790,30 @@ def render_dashboard_v3(user: Dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
+    # Functional top nav — outside the iframe so clicks preserve auth.
+    _render_v3_nav()
+
+    # Load full history (needed for trends / streaks / unlocks regardless of
+    # which specific swing we render).
     history = _safe_history(user) or []
-    latest = history[-1] if history else None
+    # When force_record is supplied (open-report flow), use it as `latest`
+    # so the entire editorial template renders that specific swing. Trend
+    # / progression sections still use `history` (which we filter to records
+    # up to and including the forced one, so the trend reflects history at
+    # that point in time).
+    if force_record is not None:
+        latest = force_record
+        # Show history up through the forced record. We identify by
+        # timestamp when available; falls back to identity comparison.
+        target_ts = force_record.get("timestamp")
+        if target_ts:
+            history = [r for r in history
+                       if (r.get("timestamp") or "") <= target_ts]
+        # Ensure latest is the final element (for any history[-1] calls).
+        if history and history[-1] is not force_record:
+            history = history + [force_record] if force_record not in history else history
+    else:
+        latest = history[-1] if history else None
 
     if not latest:
         _render_empty()
