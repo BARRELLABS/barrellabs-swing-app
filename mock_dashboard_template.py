@@ -1350,6 +1350,167 @@ body::before {
 }
 
 /* =========================================================
+   RESPONSIVE BREAKPOINTS  (added via PASS 2 of visual_qa loop)
+   Goal: every multi-column row collapses gracefully below 1100 px
+   so the dashboard remains usable on tablets and phones.
+   Production v3 stays desktop-first; these queries are additive.
+   ========================================================= */
+
+/* Tablet / narrow laptop · ≤ 1100 px */
+@media (max-width: 1100px) {
+  .app { padding: 0 32px 64px; }
+  .spine { display: none; }                          /* R13 */
+
+  /* R1 — hero: collapse 3-col to a vertical stack */
+  .hero { grid-template-columns: 1fr; gap: 36px; padding: 24px 0 40px; }
+  .edge-score-wrap { order: 1; }
+  .hero > div:nth-child(2) { order: 2; }
+  .doppel, .tier-card { order: 3; max-width: none; }
+  .hero-headline { font-size: 58px; }
+  .edge-score-svg { width: 220px; height: 220px; }
+  .edge-num .v { font-size: 72px; }
+
+  /* R2 — scoreboard: 5 → 2 cols, equal-height cells */
+  .scoreboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .score-cell { border-right: none; border-bottom: 1px solid var(--line); }
+  .score-cell:nth-child(2n) { border-right: none; }
+  .score-cell:nth-last-child(-n+1) { border-bottom: none; }
+
+  /* R3 — highlight reel: 3 → 1 vertical scroll on narrow tablet/mobile */
+  .reel { grid-template-columns: 1fr; gap: 16px; }
+  .clip { aspect-ratio: 16 / 11; }
+
+  /* R4 — Swing of Week + DNA: stack */
+  .two-col { grid-template-columns: 1fr; gap: 18px; }
+
+  /* R5 — Form Quadrants + Phase Timing: stack */
+  .diamond-row { grid-template-columns: 1fr; gap: 18px; }
+
+  /* R6 — Phase Clock signature: stack vertically */
+  .signature {
+    grid-template-columns: 1fr; gap: 32px;
+    padding: 40px 28px; margin-top: 32px;
+  }
+  .sig-title { font-size: 38px; }
+
+  /* R7 — 12-Week stats: 6 → 3×2 */
+  .progress-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .progress-stat { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .progress-stat:nth-child(3n), .progress-stat:nth-last-child(-n+3) { border-right: none; }
+  .progress-stat:nth-last-child(-n+3) { border-bottom: none; }
+  .progress-stat:nth-child(3n) { border-right: none; }
+
+  /* R8 — Milestones: 4 → 2×2 */
+  .milestones-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* R9 — Drill cards: 3 → 1 */
+  .coach-grid { grid-template-columns: 1fr; }
+
+  /* R10 — Achievements: 4 → 2×2 */
+  .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* R11 — Pricing tiers: stack */
+  .tiers-row { grid-template-columns: 1fr !important; max-width: 460px; margin: 0 auto; }
+  .tier-card.featured { transform: none; }
+
+  /* R12 — Footer: stack */
+  .footer { grid-template-columns: 1fr; gap: 24px; text-align: left; }
+  .footer > .foot-block:nth-child(2),
+  .footer > .foot-block:nth-child(2) .next-date,
+  .footer > .foot-block:nth-child(2) .label,
+  .footer > .foot-block:nth-child(2) .sub,
+  .footer > .foot-block:nth-child(3) { text-align: left !important; }
+  .foot-tiny { text-align: left; margin-top: 32px; }
+
+  /* Phase Clock 12-week SVG inner trend: reduce viewbox padding */
+  .progress-trend-card { padding: 22px; }
+  .trend { padding: 22px 22px 8px; }
+  .scoreboard, .card { border-radius: 12px; }
+
+  /* Section heads tighten */
+  .section-head { padding: 36px 0 18px; }
+  .section-title { font-size: 24px; }
+}
+
+/* Mobile · ≤ 640 px */
+@media (max-width: 640px) {
+  .app { padding: 0 18px 48px; }
+
+  /* R14 — Masthead nav: hide pill nav, keep logo + streak */
+  .nav { display: none; }
+  .user-streak { display: none; }
+  .masthead { padding: 18px 0 16px; }
+  .issue-line { display: none; }   /* publication metadata strip — too dense for mobile */
+
+  /* Hero compress further */
+  .hero { padding: 16px 0 32px; gap: 24px; }
+  .hero-headline { font-size: 42px; line-height: 1.05; }
+  .hero-deck { font-size: 14px; }
+  .hero-meta { gap: 16px; flex-wrap: wrap; }
+  .edge-score-svg { width: 180px; height: 180px; }
+  .edge-num .v { font-size: 56px; }
+  .edge-score-cats { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+
+  /* R2 mobile: scoreboard 5 → 1 col */
+  .scoreboard { grid-template-columns: 1fr; }
+  .score-cell { border-right: none; }
+
+  /* R7 mobile: 12-Week stats 3 → 2 cols */
+  .progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progress-stat { border-right: 1px solid var(--line) !important; }
+  .progress-stat:nth-child(2n) { border-right: none !important; }
+
+  /* R8 mobile: Milestones 2 → 1 col */
+  .milestones-row { grid-template-columns: 1fr; }
+
+  /* R10 mobile: Achievements 2 → 1 col */
+  .rail { grid-template-columns: 1fr; }
+
+  /* Closest MLB Match: collapse 3-col grid → stack */
+  .match-grid { grid-template-columns: 1fr; gap: 24px; padding: 28px 22px; }
+  .match-name { font-size: 56px; }
+  .match-bars { gap: 10px; }
+  .match-cta-row {
+    flex-direction: column; align-items: stretch; gap: 14px;
+    padding: 18px 22px;
+  }
+  .match-stat-pills { flex-wrap: wrap; gap: 14px; font-size: 9.5px; }
+
+  /* Phase Timing Spectrum SVG — let it scale fully */
+  .spray svg { max-width: 100%; height: auto; }
+
+  /* Pricing band tighten */
+  .pricing-band { padding: 36px 22px; }
+  .pricing-title { font-size: 36px; }
+  .free-strip { flex-direction: column; gap: 8px; text-align: center; padding: 14px; border-radius: 16px; }
+  .pricing-toggle-row { justify-content: center; }
+
+  /* Card title sizing for narrow viewports */
+  .card-title, .sig-title { font-size: 26px; }
+  .signature { padding: 32px 20px; }
+
+  /* Methodology stacks (already had its own @media); footer too */
+  .card { padding: 22px; }
+
+  /* Ledger rows reduce column complexity */
+  .ledger-row {
+    grid-template-columns: 1fr;
+    gap: 4px; padding: 14px 0;
+  }
+  .ledger-row .top-metric, .ledger-row .swings { display: none; }
+  .ledger-row .grade { text-align: left; }
+  .ledger-row .mood { display: none; }
+}
+
+/* D1 — Ledger row: slightly widen the swing-count column so "1 sw"
+   reads less skeletal on desktop. */
+.ledger-row { grid-template-columns: 110px 80px 1fr 70px 50px; }
+
+/* D3 — 30-day trend chart annotation pins: smaller font so 3 pins
+   don't crowd each other on the right side. */
+.trend-chart svg text[fill="#E8C170"] { font-size: 8px; }
+
+/* =========================================================
    ENTRY ANIMATIONS — staggered
    ========================================================= */
 .fade-in {
