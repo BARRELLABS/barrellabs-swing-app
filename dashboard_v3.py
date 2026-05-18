@@ -876,7 +876,7 @@ def _build_pricing_band_html(current_plan_id: str) -> str:
 <section class="pricing-band fade-in d12">
   <div class="pricing-head">
     <div class="pricing-head-meta">
-      <div class="pricing-eyebrow">§ 11 · Subscription</div>
+      <div class="pricing-eyebrow">§ 13 · Edge Pro Upsell</div>
       <h2 class="pricing-title">You're at the <span class="ital">top tier.</span></h2>
       <p class="pricing-sub">Thanks for being on <span style="color:var(--gold)">{cur_name}</span> — you have access to every BarrelLabs feature, including the full {cur_seats}-seat roster.</p>
     </div>
@@ -956,7 +956,7 @@ def _build_pricing_band_html(current_plan_id: str) -> str:
 <section class="pricing-band fade-in d12">
   <div class="pricing-head">
     <div class="pricing-head-meta">
-      <div class="pricing-eyebrow">§ 11 · Subscription</div>
+      <div class="pricing-eyebrow">§ 13 · Edge Pro Upsell</div>
       <h2 class="pricing-title">{title_html}</h2>
       <p class="pricing-sub">{sub_text}</p>
     </div>

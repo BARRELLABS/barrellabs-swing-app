@@ -129,13 +129,17 @@ body::before {
 }
 .brand { display: flex; align-items: baseline; gap: 14px; }
 .brand-mark {
-  width: 38px; height: 38px;
+  width: 42px; height: 42px;
   display: block; flex-shrink: 0;
-  transform: translateY(8px);
   object-fit: contain;
   image-rendering: -webkit-optimize-contrast;
-  filter: drop-shadow(0 1px 6px rgba(0,0,0,0.4));
+  /* No background, no border, no shadow — the logo's own design carries
+     itself. Floats directly on the page bg, aligned to the wordmark
+     baseline rather than translated downward. */
+  align-self: center;
 }
+.brand { gap: 16px; align-items: center; }
+.brand .wordmark { transform: none; }
 .wordmark {
   font-family: var(--sans); font-weight: 600; font-size: 14px;
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--bone);
@@ -225,11 +229,22 @@ body::before {
 .hero-eyebrow .swatch { display: inline-block; width: 22px; height: 1px; background: var(--red); }
 .hero-headline {
   font-family: var(--serif); font-weight: 400;
-  font-size: 78px; line-height: 0.94; letter-spacing: -0.025em;
+  font-size: 78px; line-height: 1.02; letter-spacing: -0.025em;
   color: var(--bone); margin: 0 0 24px;
 }
-.hero-headline .ital { font-style: italic; color: var(--gold); }
-.hero-headline .red { color: var(--red); }
+/* Generous breathing room around the highlighted metric so the eye
+   has space to land on it. Inline-block so the margins actually take. */
+.hero-headline .ital {
+  font-style: italic; color: var(--gold);
+  display: inline-block;
+  padding: 0 0.08em;
+  margin: 0 0.06em;
+}
+.hero-headline .red {
+  color: var(--red);
+  display: inline-block;
+  padding: 0 0.05em;
+}
 .hero-deck {
   font-family: var(--sans); font-weight: 300;
   font-size: 16px; line-height: 1.55; color: var(--bone-dim);
@@ -406,10 +421,11 @@ body::before {
 .clip:hover .clip-play svg { fill: var(--bg); }
 .clip-play svg { width: 18px; height: 18px; fill: var(--bone); transition: fill 0.2s; margin-left: 3px; }
 .clip-meta {
-  position: absolute; left: 18px; right: 18px; bottom: 16px;
+  position: absolute; left: 20px; right: 20px; bottom: 18px;
   display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 12px;
 }
-.clip-meta .info { display: flex; flex-direction: column; gap: 4px; }
+.clip-meta .info { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
 .clip-meta .when {
   font-family: var(--mono); font-size: 10px;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray-1);
@@ -460,25 +476,39 @@ body::before {
   border-radius: var(--radius-sm);
 }
 .sow-phases {
-  display: grid; grid-template-columns: repeat(6, 1fr);
-  margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 28px; border-top: 1px solid var(--line); padding-top: 22px;
 }
 .phase {
-  display: flex; flex-direction: column; gap: 6px; text-align: center;
-  border-right: 1px solid var(--line-lo); padding: 0 8px;
+  display: flex; flex-direction: column; gap: 8px; text-align: center;
+  border-right: 1px solid var(--line-lo); padding: 0 6px;
+  min-width: 0;   /* allow text to shrink instead of overflow the cell */
 }
 .phase:last-child { border-right: none; }
 .phase .ms {
   font-family: var(--mono); font-feature-settings: "tnum";
   font-size: 13px; font-weight: 500; color: var(--bone);
+  white-space: nowrap;
 }
 .phase .ms .sign { color: var(--gray-1); margin-right: 1px; }
 .phase .name {
   font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--gray-1);
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.phase .vs { font-family: var(--mono); font-size: 9.5px; color: var(--gray-2); }
+.phase .vs {
+  font-family: var(--mono); font-size: 9.5px; color: var(--gray-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .phase.peak .ms { color: var(--gold); }
+
+/* Below 900px the 6-col ribbon needs to wrap to 3 cols × 2 rows so the
+   labels never overlap or get clipped. */
+@media (max-width: 900px) {
+  .sow-phases { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; }
+  .phase:nth-child(3) { border-right: none; }
+}
 .sow-callouts {
   display: grid; grid-template-columns: 1fr 1fr;
   gap: 16px; margin-top: 24px;
@@ -649,8 +679,11 @@ body::before {
 .signature {
   margin-top: 56px; display: grid;
   grid-template-columns: 1.1fr 1fr; gap: 56px;
-  padding: 56px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-  background: radial-gradient(60% 50% at 50% 100%, rgba(230,69,48,0.06), transparent 70%);
+  padding: 64px 48px;   /* horizontal padding so stats don't kiss the card edge */
+  border: 1px solid var(--line); border-radius: var(--radius-lg);
+  background:
+    radial-gradient(60% 50% at 50% 100%, rgba(230,69,48,0.06), transparent 70%),
+    linear-gradient(135deg, #14171d 0%, #0a0b0e 100%);
 }
 .sig-meta { display: flex; flex-direction: column; justify-content: center; }
 .sig-eyebrow {
@@ -667,7 +700,8 @@ body::before {
   color: var(--bone-dim); max-width: 460px; margin: 12px 0 32px;
 }
 .sig-stats {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 32px;
   padding-top: 28px; border-top: 1px solid var(--line); max-width: 460px;
 }
 .sig-stat .v {
@@ -864,10 +898,11 @@ body::before {
   overflow: hidden; background: var(--bg-glass);
 }
 .progress-stat {
-  padding: 24px 20px 22px;
+  padding: 28px 24px 24px;
   border-right: 1px solid var(--line);
   transition: background 0.2s;
   position: relative;
+  min-width: 0;   /* prevent overflow when numbers are wide */
 }
 .progress-stat:last-child { border-right: none; }
 .progress-stat:hover { background: var(--bg-glass-hi); }
@@ -1238,18 +1273,58 @@ body::before {
 .tier-card.featured .tier-cta:hover { background: var(--bone); }
 
 /* =========================================================
+   METHODOLOGY NOTE · with subtle logo watermark
+   ========================================================= */
+.methodology {
+  margin-top: 48px; padding: 32px 36px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background:
+    radial-gradient(60% 100% at 100% 50%, rgba(232,193,112,0.04), transparent 60%),
+    var(--bg-glass);
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 28px; align-items: center;
+  position: relative; overflow: hidden;
+}
+.methodology-eyebrow {
+  font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--gray-1); margin-bottom: 12px;
+}
+.methodology-body p {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.6;
+  color: var(--bone-dim); max-width: 920px; margin: 0;
+}
+.methodology-body .em      { color: var(--bone); }
+.methodology-body .em-gold { color: var(--gold); }
+.methodology-mark {
+  width: 96px; height: 96px; object-fit: contain;
+  opacity: 0.20; flex-shrink: 0;
+  filter: grayscale(0.3) brightness(1.1);
+  user-select: none; pointer-events: none;
+}
+@media (max-width: 760px) {
+  .methodology { grid-template-columns: 1fr; gap: 18px; }
+  .methodology-mark { display: none; }
+}
+
+/* =========================================================
    FOOTER
    ========================================================= */
 .footer {
   margin-top: 64px; padding: 40px 0 0;
   border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; align-items: start;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px;
+  align-items: start;
 }
 .foot-quote {
   font-family: var(--serif); font-style: italic;
-  font-size: 22px; line-height: 1.4; color: var(--bone-dim);
-  max-width: 560px; letter-spacing: -0.005em;
+  font-size: 20px; line-height: 1.45; color: var(--bone-dim);
+  letter-spacing: -0.005em;
 }
+.footer > .foot-block:nth-child(2) { text-align: center; }
+.footer > .foot-block:nth-child(2) .next-date,
+.footer > .foot-block:nth-child(2) .label,
+.footer > .foot-block:nth-child(2) .sub { text-align: center; }
 .foot-quote .by {
   display: block; margin-top: 12px;
   font-family: var(--mono); font-style: normal; font-size: 10.5px;
@@ -1698,14 +1773,17 @@ body::before {
 <body>
 <div class="app">
   <div class="spine">
-    <span class="spine-mark" style="top: 4%;">§ 02 / Closest MLB Match</span>
-    <span class="spine-mark" style="top: 18%;">§ 03 / Weekly Numbers</span>
-    <span class="spine-mark" style="top: 30%;">§ 04 / Highlights</span>
-    <span class="spine-mark" style="top: 44%;">§ 05 / Biomechanics</span>
-    <span class="spine-mark" style="top: 58%;">§ 06 / Phase Clock</span>
-    <span class="spine-mark" style="top: 70%;">§ 07 / 12 Weeks of Progress</span>
-    <span class="spine-mark" style="top: 82%;">§ 08 / Drill Prescription</span>
-    <span class="spine-mark" style="top: 92%;">§ 09 / Ledger &amp; Milestones</span>
+    <span class="spine-mark" style="top: 6%;">§ 02 / MLB Match</span>
+    <span class="spine-mark" style="top: 16%;">§ 03 / Numbers This Week</span>
+    <span class="spine-mark" style="top: 26%;">§ 04 / Highlight Reel</span>
+    <span class="spine-mark" style="top: 36%;">§ 05 / Swing of the Week</span>
+    <span class="spine-mark" style="top: 46%;">§ 06 / Form &amp; Timing</span>
+    <span class="spine-mark" style="top: 56%;">§ 07 / Phase Clock</span>
+    <span class="spine-mark" style="top: 66%;">§ 08 / Trajectory</span>
+    <span class="spine-mark" style="top: 74%;">§ 09 / Long-Term Development</span>
+    <span class="spine-mark" style="top: 82%;">§ 10 / Drill Prescription</span>
+    <span class="spine-mark" style="top: 89%;">§ 11 / Session Ledger</span>
+    <span class="spine-mark" style="top: 95%;">§ 12 / Recent Unlocks</span>
   </div>
 
   <!-- MASTHEAD -->
@@ -1875,7 +1953,7 @@ body::before {
   <!-- CLOSEST MLB MATCH · § 02 · MOVED TO TOP OF PAGE PER USER HIERARCHY -->
   <div class="section-head fade-in d5">
     <div>
-      <div class="section-eyebrow">§ 02 · You swing most like</div>
+      <div class="section-eyebrow">§ 02 · MLB Match</div>
       <h2 class="section-title">Your closest <span class="ital">MLB match.</span></h2>
     </div>
     <div class="section-sub">Single best match across 32 pose-derived features · refreshed nightly</div>
@@ -1981,7 +2059,7 @@ body::before {
   <!-- SCOREBOARD -->
   <div class="section-head fade-in d6">
     <div>
-      <div class="section-eyebrow">§ 03 · Weekly numbers</div>
+      <div class="section-eyebrow">§ 03 · Numbers This Week</div>
       <h2 class="section-title">The numbers, <span class="ital">this week.</span></h2>
     </div>
     <div class="section-sub">vs trailing 4-week median &nbsp;·&nbsp; tap a card for breakdown</div>
@@ -2052,7 +2130,7 @@ body::before {
   <!-- HIGHLIGHTS REEL -->
   <div class="section-head fade-in d6">
     <div>
-      <div class="section-eyebrow">§ 04 · Highlight reel</div>
+      <div class="section-eyebrow">§ 04 · Highlight Reel</div>
       <h2 class="section-title">Three swings to <span class="ital">remember.</span></h2>
     </div>
     <div class="section-sub">auto-clipped from this week's sessions · click to play</div>
@@ -2140,7 +2218,7 @@ body::before {
   <!-- SWING OF THE WEEK + DNA -->
   <div class="section-head fade-in d7">
     <div>
-      <div class="section-eyebrow">§ 05 · Reference swing</div>
+      <div class="section-eyebrow">§ 05 · Swing of the Week</div>
       <h2 class="section-title">Swing of the <span class="ital">week.</span></h2>
     </div>
     <div class="section-sub">Tuesday · 10:42 PM · swing #7 of 12 · 4-seam · 89 mph BP</div>
@@ -2328,7 +2406,7 @@ body::before {
   <!-- FORM QUADRANTS + PHASE TIMING SPECTRUM -->
   <div class="section-head fade-in d8">
     <div>
-      <div class="section-eyebrow">§ 05 · Form &amp; timing</div>
+      <div class="section-eyebrow">§ 06 · Form &amp; Timing</div>
       <h2 class="section-title">Where you <span class="ital">match</span>, where you don't.</h2>
     </div>
     <div class="section-sub">Pose-derived sub-metrics scored vs your MLB match · last 7 days</div>
@@ -2459,7 +2537,7 @@ body::before {
   <!-- PHASE CLOCK SIGNATURE · § 06 · grouped with biomechanics -->
   <section class="signature fade-in d8">
     <div class="sig-meta">
-      <div class="sig-eyebrow">§ 06 · Phase clock · proprietary</div>
+      <div class="sig-eyebrow">§ 07 · Phase Clock</div>
       <h2 class="sig-title">Your swing,<br>as a <span class="ital">dial.</span></h2>
       <p class="sig-body">
         Each of the six swing phases plotted as a sector around 360° of
@@ -2534,7 +2612,7 @@ body::before {
   <div class="card trend fade-in d8" style="margin-top:28px;">
     <div class="trend-head">
       <div>
-        <div class="card-eyebrow">§ 04 · Trajectory</div>
+        <div class="card-eyebrow">§ 08 · Trajectory</div>
         <h3 class="card-title">Thirty <span class="ital">days</span> in.</h3>
       </div>
       <div class="trend-metrics">
@@ -2631,7 +2709,7 @@ body::before {
   <!-- 12 WEEKS OF PROGRESS · long-term development story -->
   <div class="section-head fade-in d10">
     <div>
-      <div class="section-eyebrow">§ 07 · Long-term development</div>
+      <div class="section-eyebrow">§ 09 · Long-Term Development</div>
       <h2 class="section-title">The last <span class="ital">twelve</span> weeks.</h2>
     </div>
     <div class="section-sub">Your full development arc · since Feb 23</div>
@@ -2780,7 +2858,7 @@ body::before {
   <!-- DRILL PRESCRIPTION · § 08 · the personalized action plan -->
   <div class="section-head fade-in d11">
     <div>
-      <div class="section-eyebrow">§ 08 · Drill prescription · this week</div>
+      <div class="section-eyebrow">§ 10 · Drill Prescription</div>
       <h2 class="section-title">Three <span class="ital">drills</span>, prescribed.</h2>
     </div>
     <div class="section-sub">AI-generated from your top gap categories · refreshed after each session</div>
@@ -2825,7 +2903,7 @@ body::before {
   <!-- SESSION LEDGER (standalone, full width) -->
   <div class="section-head fade-in d11">
     <div>
-      <div class="section-eyebrow">§ 09 · Session ledger</div>
+      <div class="section-eyebrow">§ 11 · Session Ledger</div>
       <h2 class="section-title">The <span class="ital">paper trail.</span></h2>
     </div>
     <div class="section-sub">last 5 cuts · trailing 14d</div>
@@ -2863,7 +2941,7 @@ body::before {
   <!-- ACHIEVEMENTS RAIL -->
   <div class="section-head fade-in d11">
     <div>
-      <div class="section-eyebrow">§ 10 · Milestones</div>
+      <div class="section-eyebrow">§ 12 · Recent Unlocks</div>
       <h2 class="section-title">Recent <span class="ital">unlocks.</span></h2>
     </div>
     <div class="section-sub">2 new this week · next badge in 6 swings</div>
@@ -2903,7 +2981,7 @@ body::before {
 
     <div class="pricing-head">
       <div class="pricing-head-meta">
-        <div class="pricing-eyebrow">§ 11 · Subscription</div>
+        <div class="pricing-eyebrow">§ 13 · Edge Pro Upsell</div>
         <h2 class="pricing-title">Lock in your <span class="ital">edge.</span></h2>
         <p class="pricing-sub">Three tiers. One source of truth. Pick the seat count that matches your household or roster — cancel any time.</p>
       </div>
@@ -3081,13 +3159,12 @@ body::before {
   </section>
 
   <!-- METHODOLOGY NOTE -->
-  <div style="margin-top:48px; padding:24px 28px; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-glass);">
-    <div style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gray-1); margin-bottom: 12px;">
-      § What we measure · methodology
+  <div class="methodology">
+    <div class="methodology-body">
+      <div class="methodology-eyebrow">§ 14 · What We Measure</div>
+      <p>Everything on this dashboard is derived from <span class="em">MediaPipe pose detection</span> on your uploaded video — no Blast Motion, HitTrax, Rapsodo, or radar hardware required. Real measurements: <span class="em">hip-shoulder separation</span> (°), <span class="em">hip rotation</span> (°), <span class="em">front-knee angle &amp; re-extension</span> (°), <span class="em">head drift</span> (torso-normalized), and <span class="em">phase intervals</span> (ms: load → foot plant → launch → contact → peak rotation → finish). The <span class="em-gold">Match Score</span> and <span class="em-gold">Edge Score</span> are composite indices built from those measurements compared against your assigned MLB match. We deliberately do not estimate bat speed, exit velocity, or projected distance from video — those require radar or sensors we don't pretend to have.</p>
     </div>
-    <div style="font-family: var(--sans); font-size: 13.5px; line-height: 1.6; color: var(--bone-dim); max-width: 920px;">
-      Everything on this dashboard is derived from <span style="color:var(--bone)">MediaPipe pose detection</span> on your uploaded video — no Blast Motion, HitTrax, Rapsodo, or radar hardware required. Real measurements: <span style="color:var(--bone)">hip-shoulder separation</span> (°), <span style="color:var(--bone)">hip rotation</span> (°), <span style="color:var(--bone)">front-knee angle &amp; re-extension</span> (°), <span style="color:var(--bone)">head drift</span> (torso-normalized), and <span style="color:var(--bone)">phase intervals</span> (ms: load → foot plant → launch → contact → peak rotation → finish). The <span style="color:var(--gold)">Match Score</span> and <span style="color:var(--gold)">Edge Score</span> are composite indices built from those measurements compared against your assigned MLB match. We deliberately do not estimate bat speed, exit velocity, or projected distance from video — those require radar or sensors we don't pretend to have.
-    </div>
+    <img class="methodology-mark" src="{{LOGO_DATA_URI}}" alt="" aria-hidden="true">
   </div>
 
   <!-- FOOTER -->
