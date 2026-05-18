@@ -149,20 +149,16 @@ body::before {
   font-family: var(--serif); font-style: italic; font-weight: 400;
   font-size: 17px; letter-spacing: 0; text-transform: none; color: var(--bone);
 }
-.nav {
-  display: flex; gap: 4px; padding: 4px;
-  border: 1px solid var(--line); border-radius: 100px;
-  background: var(--bg-glass);
-}
-.nav a {
-  font-family: var(--sans); font-size: 11.5px; font-weight: 500;
-  letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--gray-1); text-decoration: none;
-  padding: 8px 14px; border-radius: 100px;
-  transition: color 0.2s, background 0.2s;
-}
-.nav a:hover { color: var(--bone); }
-.nav a.active { color: var(--bg); background: var(--bone); }
+/* In-iframe masthead HIDDEN at template level. The functional unified
+   Edge masthead (brand + nav + user chip) is rendered by Python via
+   bl_edge_chrome.render_edge_masthead() OUTSIDE the iframe so clicks
+   trigger real Streamlit reruns and Supabase auth survives. Keeping
+   the elements in the markup for now (rather than deleting them)
+   preserves the editorial template as a self-contained mock that can
+   be previewed standalone. */
+.masthead { display: none !important; }
+.nav { display: none !important; }
+.nav a { display: none !important; }
 .user-chip { display: flex; align-items: center; gap: 12px; }
 .user-streak {
   font-family: var(--mono); font-size: 11px;

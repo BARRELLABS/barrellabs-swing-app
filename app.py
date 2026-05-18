@@ -1665,8 +1665,9 @@ if not any(
 # Bug surfaced when the v3 dashboard hid the sidebar (display:none on
 # data-testid=stSidebar) — users had no way to reach Saved Reports.
 _ALLOWED_PAGES_FROM_URL = {
-    "dashboard", "saved_reports", "compare_swings", "development_tracker",
-    "historical_charts", "billing", "launch_progress", "pricing", "upload",
+    "dashboard", "saved_reports", "swing_report", "compare_swings",
+    "development_tracker", "historical_charts", "billing",
+    "launch_progress", "pricing", "upload",
 }
 try:
     _url_page = st.query_params.get("page")
@@ -4689,10 +4690,24 @@ if st.session_state.get("view") == "settings":
     st.stop()
 
 
-# ---------- SAVED REPORT VIEWER ----------
-# Prefer the in-memory record (Supabase records don't live on disk).
-# Fall back to the legacy disk-path loader when only a path is set.
-if "view_swing_record" in st.session_state or "view_swing_path" in st.session_state:
+# ---------- SAVED REPORT VIEWER (now: dedicated swing_report page) ----------
+# When the user clicks "Open Report" on the Sessions page, we route to a
+# DEDICATED individual-swing-report page (swing_report_page.py). This
+# replaces the old behavior of re-skinning the entire dashboard with the
+# selected swing's data via render_dashboard_v3(force_record=...), which
+# made "Open Report" feel like it landed the user back on the dashboard.
+#
+# Triggers:
+#   - st.session_state["page"] == "swing_report"  (set by Open Report)
+#   - OR view_swing_record / view_swing_path is set without an explicit
+#     page (legacy callers — still honoured for backward compatibility)
+_should_open_report = (
+    st.session_state.get("page") == "swing_report"
+    or "view_swing_record" in st.session_state
+    or "view_swing_path" in st.session_state
+)
+
+if _should_open_report:
     saved_record = None
 
     in_mem = st.session_state.get("view_swing_record")
@@ -4702,40 +4717,41 @@ if "view_swing_record" in st.session_state or "view_swing_path" in st.session_st
         saved_record = load_saved_swing_record(st.session_state.view_swing_path)
 
     if saved_record:
-        # Route saved-report opens through the new v3 editorial template
-        # (force_record so any past swing renders in the same design as
-        # the live dashboard). The old swing_report.py renderer is kept
-        # as a fallback via `?legacy=1`.
+        # Legacy escape hatch — `?legacy=1` keeps the old saved-report
+        # renderer for diagnostics. New default path uses the dedicated
+        # swing_report_page module which renders ONE focused swing
+        # report (NOT the dashboard) plus the redesigned comparison.
         _use_legacy = "1" in (st.query_params.get("legacy") or "")
-        if not _use_legacy and st.session_state.get("use_dashboard_v3", True):
-            try:
-                from dashboard_v3 import render_dashboard_v3
-                render_dashboard_v3(user, force_record=saved_record)
-            except Exception as _v3_err:
-                # If the v3 path errors on this record (e.g., missing
-                # phase data), fall back to the legacy renderer rather
-                # than show nothing.
-                st.warning(f"Could not render in new template: {_v3_err}. Falling back.")
-                render_saved_swing_report(saved_record)
-        else:
+        if _use_legacy:
             render_saved_swing_report(saved_record)
-
-        # Practice log lives between the report and the compare block.
-        # Lets the player check off drills + leave notes for this swing.
-        try:
-            render_swing_practice_log(saved_record, user["slug"])
-        except Exception as _plog_err:
-            # Non-fatal — don't kill the page if persistence hiccups.
-            st.caption(f"Practice log unavailable: {_plog_err}")
-
-        saved_history = load_swing_history(user["slug"])
-        render_swing_progress_compare(saved_history)
+            saved_history = load_swing_history(user["slug"])
+            render_swing_progress_compare(saved_history)
+        else:
+            try:
+                from swing_report_page import render_swing_report_page
+                # Load the player's full history so the redesigned
+                # comparison can find the previous swing.
+                hist = load_swing_history(user["slug"]) or []
+                render_swing_report_page(user, saved_record, history=hist)
+            except Exception as _srp_err:
+                # If the new page errors, fall back to the legacy
+                # render path rather than show a blank screen.
+                st.warning(
+                    f"Could not render the new report page: {_srp_err}. "
+                    "Falling back to the legacy renderer."
+                )
+                render_saved_swing_report(saved_record)
+                saved_history = load_swing_history(user["slug"])
+                render_swing_progress_compare(saved_history)
 
         st.stop()
     else:
         st.error("Could not load that saved swing report.")
         st.session_state.pop("view_swing_path", None)
         st.session_state.pop("view_swing_record", None)
+        st.session_state.pop("view_swing_report_id", None)
+        if st.session_state.get("page") == "swing_report":
+            st.session_state["page"] = "saved_reports"
         st.stop()
 
 
