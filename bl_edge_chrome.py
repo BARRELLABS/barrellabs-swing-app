@@ -160,13 +160,27 @@ _EDGE_MASTHEAD_CSS = """
     font-weight: 500 !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    padding: 7px 14px !important;
+    padding: 7px 18px !important;
     border-radius: 100px !important;
-    width: 100% !important;
+    width: auto !important;
+    min-width: 0 !important;
     min-height: 0 !important;
     height: auto !important;
+    white-space: nowrap !important;   /* NEVER wrap nav labels */
     box-shadow: none !important;
     transition: color 0.18s, background 0.18s, border-color 0.18s !important;
+  }
+  /* The button's inner <p> markdown wrapper sometimes wraps too —
+     pin it nowrap and inline-block to prevent the line-break. */
+  .st-key-_edge_nav_dashboard button p,
+  .st-key-_edge_nav_saved_reports button p,
+  .st-key-_edge_nav_compare_swings button p,
+  .st-key-_edge_nav_development_tracker button p,
+  .st-key-_edge_nav_historical_charts button p {
+    white-space: nowrap !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: inline-block !important;
   }
   .st-key-_edge_nav_dashboard button:hover,
   .st-key-_edge_nav_saved_reports button:hover,
@@ -505,6 +519,18 @@ def render_edge_page_wrapper_open(*, max_width: int = 1560) -> None:
             background: #0A0B0E;
             color: #F4EFE6;
             font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            box-sizing: border-box;
+          }}
+          /* CRITICAL: kill horizontal overflow at the root. Streamlit
+             sometimes lets long content (mono labels, .stHorizontalBlocks)
+             push the page wider than the viewport; explicitly clamp it. */
+          html, body, [data-testid="stAppViewContainer"] {{
+            max-width: 100vw;
+            overflow-x: hidden !important;
+          }}
+          .bl-edge-page * {{
+            max-width: 100%;
+            min-width: 0;
           }}
           @media (max-width: 1100px) {{
             .bl-edge-page {{ padding: 18px 24px 60px; }}

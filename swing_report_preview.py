@@ -63,6 +63,9 @@ def _html(s: str) -> None:
     collapse whitespace outside `<pre>` blocks (which we don't use).
     """
     flat = "\n".join(line.lstrip() for line in s.splitlines())
+    # CRITICAL: must pass unsafe_allow_html=True directly here. Do NOT
+    # call _html(flat) — that's infinite recursion. Do NOT drop the
+    # kwarg — Streamlit will escape every < and > in the HTML.
     st.markdown(flat, unsafe_allow_html=True)
 
 try:
@@ -153,9 +156,23 @@ _SRP_CSS = """
 
 /* ---------- HERO ---------- */
 .srp-hero {
-  display: grid; grid-template-columns: 0.85fr 1.15fr 0.85fr; gap: 40px;
+  display: grid; grid-template-columns: 240px 1fr 280px; gap: 48px;
   padding: 32px 0 56px; border-bottom: 1px solid var(--line);
   align-items: center;
+}
+/* Hero columns must not letter-wrap. Give the headline / doppel
+   adequate min-widths so they collapse to stacked layout cleanly
+   rather than smushing into letter-stacks. */
+@media (max-width: 1200px) {
+  .srp-hero {
+    grid-template-columns: 220px 1fr;
+    gap: 32px;
+  }
+  .srp-hero .srp-doppel { grid-column: 1 / -1; max-width: 600px; }
+}
+@media (max-width: 760px) {
+  .srp-hero { grid-template-columns: 1fr; gap: 28px; padding: 20px 0 40px; }
+  .srp-hero-headline { font-size: 48px; }
 }
 .srp-score-wrap { display: flex; flex-direction: column; align-items: center; }
 .srp-score-svg { filter: drop-shadow(0 0 24px rgba(232,193,112,0.05)); }
@@ -266,15 +283,32 @@ _SRP_CSS = """
   max-width: 320px; text-align: right;
 }
 
-/* ---------- LISTS (strengths / issues / what-to-fix) ---------- */
+/* ---------- LISTS (strengths / issues / what-to-fix) ----------
+   Simplified to a stacked full-width card list. The previous 3-column
+   grid caused titles to wrap letter-by-letter on tablet widths. Cards
+   stay full-width here so titles never break; layout reads top-down
+   which matches how a parent/player would actually scan the report. */
 .srp-list {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  display: flex; flex-direction: column; gap: 18px;
 }
 .srp-list-item {
   border: 1px solid var(--line); border-radius: var(--radius);
-  background: var(--bg-glass); padding: 22px 22px;
-  display: flex; flex-direction: column; gap: 10px;
-  min-height: 200px;
+  background: var(--bg-glass); padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 100px 1fr 140px;
+  gap: 28px;
+  align-items: center;
+  min-height: 0;
+}
+.srp-list-item .srp-list-num { align-self: flex-start; padding-top: 6px; }
+.srp-list-item .srp-list-pill { justify-self: end; align-self: center; }
+@media (max-width: 760px) {
+  .srp-list-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 22px;
+  }
+  .srp-list-item .srp-list-pill { justify-self: start; }
 }
 .srp-list-item.is-strength {
   background:
@@ -353,14 +387,29 @@ _SRP_CSS = """
 }
 
 /* ---------- DRILL PLAN ---------- */
+/* Drill plan — 3 prescribed drills. Stacked, wide cards. Each drill
+   gets enough room to breathe (priority/reps on the right, name +
+   why in the middle, cue strip at the bottom). */
 .srp-drill-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  display: flex; flex-direction: column; gap: 16px;
 }
 .srp-drill-card {
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--bg-glass);
-  padding: 22px;
-  display: flex; flex-direction: column; gap: 12px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 20px 32px;
+}
+.srp-drill-card .srp-drill-head {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.srp-drill-card .srp-drill-name { grid-column: 1 / 2; }
+.srp-drill-card .srp-drill-why  { grid-column: 1 / 2; }
+.srp-drill-card .srp-drill-cue  { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .srp-drill-card { grid-template-columns: 1fr; gap: 14px; padding: 22px; }
 }
 .srp-drill-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -491,15 +540,23 @@ _SRP_CSS = """
 }
 
 /* ---------- PREMIUM METRIC CARDS ---------- */
+/* Premium metric cards — stay 2-up on wide viewports for comparison
+   scanability, but each card has more padding + a min-width so the
+   label never wraps letter-by-letter. */
 .srp-metric-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  display: grid; grid-template-columns: repeat(2, minmax(360px, 1fr));
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .srp-metric-grid { grid-template-columns: 1fr; }
 }
 .srp-metric-card {
   border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--bg-glass);
-  padding: 20px 24px;
-  display: grid; grid-template-columns: 1fr 90px; gap: 18px;
+  padding: 24px 28px;
+  display: grid; grid-template-columns: 1fr 100px; gap: 22px;
   align-items: center;
+  min-width: 0;
 }
 .srp-metric-card-label {
   font-family: var(--mono); font-size: 10px;
@@ -579,14 +636,28 @@ _SRP_CSS = """
   border: 1px solid rgba(232,193,112,0.32);
   background: var(--gold-soft);
 }
+/* Comparison grid — wider columns, more breathing room. Min-width
+   keeps each card readable; delta orb in the middle. Collapses to
+   stacked layout below 900px. */
 .srp-compare-grid {
-  display: grid; grid-template-columns: 1fr 110px 1fr;
-  align-items: stretch; gap: 18px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 120px minmax(260px, 1fr);
+  align-items: stretch; gap: 24px;
+}
+@media (max-width: 900px) {
+  .srp-compare-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .srp-compare-grid .srp-compare-delta { order: 2; height: 80px; }
+  .srp-compare-grid .srp-compare-col:nth-child(1) { order: 1; }
+  .srp-compare-grid .srp-compare-col:nth-child(3) { order: 3; }
 }
 .srp-compare-col {
   border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 26px 28px;
+  padding: 32px 36px;
   background: var(--bg-glass);
+  min-width: 0;
 }
 .srp-compare-col.is-current {
   border-color: rgba(230,69,48,0.38);
@@ -1163,7 +1234,7 @@ def _render_strengths(rec: Dict[str, Any]) -> None:
           <span class="srp-list-pill sev-low">Keep · Repeat</span>
         </div>
         """
-    st.markdown(f'<div class="srp-list">{cards}</div>', unsafe_allow_html=True)
+    _html(f'<div class="srp-list">{cards}</div>')
 
 
 def _render_issues(rec: Dict[str, Any]) -> None:
@@ -1209,7 +1280,7 @@ def _render_issues(rec: Dict[str, Any]) -> None:
           <span class="srp-list-pill {sev}">{html.escape(sev_label)}</span>
         </div>
         """
-    st.markdown(f'<div class="srp-list">{cards}</div>', unsafe_allow_html=True)
+    _html(f'<div class="srp-list">{cards}</div>')
 
 
 def _render_coach_report(rec: Dict[str, Any]) -> None:
@@ -1314,14 +1385,14 @@ def _render_drill_plan(rec: Dict[str, Any]) -> None:
           <div class="srp-drill-cue"><strong>Cue ·</strong> {html.escape(str(d.get('cue','')))}</div>
         </div>
         """
-    st.markdown(f'<div class="srp-drill-grid">{cards}</div>', unsafe_allow_html=True)
+    _html(f'<div class="srp-drill-grid">{cards}</div>')
 
 
 def _render_drill_log(rec: Dict[str, Any]) -> None:
     _render_section_head("§08 DRILL LOG", "Check", "your work.",
                          sub="Mark drills done and leave a note for your next swing.")
     drills = _drills_flat(rec) or _drills_flat(_synthetic_record())
-    st.markdown('<div class="srp-drill-log">', unsafe_allow_html=True)
+    _html('<div class="srp-drill-log">')
     for i, d in enumerate(drills):
         st.checkbox(
             f"{d.get('name', 'Drill')} — {d.get('reps', '')}",
@@ -1334,7 +1405,7 @@ def _render_drill_log(rec: Dict[str, Any]) -> None:
         placeholder="Quick note for next time you review this swing…",
         height=80,
     )
-    st.markdown('</div>', unsafe_allow_html=True)
+    _html('</div>')
 
 
 def _render_progress_insights(rec: Dict[str, Any], history: List[Dict[str, Any]]) -> None:
@@ -1420,7 +1491,7 @@ def _render_metric_cards(rec: Dict[str, Any]) -> None:
           <div class="srp-metric-card-match {match_cls}">{match_str}</div>
         </div>
         """
-    st.markdown(f'<div class="srp-metric-grid">{cards}</div>', unsafe_allow_html=True)
+    _html(f'<div class="srp-metric-grid">{cards}</div>')
 
 
 def _render_compare(current: Dict[str, Any], history: List[Dict[str, Any]]) -> None:
@@ -1428,7 +1499,7 @@ def _render_compare(current: Dict[str, Any], history: List[Dict[str, Any]]) -> N
                          sub="Real data only — missing axes are silently omitted.")
     previous = _previous_record(current, history)
 
-    st.markdown('<div class="srp-compare">', unsafe_allow_html=True)
+    _html('<div class="srp-compare">')
     _html("""
         <div class="srp-compare-head">
           <div>
@@ -1455,7 +1526,7 @@ def _render_compare(current: Dict[str, Any], history: List[Dict[str, Any]]) -> N
               </div>
             </div>
             """)
-        st.markdown('</div>', unsafe_allow_html=True)
+        _html('</div>')
         return
 
     cur_score = _score(current)
@@ -1524,9 +1595,9 @@ def _render_compare(current: Dict[str, Any], history: List[Dict[str, Any]]) -> N
         </div>
         """
     if rows_html:
-        st.markdown(f'<div class="srp-compare-rows">{rows_html}</div>', unsafe_allow_html=True)
+        _html(f'<div class="srp-compare-rows">{rows_html}</div>')
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    _html('</div>')
 
 
 # =====================================================================
@@ -1581,13 +1652,13 @@ def render_swing_report_preview(user: Optional[Dict[str, Any]] = None) -> None:
     # ---- Pre-strip: back link + issue line ---------------------------
     bcol, _spc = st.columns([1, 6])
     with bcol:
-        st.markdown('<div class="srp-back-link-wrap">', unsafe_allow_html=True)
+        _html('<div class="srp-back-link-wrap">')
         if st.button("← Back to Sessions", key="srpv_back_to_sessions"):
             st.session_state["page"] = "saved_reports_preview"
             st.session_state.pop("preview_swing_record", None)
             st.session_state.pop("preview_swing_record_id", None)
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+        _html('</div>')
 
     player_name = (user or {}).get("name") or (user or {}).get("email") or "Player"
     today = datetime.now().strftime("%A · %B %-d · %Y")

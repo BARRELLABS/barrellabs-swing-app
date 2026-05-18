@@ -39,6 +39,22 @@ except Exception:
     load_swing_history = None  # tolerated in design-preview mode
 
 
+def _html(s: str) -> None:
+    """Render raw HTML safely.
+
+    Streamlit's markdown processor treats 4+ leading spaces as INDENTED
+    CODE BLOCKS and escapes them. We lstrip every line before rendering
+    so heavy template indentation never trips the code-block detector.
+    HTML rendering is unaffected because browsers collapse whitespace
+    outside `<pre>` blocks (we don't use any).
+    """
+    flat = "\n".join(line.lstrip() for line in s.splitlines())
+    # CRITICAL: must pass unsafe_allow_html=True directly here. Do NOT
+    # call _html(flat) — that's infinite recursion. Do NOT drop the
+    # kwarg — Streamlit will escape every < and > in the HTML.
+    st.markdown(flat, unsafe_allow_html=True)
+
+
 # =====================================================================
 #  Shared Edge token CSS — mirrors mock_dashboard_template.py exactly
 # =====================================================================
@@ -585,16 +601,13 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
     today = datetime.now().strftime("%A · %B %-d · %Y")
     player_name = (user or {}).get("name") or (user or {}).get("email") or "Player"
     handed = (user or {}).get("handedness") or "Right-handed"
-    st.markdown(
-        f"""
+    _html(f"""
         <div class="srp-issue-line">
           <span>Volume IV · Issue 24</span>
           <span class="center">Sessions Archive · {html.escape(str(player_name))} · {html.escape(handed)}</span>
           <span class="right">{html.escape(today)}</span>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """)
 
     # -- Load data ------------------------------------------------------
     player_id = (user or {}).get("slug") or (user or {}).get("id")
@@ -699,7 +712,7 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
     )
 
     # -- Filter controls (Streamlit native, styled by .srp-filter-card)
-    st.markdown('<div class="srp-filter-card">', unsafe_allow_html=True)
+    _html('<div class="srp-filter-card">')
     fc1, fc2, fc3 = st.columns([2.4, 1, 1])
     with fc1:
         search_q = st.text_input(
@@ -719,13 +732,12 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
             ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
             key="srpv_time",
         )
-    st.markdown('</div>', unsafe_allow_html=True)
+    _html('</div>')
 
     filtered = _filter_history(history_sorted, search_q, score_filter, time_filter)
 
     if not filtered:
-        st.markdown(
-            """
+        _html("""
             <div class="srp-empty">
               <div class="srp-empty-icon">◇</div>
               <div class="srp-empty-title">No sessions match those filters.</div>
@@ -735,9 +747,7 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
                 still here — these filters are just a view on top.
               </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            """)
         render_edge_page_wrapper_close()
         return
 
@@ -815,7 +825,7 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
         # Streamlit-native action row (Open Report)
         ac_l, ac_r = st.columns([4, 1])
         with ac_r:
-            st.markdown('<div class="srp-open-btn">', unsafe_allow_html=True)
+            _html('<div class="srp-open-btn">')
             if st.button(
                 "Open Report →",
                 key=f"srpv_open_{rec_id}",
@@ -826,7 +836,7 @@ def render_saved_reports_preview(user: Optional[Dict[str, Any]] = None) -> None:
                 st.session_state["preview_swing_record_id"] = str(rec_id)
                 st.session_state["page"] = "swing_report_preview"
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
+            _html('</div>')
+        _html('<div style="height:12px"></div>')
 
     render_edge_page_wrapper_close()
