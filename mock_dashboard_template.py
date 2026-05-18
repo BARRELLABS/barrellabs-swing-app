@@ -1938,12 +1938,17 @@ body::before {
       <img class="brand-mark" src="{{LOGO_DATA_URI}}" alt="BarrelLabs">
       <div class="wordmark">Barrellabs <span class="sep">/</span><span class="product"> Edge</span></div>
     </div>
+    <!-- Pills navigate the PARENT window. The dashboard lives inside a
+         Streamlit components.html iframe, so relative hrefs would only
+         reload the iframe. The inline onclick uses window.top.location
+         to navigate the outer page; the `?page=X` URL is consumed by
+         app.py's URL→session-state bridge to set st.session_state["page"]. -->
     <nav class="nav">
-      <a class="active" href="#">Dashboard</a>
-      <a href="#">Sessions</a>
-      <a href="#">Compare</a>
-      <a href="#">Drills</a>
-      <a href="#">Library</a>
+      <a class="active" href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=dashboard'); } catch(e){}">Dashboard</a>
+      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=saved_reports'); } catch(e){}">Sessions</a>
+      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=compare_swings'); } catch(e){}">Compare</a>
+      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=development_tracker'); } catch(e){}">Drills</a>
+      <a href="#" onclick="event.preventDefault(); try { window.top.location.assign(window.top.location.pathname + '?page=historical_charts'); } catch(e){}">Library</a>
     </nav>
     <div class="user-chip">
       <span class="user-streak"><span class="dot"></span>17-day streak</span>
