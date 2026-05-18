@@ -107,7 +107,7 @@ breaks every responsive design). Now mobile renders at the expected
 | D1 | "1 sw" thin label | ✅ Resolved | Column widened to 80px; reads cleaner |
 | D2 | backdrop-filter fallback | ⚠️ Deferred | Streamlit Cloud renders this fine in real browsers; only fails in headless screenshot — leaving alone |
 | D3 | Trend chart annotation pin crowding | ✅ Resolved | Reduced annotation font-size to 8 px |
-| C1 / C2 | Cosmetic | ⏸ Acceptable | Not addressed in this pass |
+| C1 / C2 | Cosmetic | ⏸ Acceptable | Not addressed in this pass — see PASS 3 for C1 |
 
 ### New findings from PASS 2
 
@@ -183,6 +183,90 @@ polish loop.
 - Section hierarchy, copy, data wiring: untouched.
 - `dashboard.py`, `dashboard_v2.py`: untouched.
 - The static render uses the same swap pipeline as live dashboard_v3 — fixes propagate to production with no extra changes.
+
+---
+
+## PASS 4 · pricing sub-line + two production bugs (2026-05-18)
+
+Two pieces of work landed after the main PASS 3 polish merged.
+
+### Part A — pricing band sub-line distinction (C1 from PASS 1)
+
+The annual savings sub-line ("save 45% vs monthly") and the monthly
+assurance sub-line ("billed monthly · cancel anytime") both used the
+same gold treatment, so the savings claim had no visual weight over
+the cancellation assurance.
+
+**Fix.** Added `.tier-price-sub.is-assurance` modifier (muted gray,
+drops uppercase, tightens letter-spacing) in
+`mock_dashboard_template.py`. The dynamic builder in `dashboard_v3.py`
+now applies the modifier to monthly tiers and to "billed annually ·
+cancel anytime" (the no-savings annual sub-line). Annual cards with a
+real savings number stay gold.
+
+Verified by rendering at desktop 1600: 3 plain `tier-price-sub`
+(annual/gold), 3 `tier-price-sub is-assurance` (monthly/muted).
+
+### Part B — two production bugs surfaced by live-site review
+
+User reviewed the live Streamlit Cloud deploy and reported two bugs the
+static QA missed.
+
+#### B-1 · stroboscopic caption collides with SVG ghost labels
+
+Under the Swing-of-the-Week stick figures, the absolute-positioned
+caption "stroboscopic overlay · 4 phase composite" overlapped the SVG
+ghost labels (LOAD / FOOT PLANT / LAUNCH / CONTACT), producing garbled
+text like `LOAD TROBOSC FOOT PLANT PERLAY LAUNCH PHASE CONTACT ITE`.
+
+`.stage-label` sits at `bottom: 16px` inside the 300 px tall
+`.silhouette-stage` (y ≈ 284). SVG ghost labels at `y="306"` in
+viewBox `0 0 720 320` render at y ≈ 287 after letterbox scaling. The
+3 px gap collapsed.
+
+**Fix.** SVG label y attribute `306 → 296` in
+`mock_dashboard_template.py:2500-2503`. Labels now sit above the floor
+ellipse (`cy=288, ry=14`) with ~10 px clearance above the caption. No
+figure overlap, no floor overlap.
+
+#### B-2 · extra `</div>` auto-closes `.app`, breaking the gutter for §09–§14
+
+Section eyebrows for §09 Long-Term Development through §12 Recent
+Unlocks sat flush against the viewport edge instead of inside `.app`'s
+56 px gutter. Sections §02–§06 rendered correctly.
+
+The velocity-ladder narrative regex substitution in
+`dashboard_v3.py` consumed 3 trailing `</div>`s (close `.body`,
+`.ladder-narrative`, `.ladder`) but the replacement added **2** manual
+closes back PLUS the self-closing narrative builder. Net: +1 stray
+`</div>` per render that HTML parsers used to auto-close `.app`. Every
+subsequent section became a direct child of `<body>` and lost `.app`'s
+gutter.
+
+Diagnosed by walking each `.section-eyebrow`'s parent chain in the
+static rendered HTML with Playwright — §02–§06 reported
+`parent_left=76`, §09–§12 reported `parent_left=0` with parent `BODY`.
+
+**Fix.** Drop one manual `</div>` in `dashboard_v3.py:1664-1668` and
+the mirror in `scripts/visual_qa/capture.py`. After fix all sections
+measure `parent_left=76, parent_width=1448` at 1600 × 900 (with
+main's wider `.app` max-width 1560).
+
+#### Process gap
+
+The static QA does not assert DOM measurements. Adding a probe that
+fails when any `.section-eyebrow` has `parent_left < 50` at desktop
+widths would have caught B-2 in PASS 1 (the bug has been present
+since dashboard_v3 first shipped). Follow-up — not blocking.
+
+### Result
+
+| ID | Issue | Status |
+|---|---|---|
+| C1 | Pricing band sub-line indistinguishable | ✅ Fixed (Part A) |
+| B-1 | SVG ghost label / stage caption overlap | ✅ Fixed (`mock_dashboard_template.py:2500-2503`) |
+| B-2 | Extra `</div>` auto-closing `.app` | ✅ Fixed (`dashboard_v3.py:1664-1668` + `capture.py`) |
+
 
 ---
 

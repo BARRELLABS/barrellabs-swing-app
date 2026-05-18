@@ -798,15 +798,23 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
     seats   = int(p.get("seats") or 1)
     seats_lbl = f"{seats} seat" + ("s" if seats != 1 else "")
 
+    # sub_line_cls toggles between gold (value-pop) and muted gray (assurance)
+    # so the two states aren't visually indistinguishable in the pricing band.
     if interval == "annual":
         num_disp = format_cents(p.get("annual_cents") or 0).replace("$", "").strip()
         per_lbl  = "/yr"
         save_pct = annual_savings_pct(plan_id)
-        sub_line = f"save {save_pct}% vs monthly" if save_pct > 0 else "billed annually · cancel anytime"
+        if save_pct > 0:
+            sub_line = f"save {save_pct}% vs monthly"
+            sub_line_cls = ""           # gold — actual savings is the value-pop
+        else:
+            sub_line = "billed annually · cancel anytime"
+            sub_line_cls = " is-assurance"
     else:
         num_disp = format_cents(p.get("monthly_cents") or 0).replace("$", "").strip()
         per_lbl  = "/mo"
         sub_line = "billed monthly · cancel anytime"
+        sub_line_cls = " is-assurance"
 
     # Feature lists — sourced from pricing.py for single-source-of-truth.
     try:
@@ -846,7 +854,7 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
   <div class="tier-price">
     <span class="dollar">$</span><span class="num">{num_disp}</span><span class="per">{per_lbl}</span>
   </div>
-  <div class="tier-price-sub">{sub_line}</div>
+  <div class="tier-price-sub{sub_line_cls}">{sub_line}</div>
   <ul class="tier-features">{base_lis}{extra_lis}</ul>
   <a class="tier-cta" href="/?page=pricing">Upgrade now ↗</a>
 </div>'''.strip()
@@ -1646,10 +1654,19 @@ def render_dashboard_v3(user: Dict[str, Any]) -> None:
 
     # Velocity Ladder narrative — replace hardcoded "+29 pts / 62% → 91%"
     # copy with computed delta and band-aware phrasing.
+    #
+    # The regex consumes 3 trailing </div>s (close .body, close .ladder-narrative,
+    # close .ladder). The replacement provides a full <div class="ladder-narrative">
+    # (which closes itself) plus ONE manual </div> for .ladder. The .card
+    # ladder-card close that originally followed in the template is left in place
+    # by NOT including it in the match — it stays as the next character in the
+    # document. Previously this added TWO manual </div>s, producing one extra
+    # close that auto-closed .app and made every section §09-§14 escape .app's
+    # padding gutter in production.
     velocity_narrative_html = _build_velocity_narrative_html(history)
     html = re.sub(
         r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
-        velocity_narrative_html + "\n    </div>\n  </div>",
+        velocity_narrative_html + "\n    </div>",
         html, count=1, flags=re.DOTALL,
     )
 

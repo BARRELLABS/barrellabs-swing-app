@@ -179,9 +179,14 @@ def _render_static(plan_id: str, output_html: Path) -> None:
         v3._build_hero_deck_html(latest, history, ref_name, "42°", match_pct),
         html, count=1, flags=re.DOTALL,
     )
+    # Mirrors the fix in dashboard_v3.py: regex consumes close-body +
+    # close-narrative + close-ladder; replacement provides a self-closed
+    # narrative div + ONE manual </div> for .ladder. The .card close that
+    # follows in the template remains in place. Two manual closes here would
+    # auto-close .app and break the gutter for sections §09-§14.
     html = re.sub(
         r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
-        v3._build_velocity_narrative_html(history) + "\n    </div>\n  </div>",
+        v3._build_velocity_narrative_html(history) + "\n    </div>",
         html, count=1, flags=re.DOTALL,
     )
     html = re.sub(
@@ -227,11 +232,15 @@ def _render_static(plan_id: str, output_html: Path) -> None:
 # ---------------------------------------------------------------------------
 
 async def _capture_all(html_path: Path, out_dir: Path) -> List[Dict[str, Any]]:
+    """Screenshot the page at each viewport.
+
+    Chromium's full-page screenshot canvas tops out around 16,384 px.
+    The full dashboard at DPR 2 exceeds that and silently clips the
+    bottom (methodology + footer disappear into a white slab). We
+    probe page height per viewport at DPR 1 and use DPR 2 only when
+    the resulting canvas fits.
+    """
     from playwright.async_api import async_playwright
-    # Chromium's screenshot canvas tops out around 16,384 px. The full
-    # dashboard at DPR 2 exceeds that and silently clips the bottom
-    # (methodology + footer disappear into a white slab). Probe page
-    # height per viewport and drop DPR to 1 when DPR-2 would overflow.
     MAX_CANVAS_PX = 16000
     results = []
     async with async_playwright() as pw:
