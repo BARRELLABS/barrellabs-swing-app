@@ -179,9 +179,14 @@ def _render_static(plan_id: str, output_html: Path) -> None:
         v3._build_hero_deck_html(latest, history, ref_name, "42°", match_pct),
         html, count=1, flags=re.DOTALL,
     )
+    # Mirrors the fix in dashboard_v3.py: regex consumes close-body +
+    # close-narrative + close-ladder; replacement provides a self-closed
+    # narrative div + ONE manual </div> for .ladder. The .card close that
+    # follows in the template remains in place. Two manual closes here would
+    # auto-close .app and break the gutter for sections §09-§14.
     html = re.sub(
         r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
-        v3._build_velocity_narrative_html(history) + "\n    </div>\n  </div>",
+        v3._build_velocity_narrative_html(history) + "\n    </div>",
         html, count=1, flags=re.DOTALL,
     )
     html = re.sub(

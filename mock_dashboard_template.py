@@ -2486,12 +2486,18 @@ body::before {
               <circle cx="74" cy="172" r="3"/>
             </g>
 
-            <!-- ghost label tags below each pose -->
+            <!-- ghost label tags below each pose. y=296 sits between the
+                 figures' feet (~y=242) and the floor ellipse (cy=288, ry=14
+                 → bottom y=302), leaving ~10 px of clear gap above the
+                 absolute-positioned `.stage-label` caption that anchors at
+                 the bottom of `.silhouette-stage`. Previously y=306 placed
+                 these labels in the same vertical band as `.stage-label`,
+                 producing garbled overlap in production. -->
             <g font-family="Geist Mono, monospace" font-size="9" fill="rgba(244,239,230,0.4)" letter-spacing="0.14em" text-anchor="middle">
-              <text x="210" y="306">LOAD</text>
-              <text x="300" y="306">FOOT PLANT</text>
-              <text x="380" y="306">LAUNCH</text>
-              <text x="460" y="306" fill="#E8C170">CONTACT</text>
+              <text x="210" y="296">LOAD</text>
+              <text x="300" y="296">FOOT PLANT</text>
+              <text x="380" y="296">LAUNCH</text>
+              <text x="460" y="296" fill="#E8C170">CONTACT</text>
             </g>
           </svg>
           <div class="stage-tag">CONTACT · 42° SEP</div>

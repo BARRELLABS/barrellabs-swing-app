@@ -243,6 +243,116 @@ No application CSS or markup changed in this pass.
 
 ---
 
+---
+
+## PASS 5 · production bugs found by user (2026-05-18 00:42)
+
+User reviewed the live Streamlit Cloud deployment and reported two bugs
+that **PASS 4's static QA missed** — both real, both production-visible.
+
+### Issue 1 · stroboscopic overlay text collides with ghost labels
+
+Under the Swing-of-the-Week stick figures, the caption
+"stroboscopic overlay · 4 phase composite" overlapped the SVG ghost
+labels (LOAD / FOOT PLANT / LAUNCH / CONTACT), producing garbled text
+like `LOAD TROBOSC FOOT PLANT PERLAY LAUNCH PHASE CONTACT ITE`.
+
+**Root cause.** `.stage-label` (caption) is absolutely positioned at
+`bottom: 16px` inside the 300 px tall `.silhouette-stage`, putting it at
+y≈284 px. The SVG ghost labels were placed at `y="306"` inside
+`viewBox="0 0 720 320"` (96 % of viewBox height), which renders at y≈287
+px after letterbox scaling. The 3 px gap collapsed to zero overlap in
+production.
+
+**Fix.** Moved the four SVG ghost label `<text>` elements from `y="306"`
+to `y="296"` in `mock_dashboard_template.py:2491-2495`. They now sit
+above the floor ellipse (`cy=288, ry=14`) and ~10 px above the
+`.stage-label` caption — clean separation, no figure overlap, no floor
+overlap.
+
+### Issue 2 · §09–§12 section eyebrows flush against viewport edge
+
+Section labels for §09 Long-Term Development through §12 Recent Unlocks
+sat at the very left edge of the viewport (0 px gutter) instead of the
+intended 56 px gutter inside `.app`. Sections §02–§06 rendered
+correctly.
+
+**Root cause — a single extra `</div>` auto-closing `.app`.**
+
+The velocity-ladder narrative regex substitution in
+`dashboard_v3.py:1657-1661` (mirrored in
+`scripts/visual_qa/capture.py`) had an off-by-one in the manual closing
+tags:
+
+```python
+# BEFORE — adds 2 manual </div>s after the narrative builder
+html = re.sub(
+    r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
+    velocity_narrative_html + "\n    </div>\n  </div>",   # ← 2 closes
+    html, count=1, flags=re.DOTALL,
+)
+```
+
+The regex consumes 3 closes (`.body`, `.ladder-narrative`, `.ladder`).
+The narrative builder is balanced internally (its own
+`<div class="ladder-narrative">…</div>` round-trips). The replacement
+needed exactly **1** manual close (for `.ladder`); the `.card` close
+that remains in the original template provides the `.card` close.
+Two manual closes produced one extra `</div>` per render, which
+browsers' HTML parsers used to auto-close `.app`. Every subsequent
+section then became a direct child of `<body>` and lost `.app`'s 56 px
+horizontal padding.
+
+Why PASS 1–4 missed it: the static QA only screenshotted the page; we
+never measured eyebrow `getBoundingClientRect().left`. PASS 4's "all
+clean" verdict was based on visual scanning that didn't notice the
+gutter loss because the eyebrow text is small.
+
+**Fix.** Drop one manual `</div>` in both files:
+
+```python
+# AFTER
+velocity_narrative_html + "\n    </div>"   # ← 1 close
+```
+
+`dashboard_v3.py:1664-1668` and `scripts/visual_qa/capture.py:177-181`.
+
+### Verification
+
+```
+$ python /tmp/inspect_static.py
+…
+"§ 09 · Long-Term Development":  parent_left=116, parent_width=1368  ✓
+"§ 10 · Drill Prescription":     parent_left=116, parent_width=1368  ✓
+"§ 11 · Session Ledger":         parent_left=116, parent_width=1368  ✓
+"§ 12 · Recent Unlocks":         parent_left=116, parent_width=1368  ✓
+```
+
+All section eyebrows now report `left=116` (= 60 px `.app` offset + 56 px
+padding) at the 1600 × 900 viewport — same as §02–§06.
+
+Visual confirmation in
+`.visual_qa/screenshots/2026-05-18-004032-pass-5-after-fixes/desktop_1600.png`:
+Swing-of-the-Week ghost labels sit cleanly above the stroboscopic
+caption with no overlap.
+
+### Result
+
+| ID | Issue | Status |
+|---|---|---|
+| P5-1 | SVG ghost label / stage caption overlap | ✅ Fixed (mock_dashboard_template.py:2491-2495) |
+| P5-2 | Extra `</div>` auto-closing `.app` (§09-§12 eyebrows escape gutter) | ✅ Fixed (dashboard_v3.py:1664-1668 + capture.py:177-181) |
+
+### Process lesson
+
+The static QA workflow needs a **DOM-measurement assertion**, not just
+screenshots. Adding a probe that asserts every `.section-eyebrow` has
+`parent_left >= 50 px` at desktop widths would have caught Issue 2 in
+PASS 1 (it has been present since dashboard_v3 was first written).
+Filed as follow-up — not blocking this PR.
+
+---
+
 ## Workflow summary
 
 | Step | Outcome |

@@ -1653,10 +1653,19 @@ def render_dashboard_v3(user: Dict[str, Any]) -> None:
 
     # Velocity Ladder narrative — replace hardcoded "+29 pts / 62% → 91%"
     # copy with computed delta and band-aware phrasing.
+    #
+    # The regex consumes 3 trailing </div>s (close .body, close .ladder-narrative,
+    # close .ladder). The replacement provides a full <div class="ladder-narrative">
+    # (which closes itself) plus ONE manual </div> for .ladder. The .card
+    # ladder-card close that originally followed in the template is left in place
+    # by NOT including it in the match — it stays as the next character in the
+    # document. Previously this added TWO manual </div>s, producing one extra
+    # close that auto-closed .app and made every section §09-§14 escape .app's
+    # padding gutter in production.
     velocity_narrative_html = _build_velocity_narrative_html(history)
     html = re.sub(
         r'<div class="ladder-narrative">.*?</div>\s*</div>\s*</div>',
-        velocity_narrative_html + "\n    </div>\n  </div>",
+        velocity_narrative_html + "\n    </div>",
         html, count=1, flags=re.DOTALL,
     )
 
