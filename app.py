@@ -1668,6 +1668,9 @@ _ALLOWED_PAGES_FROM_URL = {
     "dashboard", "saved_reports", "swing_report", "compare_swings",
     "development_tracker", "historical_charts", "billing",
     "launch_progress", "pricing", "upload",
+    # PHASE 1 PREVIEW ONLY — design approval pages. URL-only access.
+    # No dashboard buttons route here; production navigation unchanged.
+    "saved_reports_preview", "swing_report_preview",
 }
 try:
     _url_page = st.query_params.get("page")
@@ -4229,6 +4232,23 @@ if st.session_state.get("page") == "dashboard":
 # build_swing_report_pdf so each card gets a per-report Download PDF.
 if st.session_state.get("page") == "saved_reports":
     render_saved_reports(user, build_pdf_fn=build_swing_report_pdf)
+    st.stop()
+
+
+# ---------- PHASE 1 PREVIEW PAGES (URL-only, additive) ----------
+# Design-approval routes. Reached ONLY via ?page=...&preview=1 style
+# query params (URL bridge above sets session_state["page"] from URL).
+# No dashboard button routes here. Production saved_reports + swing
+# routing is untouched. Once the designs are approved, the wire-up
+# phase will replace the production renderers with these previews.
+if st.session_state.get("page") == "saved_reports_preview":
+    from saved_reports_preview import render_saved_reports_preview
+    render_saved_reports_preview(user)
+    st.stop()
+
+if st.session_state.get("page") == "swing_report_preview":
+    from swing_report_preview import render_swing_report_preview
+    render_swing_report_preview(user)
     st.stop()
 
 
