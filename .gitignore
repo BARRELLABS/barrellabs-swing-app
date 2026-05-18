@@ -29,6 +29,9 @@ Thumbs.db
 backups/
 _backup_dashboards_*/
 
+# ===== Visual QA artifacts (screenshots are local; report ships) =====
+.visual_qa/
+
 # ===== Local player data (Supabase is source of truth) =====
 players/
 profile_pics/
