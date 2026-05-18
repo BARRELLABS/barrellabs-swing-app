@@ -4162,15 +4162,19 @@ with st.sidebar:
 # Render the BarrelLabs dashboard. Acts as the default landing screen
 # for authenticated users; sits above the legacy upload flow.
 #
-# v2 is the DEFAULT dashboard. The legacy v1 layout is still in the
-# build as a safety net — pass ?v2=0 in the URL to fall back for the
-# current session if anything breaks in prod.
+# v3 ("Edge") is now the DEFAULT dashboard.  v2 and v1 remain in the
+# codebase as URL-flag fallbacks so any user can hot-revert mid-session
+# if v3 breaks for them — no redeploy required.
 #
-# v3 = "Edge" — the new editorial mock wired to real data. OPT-IN ONLY
-# via `?v3=1` URL flag (or st.session_state["use_dashboard_v3"]=True).
-# This lets us preview the new design with real user data without
-# changing the default experience for anyone else. To revert: drop the
-# flag and v2 renders exactly as before.
+# Escape hatches (per-session, no code change):
+#   /?v3=0          → fall back to v2 (the previous default)
+#   /?v3=0&v2=0     → fall back to v1 (legacy layout)
+#   /?v3=1          → explicitly force v3 (redundant under the new default)
+#
+# To revert the default itself: flip the v3 default below from True
+# back to False. v2 will resume as default; v3 stays available via
+# ?v3=1.  The full pre-flip app.py is also snapshotted at
+# _backup_dashboards_2026-05-17/app.py.backup-pre-v3-default.
 if st.session_state.get("page") == "dashboard":
     # URL overrides — per-session toggles.
     try:
@@ -4182,8 +4186,8 @@ if st.session_state.get("page") == "dashboard":
     except Exception:
         pass
 
-    # v3 takes precedence when explicitly opted in.
-    if st.session_state.get("use_dashboard_v3", False):
+    # v3 is the DEFAULT.  Disable with ?v3=0 to fall back to v2.
+    if st.session_state.get("use_dashboard_v3", True):
         from dashboard_v3 import render_dashboard_v3
         render_dashboard_v3(user)
     elif st.session_state.get("use_dashboard_v2", True):
