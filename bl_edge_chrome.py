@@ -176,118 +176,169 @@ iframe {
 /* ---- Full-bleed bar: ONE solid ink, NO border, NO gradient, NO
    divider — the user wants zero slit, so the bar and the dashboard
    are literally the same surface. z-index lifts it above the glow. */
-.ble-mast {
+/* ====================================================================
+   MASTHEAD LAYOUT — built from st.container(key=) + st.button so nav
+   is IN-SESSION (auth preserved). Streamlit's wrapper divs are made
+   display:contents so brand / navbar / chip become direct flex
+   children of the keyed bar; the buttons are restyled into premium
+   glass tabs. Full-bleed via 100vw + calc() side padding (content
+   capped at 1560, bg edge-to-edge, no nested wrapper needed).
+   ==================================================================== */
+.st-key-bl_edge_masthead {
   position: relative; z-index: 10;
   width: 100vw; left: 50%; right: 50%;
-  margin-left: -50vw; margin-right: -50vw;
-  background: #0A0B0E;
-  border: 0;
+  margin-left: -50vw !important; margin-right: -50vw !important;
+  background: #0A0B0E !important; border: 0 !important;
+  display: flex !important; flex-direction: row !important;
+  flex-wrap: nowrap !important; align-items: center !important;
+  gap: 40px !important;
+  padding: 13px max(40px, calc((100vw - 1560px) / 2)) !important;
+  box-sizing: border-box !important;
 }
-.ble-inner {
-  max-width: 1560px; margin: 0 auto;
-  padding: 15px 40px;
-  display: flex; align-items: center; gap: 44px;
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+/* flatten Streamlit's structural wrappers inside the masthead so the
+   real children (brand container, navbar, chip) lay out as flex items */
+.st-key-bl_edge_masthead > div,
+.st-key-bl_edge_masthead > div > div[data-testid="stVerticalBlock"] {
+  display: contents !important;
+}
+.st-key-bl_edge_masthead
+  > div > div[data-testid="stVerticalBlock"]
+  > [data-testid="stElementContainer"] {
+  flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
+}
+/* chip pinned far right (unambiguous via :has) */
+.st-key-bl_edge_masthead [data-testid="stElementContainer"]:has(.ble-user) {
+  margin-left: auto !important;
 }
 
-/* brand */
-.ble-brand { display: flex; align-items: center; gap: 13px; flex: 0 0 auto;
-  text-decoration: none; }
-.ble-brand img { width: 30px; height: 30px; object-fit: contain; display: block; }
+/* ---- the glass segmented nav bar (nested keyed container) ---- */
+.st-key-bl_edge_navbar {
+  flex: 0 0 auto !important;
+  display: flex !important; flex-direction: row !important;
+  flex-wrap: nowrap !important; align-items: center !important;
+  gap: 3px !important; padding: 4px !important;
+  background: rgba(255,255,255,0.024) !important;
+  border: 1px solid rgba(244,239,230,0.065) !important;
+  border-radius: 13px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035),
+              0 1px 3px rgba(0,0,0,0.45) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+.st-key-bl_edge_navbar > div,
+.st-key-bl_edge_navbar > div > div[data-testid="stVerticalBlock"] {
+  display: contents !important;
+}
+.st-key-bl_edge_navbar [data-testid="stElementContainer"],
+.st-key-bl_edge_navbar [data-testid="stButton"] {
+  flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
+}
+
+/* ---- the tabs: Streamlit buttons restyled, all 1.57 testid variants */
+.st-key-bl_edge_navbar button {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: #7C7F86 !important;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: 0.17em !important; text-transform: uppercase !important;
+  padding: 8px 17px !important; border-radius: 9px !important;
+  min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
+  box-shadow: none !important; width: auto !important;
+  -webkit-font-smoothing: antialiased; white-space: nowrap !important;
+  transition: color .2s, background .2s, border-color .2s,
+              box-shadow .2s, transform .18s cubic-bezier(.34,1.4,.64,1);
+}
+.st-key-bl_edge_navbar button p,
+.st-key-bl_edge_navbar button div,
+.st-key-bl_edge_navbar button span {
+  font: inherit !important; letter-spacing: inherit !important;
+  color: inherit !important; margin: 0 !important;
+}
+.st-key-bl_edge_navbar button:hover {
+  color: #EDE7DA !important; background: rgba(244,239,230,0.05) !important;
+  border-color: rgba(244,239,230,0.09) !important;
+  transform: translateY(-1px);
+}
+.st-key-bl_edge_navbar button:focus,
+.st-key-bl_edge_navbar button:focus-visible,
+.st-key-bl_edge_navbar button:active {
+  box-shadow: none !important; outline: none !important;
+}
+/* active tab = type="primary" (cover every 1.57 testid spelling) */
+.st-key-bl_edge_navbar button[kind="primary"],
+.st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"],
+.st-key-bl_edge_navbar button[data-testid="baseButton-primary"] {
+  position: relative;
+  color: #F8F4EA !important;
+  background: linear-gradient(180deg, rgba(244,239,230,0.115),
+              rgba(244,239,230,0.05)) !important;
+  border-color: rgba(244,239,230,0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12),
+              0 2px 12px -4px rgba(232,193,112,0.34) !important;
+}
+.st-key-bl_edge_navbar button[kind="primary"]::after,
+.st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"]::after,
+.st-key-bl_edge_navbar button[data-testid="baseButton-primary"]::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: -1px;
+  height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, #E8C170, #E64530);
+  box-shadow: 0 0 9px -1px rgba(232,193,112,0.6);
+}
+
+/* ---- brand (left) + user chip (right) — unchanged look ---- */
+.ble-brand { display: flex; align-items: center; gap: 13px;
+  flex: 0 0 auto; }
+.ble-brand img { width: 30px; height: 30px; object-fit: contain;
+  display: block; }
 .ble-brand .wm { font-size: 13px; font-weight: 600; letter-spacing: 0.24em;
   text-transform: uppercase; color: #F4EFE6; white-space: nowrap; }
 .ble-brand .wm .sl { color: #3A3D44; margin: 0 9px; font-weight: 300; }
 .ble-brand .wm .ed { font-family: 'Instrument Serif', Georgia, serif;
   font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: 0;
   text-transform: none; color: #8B8E94; }
-
-/* nav — a glass segmented control: dark frosted bar, soft inset
-   border, refined hover, active tab lit with a metal sheen + a
-   gold->red micro underline. Stripe/Linear/TrackMan-grade. */
-/* Glass segmented control — frosted bar, soft inset rim. */
-.ble-nav {
-  display: flex; align-items: center; gap: 3px; flex: 0 0 auto;
-  padding: 4px;
-  background: rgba(255,255,255,0.024);
-  border: 1px solid rgba(244,239,230,0.065);
-  border-radius: 13px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035),
-              0 1px 3px rgba(0,0,0,0.45);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
-}
-.ble-tab { position: relative; text-decoration: none;
-  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.17em;
-  text-transform: uppercase; color: #7C7F86;
-  padding: 8px 17px; border-radius: 9px;
-  border: 1px solid transparent;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-  transition: color .2s ease, background .2s ease, border-color .2s ease,
-              box-shadow .2s ease, transform .18s cubic-bezier(.34,1.4,.64,1); }
-.ble-tab:hover {
-  color: #EDE7DA;
-  background: rgba(244,239,230,0.05);
-  border-color: rgba(244,239,230,0.09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05),
-              0 0 0 1px rgba(232,193,112,0.10) inset;
-  transform: translateY(-1px);
-}
-.ble-tab:active { transform: translateY(0); }
-.ble-tab.is-active {
-  color: #F8F4EA;
-  background:
-    linear-gradient(180deg, rgba(244,239,230,0.115), rgba(244,239,230,0.05)),
-    radial-gradient(ellipse at 50% 120%, rgba(232,193,112,0.10), transparent 65%);
-  border-color: rgba(244,239,230,0.16);
-  border-bottom-color: rgba(232,193,112,0.28);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12),
-              inset 0 -1px 0 rgba(232,193,112,0.10),
-              0 2px 12px -4px rgba(232,193,112,0.34);
-}
-.ble-tab.is-active::after { content: ""; position: absolute;
-  left: 14px; right: 14px; bottom: -1px; height: 2px; border-radius: 2px;
-  background: linear-gradient(90deg, #E8C170, #E64530);
-  box-shadow: 0 0 9px -1px rgba(232,193,112,0.6); }
-
-/* user chip */
-.ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
-  margin-left: auto; }
+.ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
 .ble-streak { font-family: 'Geist Mono', monospace; font-size: 10.5px;
-  letter-spacing: 0.04em; color: #E8C170; padding: 5px 11px; border-radius: 999px;
-  border: 1px solid rgba(232,193,112,0.26); background: rgba(232,193,112,0.07);
-  white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-.ble-streak .d { width: 5px; height: 5px; border-radius: 50%; background: #E8C170; }
+  letter-spacing: 0.04em; color: #E8C170; padding: 5px 11px;
+  border-radius: 999px; border: 1px solid rgba(232,193,112,0.26);
+  background: rgba(232,193,112,0.07); white-space: nowrap;
+  display: flex; align-items: center; gap: 6px; }
+.ble-streak .d { width: 5px; height: 5px; border-radius: 50%;
+  background: #E8C170; }
 .ble-av { width: 34px; height: 34px; border-radius: 50%;
   background: linear-gradient(135deg, #23262C, #101319);
   border: 1px solid rgba(244,239,230,0.12); color: #F4EFE6;
   font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
-  font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  font-size: 14px; display: flex; align-items: center;
+  justify-content: center; }
 
 @media (max-width: 1100px) {
-  .ble-inner { padding: 12px 22px; gap: 22px; }
-  .ble-tab { padding: 8px 11px; font-size: 10px; letter-spacing: 0.12em; }
+  .st-key-bl_edge_masthead {
+    gap: 22px !important;
+    padding: 11px max(20px, calc((100vw - 1560px) / 2)) !important;
+  }
+  .st-key-bl_edge_navbar button {
+    padding: 8px 11px !important; font-size: 10px !important;
+    letter-spacing: 0.12em !important;
+  }
   .ble-brand .wm { font-size: 12px; }
 }
 @media (max-width: 720px) {
-  /* Mobile: brand + avatar on one row, nav becomes a clean
-     single-line swipeable strip beneath — never a vertical stack. */
-  .ble-inner { flex-wrap: wrap; row-gap: 10px; padding: 11px 16px; gap: 0; }
-  .ble-brand { flex: 1 1 auto; }
+  .st-key-bl_edge_masthead {
+    flex-wrap: wrap !important; row-gap: 10px !important;
+    padding: 11px 14px !important; gap: 0 !important;
+  }
   .ble-streak { display: none; }
-  .ble-user { margin-left: auto; }
-  .ble-nav {
-    order: 3; flex: 1 0 100%;
-    flex-wrap: nowrap; gap: 2px;
+  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:has(.ble-brand) {
+    flex: 1 1 auto !important;
+  }
+  .st-key-bl_edge_navbar {
+    order: 3; flex: 1 0 100% !important;
     overflow-x: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    margin: 2px -16px -11px; padding: 6px 16px 8px;
-    border-top: 1px solid rgba(244,239,230,0.06);
   }
-  .ble-nav::-webkit-scrollbar { display: none; }
-  .ble-tab { padding: 7px 12px; flex: 0 0 auto; }
-  .ble-tab.is-active::after { bottom: 2px; }
+  .st-key-bl_edge_navbar::-webkit-scrollbar { display: none; }
+  .st-key-bl_edge_navbar button { padding: 7px 12px !important; }
 }
 </style>
 """
@@ -365,33 +416,46 @@ def render_edge_masthead(
         if streak is not None else ""
     )
 
-    tabs = []
-    for label, page_key, _alts in _NAV_ENTRIES:
-        cls = "ble-tab is-active" if active == page_key else "ble-tab"
-        tabs.append(
-            f'<a class="{cls}" href="?page={page_key}" target="_self">{label}</a>'
-        )
-    nav_html = "".join(tabs)
-
-    # ONE pure-HTML block — no st.columns, no st.button. Navigation
-    # rides the existing ?page= URL bridge (auth is restored on reload
-    # via auth.current_profile), so there is zero Streamlit widget
-    # chrome: the bar is fully designed, full-bleed, and seamless with
-    # the dashboard below it.
-    st.markdown(
-        f"""
-<div class="ble-host"></div>
-<div class="ble-mast"><div class="ble-inner">
-  <a class="ble-brand" href="?page=dashboard" target="_self">
-    {brand_mark}
-    <span class="wm">BarrelLabs<span class="sl">/</span><span class="ed">Edge</span></span>
-  </a>
-  <div class="ble-nav">{nav_html}</div>
-  <div class="ble-user">{streak_html}<span class="ble-av">{initials}</span></div>
-</div></div>
+    # IN-SESSION nav (st.button + st.rerun) — NOT <a href> anchors.
+    # A full browser navigation starts a fresh Streamlit session with
+    # empty st.session_state, and this app keeps the Supabase auth
+    # session ONLY in st.session_state (no durable cookie), so anchor
+    # nav logged the user out on every click and the stale ?page= in
+    # the address bar made re-login land on the swing-report page.
+    # st.button triggers an in-session rerun: session_state (incl.
+    # auth) is preserved and no ?page= is ever written to the URL.
+    # The buttons are restyled into the premium glass tabs via CSS
+    # scoped to .st-key-bl_edge_navbar.
+    with st.container(key="bl_edge_masthead"):
+        st.markdown(
+            f"""
+<div class="ble-brand">
+  {brand_mark}
+  <span class="wm">BarrelLabs<span class="sl">/</span><span class="ed">Edge</span></span>
+</div>
 """,
-        unsafe_allow_html=True,
-    )
+            unsafe_allow_html=True,
+        )
+        with st.container(key="bl_edge_navbar"):
+            for label, page_key, _alts in _NAV_ENTRIES:
+                if st.button(
+                    label,
+                    key=f"_ble_nav_{page_key}",
+                    type=("primary" if active == page_key else "secondary"),
+                ):
+                    st.session_state["page"] = page_key
+                    # Scrub stale open-report state so a nav click can't
+                    # be hijacked by the _should_open_report guard.
+                    if page_key != "swing_report":
+                        for _k in ("view_swing_record", "view_swing_path",
+                                   "view_swing_report_id", "view"):
+                            st.session_state.pop(_k, None)
+                    st.rerun()
+        st.markdown(
+            f'<div class="ble-user">{streak_html}'
+            f'<span class="ble-av">{initials}</span></div>',
+            unsafe_allow_html=True,
+        )
 
 
 

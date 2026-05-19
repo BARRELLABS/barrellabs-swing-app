@@ -187,9 +187,15 @@ class EdgeChromeImportTest(unittest.TestCase):
 
 
 class MastheadRendersNavTest(unittest.TestCase):
-    """The masthead is now ONE pure-HTML block (no st.button / st.columns)
-    whose nav items are <a href="?page=KEY"> anchors. It must emit all
-    five links and mark exactly one active based on active_page."""
+    """The masthead nav is now IN-SESSION st.button widgets (NOT
+    <a href> anchors). Anchors did a full browser reload which wiped
+    st.session_state — and this app keeps the Supabase auth session
+    ONLY in st.session_state, so anchor nav logged the user out on
+    every click. st.button triggers an in-session rerun: auth is
+    preserved and no ?page= is ever written to the URL. The masthead
+    must render exactly the 5 nav buttons with the right keys and mark
+    exactly one type="primary" per active_page, and must NOT emit any
+    <a href="?page="> nav anchor."""
 
     def setUp(self):
         self.st = _install_stub()
@@ -197,67 +203,96 @@ class MastheadRendersNavTest(unittest.TestCase):
     def _html(self):
         return "\n".join(self.st._markdown_calls)
 
-    def test_renders_five_nav_links(self):
+    def test_renders_five_nav_buttons(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
-        user = {"name": "Logan Collins", "gamification": {"current_streak_days": 17}}
+        user = {"name": "Logan Collins",
+                "gamification": {"current_streak_days": 17}}
         bec.render_edge_masthead(user, active_page="dashboard")
+        nav = [b for b in self.st._buttons_rendered
+               if b[1] and str(b[1]).startswith("_ble_nav_")]
+        labels = [b[0] for b in nav]
+        self.assertEqual(
+            labels, [e[0] for e in bec._NAV_ENTRIES],
+            "masthead must render the 5 nav buttons in order")
+        for (label, page_key, _a), b in zip(bec._NAV_ENTRIES, nav):
+            self.assertEqual(b[1], f"_ble_nav_{page_key}")
+        types_ = [b[2] for b in nav]
+        self.assertEqual(types_.count("primary"), 1,
+                         "exactly one active (primary) tab")
+        active_label = next(b[0] for b in nav if b[2] == "primary")
+        self.assertEqual(active_label, "Dashboard")
+        # CRITICAL: no full-reload nav anchor anywhere (would log the
+        # user out — that's the bug this fix removes).
         html = self._html()
-        # No Streamlit button chrome may be used for the nav anymore.
-        self.assertEqual(self.st._buttons_rendered, [],
-                         "Masthead must not render st.button widgets.")
-        for label, page_key, _alts in bec._NAV_ENTRIES:
-            self.assertIn(f'>{label}</a>', html, f"missing nav link {label}")
-            self.assertIn(f'href="?page={page_key}"', html,
-                          f"missing ?page= href for {page_key}")
-        # Exactly one active tab; Dashboard active when active_page=dashboard
-        self.assertEqual(html.count("ble-tab is-active"), 1)
-        self.assertIn('href="?page=dashboard" target="_self">Dashboard</a>', html)
-        self.assertRegex(
-            html,
-            r'class="ble-tab is-active"[^>]*href="\?page=dashboard"',
-        )
+        self.assertNotIn('href="?page=', html,
+                          "masthead must NOT use ?page= nav anchors "
+                          "(full reload wipes auth)")
 
     def test_active_highlight_for_swing_report(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
         bec.render_edge_masthead({}, active_page="swing_report")
-        html = self._html()
-        # swing_report rolls up to the Sessions (saved_reports) parent,
-        # so the Sessions tab carries is-active.
-        self.assertEqual(html.count("ble-tab is-active"), 1)
-        self.assertRegex(
-            html,
-            r'class="ble-tab is-active"[^>]*href="\?page=saved_reports"',
-        )
+        nav = [b for b in self.st._buttons_rendered
+               if b[1] and str(b[1]).startswith("_ble_nav_")]
+        active = [b[0] for b in nav if b[2] == "primary"]
+        # swing_report rolls up to the Sessions (saved_reports) parent.
+        self.assertEqual(active, ["Sessions"])
 
 
 class SessionsNavContractTest(unittest.TestCase):
-    """The Sessions nav link must point at ?page=saved_reports, and
-    app.py's URL bridge must accept that key — together this is the
-    auth-safe navigation path that replaced the old button click."""
+    """Clicking the Sessions button must, IN-SESSION (no reload, auth
+    preserved): set page=saved_reports, scrub stale open-report state
+    so _should_open_report can't hijack it, and call st.rerun()."""
 
     def setUp(self):
         self.st = _install_stub()
 
-    def test_sessions_href_and_bridge_allowlist(self):
+    def test_sessions_click_routes_in_session(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
+        # Pretend a report was previously open (stale state).
+        self.st.session_state["view_swing_record"] = {"id": "stale"}
+        self.st.session_state["view_swing_path"] = "/tmp/x.json"
+        self.st.session_state["page"] = "dashboard"
+        # Force the Sessions button to "click".
+        self.st._button_returns["_ble_nav_saved_reports"] = True
         bec.render_edge_masthead({}, active_page="dashboard")
+
+        self.assertEqual(self.st.session_state["page"], "saved_reports")
+        self.assertNotIn("view_swing_record", self.st.session_state)
+        self.assertNotIn("view_swing_path", self.st.session_state)
+        self.assertTrue(self.st._rerun_called,
+                        "must st.rerun() so it's an in-session nav")
+        # No nav anchor / no ?page= written to the URL.
         html = "\n".join(self.st._markdown_calls)
-        self.assertIn('href="?page=saved_reports" target="_self">Sessions</a>',
-                      html)
-        # The bridge in app.py must whitelist saved_reports so the href
-        # actually navigates.
+        self.assertNotIn('href="?page=', html)
+        # The ?page= URL bridge must still exist in app.py for genuine
+        # deep-links, with saved_reports allowed.
         app_src = (PROJECT_ROOT / "app.py").read_text()
-        self.assertIn("_ALLOWED_PAGES_FROM_URL", app_src)
         m = re.search(r"_ALLOWED_PAGES_FROM_URL\s*=\s*\{(.*?)\}",
                       app_src, re.DOTALL)
-        self.assertIsNotNone(m, "allowlist set not found in app.py")
+        self.assertIsNotNone(m)
         self.assertIn('"saved_reports"', m.group(1))
+
+    def test_swing_report_button_keeps_open_report_state(self):
+        """The swing_report nav button must NOT scrub view_swing_*
+        (that's how an opened report stays open)."""
+        if "bl_edge_chrome" in sys.modules:
+            del sys.modules["bl_edge_chrome"]
+        bec = importlib.import_module("bl_edge_chrome")
+        self.st.session_state["view_swing_record"] = {"id": "keep"}
+        self.st._button_returns["_ble_nav_saved_reports"] = False
+        # No swing_report nav entry exists by default; assert the scrub
+        # logic is conditional on page_key != "swing_report" by checking
+        # a non-swing click DOES scrub (covered above) and the source
+        # guards on that key.
+        src = (PROJECT_ROOT / "bl_edge_chrome.py").read_text()
+        self.assertIn('if page_key != "swing_report":', src)
+        self.assertIn("st.session_state.pop", src)
 
 
 class SwingReportPageTest(unittest.TestCase):
