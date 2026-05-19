@@ -108,49 +108,80 @@ _EDGE_MASTHEAD_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
-/* ---- Strip every scrap of Streamlit chrome + top dead space so the
-   masthead is the FIRST thing on the page, flush to the very top. ---- */
-header[data-testid="stHeader"], [data-testid="stToolbar"],
+/* ====================================================================
+   STREAMLIT 1.57 CHROME KILL — verified against the live DOM via
+   Playwright. Streamlit 1.57 uses [data-testid="stMain"] (NOT
+   section.main) and a [data-testid="stVerticalBlock"] with a DEFAULT
+   16px flex gap, plus [data-testid="stMainBlockContainer"] with a
+   DEFAULT 96px (6rem) top padding, and an absolute 60px
+   [data-testid="stHeader"] (z 999990). The old selectors were scoped
+   to section.main / .main / .st-key-* which DO NOT EXIST in 1.57, so
+   the 16px gap + 96px padding survived = the "slit" + top dead band.
+   Every rule below uses the real 1.57 testids, unscoped, !important,
+   in this (last-injected, winning) sheet.
+   ==================================================================== */
+header[data-testid="stHeader"], .stAppHeader,
+[data-testid="stToolbar"], .stAppToolbar,
 [data-testid="stDecoration"], [data-testid="stStatusWidget"],
-.stAppDeployButton, .stDeployButton, #MainMenu, footer {
-  display: none !important; height: 0 !important; visibility: hidden !important;
+[data-testid="stMainMenu"], #MainMenu,
+.stAppDeployButton, .stDeployButton, footer {
+  display: none !important;
+  height: 0 !important; min-height: 0 !important;
+  visibility: hidden !important;
 }
-[data-testid="stAppViewContainer"] { background: #0A0B0E !important; }
-[data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
-section.main > div.block-container,
-[data-testid="stMainBlockContainer"], .block-container {
+
+/* ONE ink on EVERY surface — html→body→stApp→viewContainer→stMain→
+   blockContainer→iframe. If every layer is the exact same colour, no
+   residual gap/padding can EVER read as a slit or band. */
+html, body,
+[data-testid="stApp"], .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"], .block-container,
+section.main, .main {
+  background: #0A0B0E !important;
+}
+
+/* Collapse ALL top space with the CORRECT 1.57 testids (unscoped). */
+[data-testid="stMain"] { padding-top: 0 !important; margin-top: 0 !important; }
+[data-testid="stMainBlockContainer"], .block-container,
+section.main > div.block-container {
   padding-top: 0 !important; margin-top: 0 !important;
 }
-[data-testid="stMainBlockContainer"] > div:first-child,
-.block-container > div:first-child { margin-top: 0 !important; }
-/* The single st.markdown that holds the masthead must add no box of its
-   own — it should be invisible structurally so the bar is seamless. */
-.st-key-bl_edge_masthead, .ble-host { margin: 0 !important; padding: 0 !important;
-  min-height: 0 !important; }
+[data-testid="stVerticalBlock"] { gap: 0 !important; }
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"]
+  > [data-testid="stElementContainer"] { margin: 0 !important; }
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"]
+  > [data-testid="stElementContainer"]:first-child {
+  margin-top: 0 !important; padding-top: 0 !important;
+}
+/* legacy fallbacks (harmless if they match nothing) */
+section.main [data-testid="stVerticalBlock"] { gap: 0 !important; }
+[data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+
+/* iframe (dashboard body) butts flush, same ink, no inline gap */
+[data-testid="stIFrame"], [data-testid="stCustomComponentV1"],
+[data-testid="stElementContainer"] { margin: 0 !important; }
+iframe {
+  display: block !important; margin: 0 !important;
+  vertical-align: top !important; background: #0A0B0E !important;
+}
+/* the empty anchor div the masthead emits must take zero space */
 .ble-host { display: none !important; }
 
-/* ---- Collapse EVERY Streamlit gap/margin between the masthead and the
-   next block so the dashboard iframe / page body butts flush against
-   the nav — no empty rectangular dead zone, one continuous surface. */
-section.main [data-testid="stVerticalBlock"] { gap: 0 !important; }
-section.main [data-testid="stElementContainer"],
-section.main [data-testid="element-container"],
-section.main [data-testid="stIFrame"],
-section.main [data-testid="stCustomComponentV1"] {
-  margin: 0 !important;
-}
-section.main iframe { display: block !important; margin: 0 !important;
-  vertical-align: top !important; }
+/* Kill the decorative bl_theme glow ONLY where it would tint the very
+   top — the masthead sits above it with its own solid ink + z-index. */
+[data-testid="stAppViewContainer"]::before { z-index: 0 !important; }
 
-/* ---- Full-bleed flex bar, edge-to-edge, same ink as the page; the
-   transition into content is seamless (no gradient slab divider, just
-   the faintest hairline so it reads as one designed surface). ---- */
+/* ---- Full-bleed bar: ONE solid ink, NO border, NO gradient, NO
+   divider — the user wants zero slit, so the bar and the dashboard
+   are literally the same surface. z-index lifts it above the glow. */
 .ble-mast {
-  position: relative;
+  position: relative; z-index: 10;
   width: 100vw; left: 50%; right: 50%;
   margin-left: -50vw; margin-right: -50vw;
-  background: linear-gradient(180deg, #0C0D11 0%, #0A0B0E 100%);
-  border-bottom: 1px solid rgba(244,239,230,0.045);
+  background: #0A0B0E;
+  border: 0;
 }
 .ble-inner {
   max-width: 1560px; margin: 0 auto;
@@ -173,43 +204,52 @@ section.main iframe { display: block !important; margin: 0 !important;
 /* nav — a glass segmented control: dark frosted bar, soft inset
    border, refined hover, active tab lit with a metal sheen + a
    gold->red micro underline. Stripe/Linear/TrackMan-grade. */
+/* Glass segmented control — frosted bar, soft inset rim. */
 .ble-nav {
-  display: flex; align-items: center; gap: 2px; flex: 0 0 auto;
+  display: flex; align-items: center; gap: 3px; flex: 0 0 auto;
   padding: 4px;
-  background: rgba(255,255,255,0.022);
-  border: 1px solid rgba(244,239,230,0.06);
+  background: rgba(255,255,255,0.024);
+  border: 1px solid rgba(244,239,230,0.065);
   border-radius: 13px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03),
-              0 1px 2px rgba(0,0,0,0.4);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035),
+              0 1px 3px rgba(0,0,0,0.45);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
 }
 .ble-tab { position: relative; text-decoration: none;
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px; font-weight: 500; letter-spacing: 0.15em;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.17em;
   text-transform: uppercase; color: #7C7F86;
   padding: 8px 17px; border-radius: 9px;
   border: 1px solid transparent;
-  transition: color .2s ease, background .2s ease,
-              border-color .2s ease, box-shadow .2s ease; }
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  transition: color .2s ease, background .2s ease, border-color .2s ease,
+              box-shadow .2s ease, transform .18s cubic-bezier(.34,1.4,.64,1); }
 .ble-tab:hover {
   color: #EDE7DA;
-  background: rgba(244,239,230,0.045);
-  border-color: rgba(244,239,230,0.05);
+  background: rgba(244,239,230,0.05);
+  border-color: rgba(244,239,230,0.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05),
+              0 0 0 1px rgba(232,193,112,0.10) inset;
+  transform: translateY(-1px);
 }
+.ble-tab:active { transform: translateY(0); }
 .ble-tab.is-active {
   color: #F8F4EA;
-  background: linear-gradient(180deg, rgba(244,239,230,0.10),
-              rgba(244,239,230,0.045));
-  border-color: rgba(244,239,230,0.14);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10),
-              0 2px 10px -4px rgba(232,193,112,0.30);
+  background:
+    linear-gradient(180deg, rgba(244,239,230,0.115), rgba(244,239,230,0.05)),
+    radial-gradient(ellipse at 50% 120%, rgba(232,193,112,0.10), transparent 65%);
+  border-color: rgba(244,239,230,0.16);
+  border-bottom-color: rgba(232,193,112,0.28);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12),
+              inset 0 -1px 0 rgba(232,193,112,0.10),
+              0 2px 12px -4px rgba(232,193,112,0.34);
 }
 .ble-tab.is-active::after { content: ""; position: absolute;
-  left: 17px; right: 17px; bottom: -1px; height: 2px; border-radius: 2px;
+  left: 14px; right: 14px; bottom: -1px; height: 2px; border-radius: 2px;
   background: linear-gradient(90deg, #E8C170, #E64530);
-  box-shadow: 0 0 8px -1px rgba(232,193,112,0.55); }
-/* spacer so the glass nav sits centred-left and the chip stays right */
-.ble-navwrap { display: flex; align-items: center; flex: 1 1 auto; }
+  box-shadow: 0 0 9px -1px rgba(232,193,112,0.6); }
 
 /* user chip */
 .ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
