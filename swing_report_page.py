@@ -631,18 +631,22 @@ def render_swing_report_page(
     history: Optional[List[Dict[str, Any]]] = None,
 ) -> None:
     """
-    Render the standalone individual-swing report page.
+    Render the standalone individual-swing report page (DASHBOARD STYLE).
+
+    As of the dashboard-style report promotion this delegates to
+    `swing_report_dashboard_preview.render_swing_report_dashboard_preview`
+    with `is_preview=False`, which renders the full premium report
+    using the BarrelLabs Edge design system. The renderer includes its
+    own Hero / Top Priorities / Drills / Key Metrics / Mechanical
+    Breakdown / Progress / Compare This Swing / Next Session sections.
 
     Layout (top to bottom):
         1. Unified Edge masthead (Sessions tab active)
         2. Back-to-Sessions link
-        3. Context strip (swing #, date, MLB comp pill)
-        4. Full premium swing report (existing renderer)
-        5. Practice log (if available)
-        6. Redesigned Swing Comparison
+        3. Full dashboard-style premium swing report
+        4. Practice log (drill check-off — preserved from legacy)
     """
     inject_global_theme()
-    st.markdown(_SRP_CSS, unsafe_allow_html=True)
 
     # 1. Masthead
     render_edge_masthead(user, active_page="swing_report")
@@ -650,7 +654,7 @@ def render_swing_report_page(
     # 2. Page wrapper
     render_edge_page_wrapper_open()
 
-    # 3. Back-to-Sessions affordance + context strip
+    # 3. Back-to-Sessions affordance
     bcol, _spacer = st.columns([2, 8])
     with bcol:
         st.markdown('<div class="srp-back-link">', unsafe_allow_html=True)
@@ -662,39 +666,20 @@ def render_swing_report_page(
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    swing_label = _swing_label(record)
-    date_disp = _fmt_date(record)
-    mlb = _mlb_ref(record)
-
-    st.markdown(
-        f"""
-        <div class="srp-context-strip">
-          <div class="left">
-            <div>
-              <div class="srp-context-eyebrow">REPORT</div>
-              <div class="srp-context-title">{swing_label}</div>
-            </div>
-          </div>
-          <div class="right">
-            <div class="srp-context-meta">{date_disp}</div>
-            <div class="srp-context-pill">vs. {mlb}</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # 4. The full premium swing report. We delegate to the existing
-    #    renderer so the (already polished) report layout is reused.
+    # 4. The full dashboard-style premium swing report.
     try:
-        from swing_report import render_swing_report
-        # history is used by the "vs last swing" mini section inside
-        # the renderer; we pass it through.
-        render_swing_report(record, history=history)
+        from swing_report_dashboard_preview import (
+            render_swing_report_dashboard_preview,
+        )
+        render_swing_report_dashboard_preview(
+            record, history or [], is_sample=False, is_preview=False,
+        )
     except Exception as e:
-        st.error(f"Couldn't render the full report: {e}")
+        st.error(f"Couldn't render the swing report: {e}")
 
-    # 5. Practice log between the report and the comparison block.
+    # 5. Practice log — preserved from the legacy chain since it's
+    #    orthogonal to the report renderer and the user relies on it
+    #    to track drill completion.
     try:
         from app import render_swing_practice_log  # type: ignore
         player_id = user.get("slug") or user.get("id")
@@ -703,9 +688,5 @@ def render_swing_report_page(
     except Exception:
         # Non-fatal — the practice log is a bonus, not a blocker.
         pass
-
-    # 6. Redesigned Swing Comparison
-    st.markdown('<div class="srp-section-divider"></div>', unsafe_allow_html=True)
-    render_swing_compare_redesigned(record, history or [])
 
     render_edge_page_wrapper_close()

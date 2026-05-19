@@ -1,0 +1,536 @@
+"""Saved Reports — dashboard-style edition.
+
+The Sessions tab in the Edge masthead lands here. This module replaces
+the older `saved_reports.render_saved_reports` look-and-feel with a
+layout that matches the dashboard-style Premium Swing Report
+(`swing_report_dashboard_preview`).
+
+What stays the same
+-------------------
+- Data source: `player_storage.load_swing_history` (real saved swings).
+- Open Report wiring: sets `view_swing_record` + `page = "swing_report"`
+  exactly as the legacy page did, so the production report route
+  rendered by `swing_report_page.render_swing_report_page` opens.
+- PDF download: receives `build_pdf_fn=build_swing_report_pdf` from
+  `app.py` and renders one button per card when allowed.
+- Filtering helpers: re-uses `_filter_history` / `_parse_date` /
+  `_fmt_short_date` / `_top_focus` from the legacy module so behavior
+  is identical.
+- Delete-with-confirmation flow: unchanged.
+
+What's new
+----------
+- Visual language: tokens, typography, spacing match the new dashboard.
+  Bone/red/gold palette, Instrument Serif italic titles, Geist Mono
+  eyebrows, glassy cards with hairline borders.
+- Cards now surface: swing number + score ring color + MLB comp +
+  date + top priority + filename in a tightened single-card layout.
+- Sessions banner ("Archive") replaced with a serif italic eyebrow +
+  title + record count.
+"""
+
+from __future__ import annotations
+
+import html
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import streamlit as st
+
+from bl_edge_chrome import (
+    render_edge_masthead,
+    render_edge_page_wrapper_open,
+    render_edge_page_wrapper_close,
+)
+from bl_theme import inject_global_theme
+from entitlements import can_export_pdf
+from player_storage import delete_swing_record, load_swing_history
+from saved_reports import (  # reuse — identical filter/parse logic
+    _filter_history,
+    _fmt_short_date,
+    _top_focus,
+)
+from subscription_storage import load_my_plan
+
+
+_PAGE_CSS = """
+<style>
+.srl-wrap {
+  --srl-bg:        #0A0B0E;
+  --srl-bg-2:      #0F1115;
+  --srl-bone:      #F4EFE6;
+  --srl-bone-80:   rgba(244,239,230,0.82);
+  --srl-bone-60:   rgba(244,239,230,0.58);
+  --srl-bone-40:   rgba(244,239,230,0.36);
+  --srl-line:      rgba(244,239,230,0.08);
+  --srl-line-hi:   rgba(244,239,230,0.16);
+  --srl-glass-1:   rgba(255,255,255,0.025);
+  --srl-glass-2:   rgba(255,255,255,0.045);
+  --srl-red:       #E64530;
+  --srl-red-soft:  rgba(230,69,48,0.12);
+  --srl-gold:      #E8C170;
+  --srl-gold-soft: rgba(232,193,112,0.14);
+  --srl-green:     #4AE38C;
+  --srl-green-soft:rgba(74,227,140,0.12);
+  --srl-radius:    14px;
+  --srl-radius-lg: 20px;
+  --srl-serif: 'Instrument Serif', 'Fraunces', Georgia, serif;
+  --srl-sans:  'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  --srl-mono:  'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  font-family: var(--srl-sans);
+  color: var(--srl-bone);
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.4rem 1.4rem 3rem;
+}
+.srl-eyebrow {
+  font-family: var(--srl-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--srl-red);
+  font-weight: 600;
+  display:flex; align-items:center; gap:8px;
+}
+.srl-eyebrow::before {
+  content:""; width:6px; height:6px; border-radius:50%;
+  background: var(--srl-red); box-shadow: 0 0 8px var(--srl-red);
+}
+.srl-pagehead {
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding-bottom: 1.4rem;
+  margin-bottom: 1.4rem;
+  border-bottom: 1px solid var(--srl-line);
+  gap: 2rem;
+}
+.srl-pagehead-title {
+  font-family: var(--srl-serif);
+  font-size: 3.2rem;
+  font-style: italic;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--srl-bone);
+  margin: 0.6rem 0 0;
+}
+.srl-pagehead-meta {
+  text-align: right;
+  font-family: var(--srl-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--srl-bone-60);
+}
+.srl-pagehead-meta strong {
+  color: var(--srl-bone); font-weight: 500;
+  display:block; margin-top: 4px;
+  font-family: var(--srl-serif); font-style: italic;
+  font-size: 16px; letter-spacing: 0; text-transform: none;
+}
+
+/* FILTER BAR */
+.srl-filter {
+  background: var(--srl-glass-1);
+  border: 1px solid var(--srl-line);
+  border-radius: var(--srl-radius);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.4rem;
+}
+.srl-filter-eyebrow {
+  font-family: var(--srl-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--srl-bone-60);
+  margin-bottom: 0.6rem;
+}
+/* Streamlit widget polish inside the filter card */
+.srl-filter [data-testid="stTextInput"] input,
+.srl-filter [data-baseweb="select"] > div {
+  background: var(--srl-bg-2) !important;
+  border-color: var(--srl-line-hi) !important;
+  color: var(--srl-bone) !important;
+  border-radius: var(--srl-radius) !important;
+  font-family: var(--srl-sans) !important;
+}
+.srl-filter label {
+  font-family: var(--srl-mono) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: var(--srl-bone-60) !important;
+}
+
+.srl-results-strip {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom: 1rem;
+  font-family: var(--srl-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--srl-bone-60);
+}
+.srl-results-strip strong { color: var(--srl-bone); }
+
+/* CARD */
+.srl-card {
+  display:grid;
+  grid-template-columns: 84px 1fr 1.1fr 1fr 1fr;
+  gap: 1.2rem;
+  align-items: center;
+  background: var(--srl-glass-1);
+  border: 1px solid var(--srl-line);
+  border-radius: var(--srl-radius-lg);
+  padding: 1.1rem 1.3rem;
+  transition: border-color .2s ease, background .2s ease;
+}
+.srl-card:hover {
+  border-color: var(--srl-line-hi);
+  background: var(--srl-glass-2);
+}
+.srl-card-score {
+  width: 76px; height: 76px; border-radius: 18px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family: var(--srl-serif); font-style: italic;
+  font-size: 2.2rem; line-height: 1;
+  border: 1px solid;
+}
+.srl-card-score-foot {
+  font-family: var(--srl-mono); font-size: 8.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  margin-top: 4px; opacity: 0.7;
+}
+.srl-card-score.green { background: var(--srl-green-soft); color: var(--srl-green); border-color: rgba(74,227,140,0.25); }
+.srl-card-score.amber { background: var(--srl-gold-soft);  color: var(--srl-gold);  border-color: rgba(232,193,112,0.25); }
+.srl-card-score.red   { background: var(--srl-red-soft);   color: var(--srl-red);   border-color: rgba(230,69,48,0.28); }
+
+.srl-col-label {
+  font-family: var(--srl-mono);
+  font-size: 9.5px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--srl-bone-60);
+  margin-bottom: 5px;
+}
+.srl-col-val {
+  font-family: var(--srl-serif); font-style: italic;
+  font-size: 1.15rem; color: var(--srl-bone);
+  letter-spacing: -0.005em; line-height: 1.2;
+}
+.srl-col-sub {
+  font-family: var(--srl-mono); font-size: 9.5px;
+  letter-spacing: 0.12em; color: var(--srl-bone-60);
+  margin-top: 4px; text-transform: uppercase;
+}
+
+/* ACTION ROW */
+.srl-actions {
+  margin-top: -8px;
+  margin-bottom: 1rem;
+  padding: 0 0.4rem;
+}
+.srl-actions [data-testid="stButton"] button {
+  background: var(--srl-red) !important;
+  color: white !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 999px !important;
+  font-family: var(--srl-sans) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 0.6rem 1.2rem !important;
+  letter-spacing: -0.005em !important;
+  box-shadow: 0 8px 20px -10px rgba(230,69,48,0.45) !important;
+  transition: transform .15s ease !important;
+}
+.srl-actions [data-testid="stButton"] button:hover {
+  transform: translateY(-1px);
+}
+.srl-actions [data-testid="stDownloadButton"] button {
+  background: var(--srl-glass-2) !important;
+  color: var(--srl-bone) !important;
+  border: 1px solid var(--srl-line-hi) !important;
+  border-radius: 999px !important;
+  font-family: var(--srl-sans) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  padding: 0.6rem 1.2rem !important;
+}
+.srl-actions-ghost [data-testid="stButton"] button {
+  background: transparent !important;
+  color: var(--srl-bone-60) !important;
+  border: 1px solid var(--srl-line) !important;
+  box-shadow: none !important;
+}
+
+/* EMPTY STATE */
+.srl-empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--srl-glass-1);
+  border: 1px dashed var(--srl-line-hi);
+  border-radius: var(--srl-radius-lg);
+}
+.srl-empty-icon {
+  font-size: 2rem; color: var(--srl-bone-40);
+  margin-bottom: 0.7rem;
+}
+.srl-empty-title {
+  font-family: var(--srl-serif); font-style: italic;
+  font-size: 1.6rem; color: var(--srl-bone);
+  margin-bottom: 0.5rem;
+}
+.srl-empty-sub {
+  color: var(--srl-bone-60);
+  font-size: 14px; line-height: 1.55;
+  max-width: 480px; margin: 0 auto;
+}
+
+/* RESPONSIVE */
+@media (max-width: 960px) {
+  .srl-card { grid-template-columns: 80px 1fr 1fr; gap: 0.9rem; }
+  .srl-card-pdf-col, .srl-card-file-col { display: none; }
+}
+@media (max-width: 560px) {
+  .srl-wrap { padding: 1rem 0.9rem 2.5rem; }
+  .srl-pagehead { flex-direction: column; align-items: flex-start; gap: 0.7rem; }
+  .srl-pagehead-meta { text-align: left; }
+  .srl-pagehead-title { font-size: 2.3rem; }
+  .srl-card {
+    grid-template-columns: 64px 1fr;
+    padding: 0.9rem 1rem;
+  }
+  .srl-card-score { width: 60px; height: 60px; font-size: 1.7rem; border-radius: 14px; }
+  .srl-card-cell-hide-mobile { display: none; }
+}
+</style>
+"""
+
+
+def _band_class(score: Optional[float]) -> str:
+    try:
+        s = float(score)
+    except (TypeError, ValueError):
+        return "amber"
+    if s >= 85: return "green"
+    if s < 60:  return "red"
+    return "amber"
+
+
+def _empty(title: str, sub: str, icon: str = "◇") -> None:
+    st.markdown(
+        f'<div class="srl-empty"><div class="srl-empty-icon">{icon}</div>'
+        f'<div class="srl-empty-title">{html.escape(title)}</div>'
+        f'<div class="srl-empty-sub">{html.escape(sub)}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_saved_reports_dashboard(user: Dict[str, Any],
+                                    build_pdf_fn=None) -> None:
+    """Dashboard-style Sessions / Saved Reports page.
+
+    Drop-in replacement for `saved_reports.render_saved_reports` —
+    identical signature, identical data flow, identical Open Report
+    wiring. Only the visual layer changes.
+    """
+    inject_global_theme()
+    render_edge_masthead(user, active_page="saved_reports")
+    render_edge_page_wrapper_open()
+
+    st.markdown(_PAGE_CSS, unsafe_allow_html=True)
+    st.markdown('<div class="srl-wrap">', unsafe_allow_html=True)
+
+    if not user:
+        st.markdown(
+            '<div class="srl-pagehead">'
+            '<div><div class="srl-eyebrow">Sessions</div>'
+            '<h1 class="srl-pagehead-title">Saved Reports</h1></div>'
+            '</div>', unsafe_allow_html=True,
+        )
+        _empty("Please sign in.",
+                "Your saved reports are tied to your BarrelLabs account.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
+        return
+
+    player_id = user.get("slug") or user.get("id")
+    history = load_swing_history(player_id) or []
+    history_sorted = list(reversed(history))  # newest first
+
+    # ---- Header ----
+    total = len(history_sorted)
+    most_recent = _fmt_short_date(history_sorted[0]) if history_sorted else "—"
+    st.markdown(
+        f'<div class="srl-pagehead">'
+        f'  <div>'
+        f'    <div class="srl-eyebrow">Sessions</div>'
+        f'    <h1 class="srl-pagehead-title">Saved Reports</h1>'
+        f'  </div>'
+        f'  <div class="srl-pagehead-meta">'
+        f'    On file<strong>{total} {"swing" if total == 1 else "swings"}</strong>'
+        f'    <div style="margin-top:14px;">Most recent<strong>{html.escape(most_recent)}</strong></div>'
+        f'  </div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not history_sorted:
+        _empty("No saved reports yet.",
+                "Analyze your first swing on the Upload page — every "
+                "analysis will live here once you do.", icon="↗")
+        st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
+        return
+
+    # ---- Filters ----
+    st.markdown('<div class="srl-filter">', unsafe_allow_html=True)
+    st.markdown('<div class="srl-filter-eyebrow">Search &amp; Filter</div>',
+                 unsafe_allow_html=True)
+    f1, f2, f3 = st.columns([2.2, 1, 1])
+    with f1:
+        search_q = st.text_input(
+            "Search",
+            key="srl_search",
+            placeholder="Search by MLB comp, focus, or file name…",
+            label_visibility="visible",
+        )
+    with f2:
+        score_filter = st.selectbox(
+            "Score range",
+            ["All scores", "80+ (Elite)", "60–79 (Strong)", "Below 60 (Building)"],
+            key="srl_score_filter",
+        )
+    with f3:
+        time_filter = st.selectbox(
+            "Time range",
+            ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
+            key="srl_time_filter",
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    filtered = _filter_history(history_sorted, search_q, score_filter, time_filter)
+
+    st.markdown(
+        f'<div class="srl-results-strip">'
+        f'<div>Showing <strong>{len(filtered)}</strong> of <strong>{len(history_sorted)}</strong></div>'
+        f'<div>Newest first</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not filtered:
+        _empty("No reports match those filters.",
+                "Try widening the score range, choosing a longer time window, "
+                "or clearing the search box.", icon="≡")
+        st.markdown('</div>', unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
+        return
+
+    pdf_allowed = bool(can_export_pdf(load_my_plan()))
+
+    pending_delete_key = "srl_pending_delete_id"
+
+    # ---- Cards ----
+    for idx, rec in enumerate(filtered):
+        rec_id = rec.get("id") or rec.get("timestamp") or f"row{idx}"
+        swing_num = rec.get("swing_number", "—")
+        try:
+            num_disp = f"Swing #{int(swing_num):02d}"
+        except Exception:
+            num_disp = f"Swing #{swing_num}"
+        score = rec.get("score")
+        try:
+            score_int = int(round(float(score)))
+            score_disp = str(score_int)
+        except (TypeError, ValueError):
+            score_int, score_disp = None, "—"
+        band = _band_class(score)
+        ref = str(rec.get("reference_name") or "—")
+        focus = _top_focus(rec)
+        date_disp = _fmt_short_date(rec)
+        filename = str(rec.get("filename") or "—")
+        if len(filename) > 24:
+            filename = filename[:21] + "…"
+
+        st.markdown(
+            f'<div class="srl-card">'
+            f'  <div class="srl-card-score {band}">'
+            f'    <div>{html.escape(score_disp)}</div>'
+            f'    <div class="srl-card-score-foot">/ 100</div>'
+            f'  </div>'
+            f'  <div>'
+            f'    <div class="srl-col-label">{html.escape(num_disp)}</div>'
+            f'    <div class="srl-col-val">{html.escape(ref)}</div>'
+            f'    <div class="srl-col-sub">{html.escape(date_disp)}</div>'
+            f'  </div>'
+            f'  <div class="srl-card-cell-hide-mobile">'
+            f'    <div class="srl-col-label">Top Priority</div>'
+            f'    <div class="srl-col-val" style="font-size:1rem;">{html.escape(focus)}</div>'
+            f'  </div>'
+            f'  <div class="srl-card-file-col srl-card-cell-hide-mobile">'
+            f'    <div class="srl-col-label">Source</div>'
+            f'    <div class="srl-col-val" style="font-size:1rem;font-family:var(--srl-mono);font-style:normal;letter-spacing:0;">{html.escape(filename)}</div>'
+            f'  </div>'
+            f'  <div class="srl-card-pdf-col srl-card-cell-hide-mobile">'
+            f'    <div class="srl-col-label">Status</div>'
+            f'    <div class="srl-col-val" style="font-size:1rem;">Saved</div>'
+            f'  </div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Action row (real Streamlit widgets — they have to live outside
+        # the card HTML because Streamlit doesn't allow widgets inside
+        # raw markdown).
+        st.markdown('<div class="srl-actions">', unsafe_allow_html=True)
+        a_open, a_dl, a_del, _spacer = st.columns([1.3, 1.5, 1.1, 4])
+        with a_open:
+            if st.button("Open Report →", key=f"srl_open_{rec_id}"):
+                st.session_state["view_swing_record"] = rec
+                st.session_state["view_swing_report_id"] = rec_id
+                rp = rec.get("_record_path")
+                if rp:
+                    st.session_state["view_swing_path"] = rp
+                else:
+                    st.session_state.pop("view_swing_path", None)
+                st.session_state["page"] = "swing_report"
+                st.session_state.pop("view", None)
+                st.rerun()
+        with a_dl:
+            if build_pdf_fn is not None and pdf_allowed:
+                try:
+                    pdf_bytes = build_pdf_fn(rec)
+                    st.download_button(
+                        "⬇  Download PDF",
+                        data=pdf_bytes,
+                        file_name=f"swing_{rec_id}.pdf",
+                        mime="application/pdf",
+                        key=f"srl_pdf_{rec_id}",
+                    )
+                except Exception as _pdf_err:
+                    st.caption(f"PDF unavailable: {_pdf_err}")
+            elif build_pdf_fn is not None:
+                # Free tier — surface upgrade hint without blocking.
+                if st.button("⬇  PDF (Pro)", key=f"srl_pdfgate_{rec_id}"):
+                    st.toast("PDF export requires the Pro plan.")
+        with a_del:
+            st.markdown('<div class="srl-actions-ghost">',
+                         unsafe_allow_html=True)
+            if st.session_state.get(pending_delete_key) == rec_id:
+                if st.button("Confirm delete", key=f"srl_del_yes_{rec_id}"):
+                    try:
+                        target_id = rec.get("id")
+                        if target_id:
+                            delete_swing_record(target_id)
+                        st.session_state.pop(pending_delete_key, None)
+                        st.toast("Report deleted.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Delete failed: {e}")
+            else:
+                if st.button("Delete", key=f"srl_del_{rec_id}"):
+                    st.session_state[pending_delete_key] = rec_id
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)  # /.srl-wrap
+    render_edge_page_wrapper_close()

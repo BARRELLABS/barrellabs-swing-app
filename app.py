@@ -32,7 +32,8 @@ from dashboard_v2 import render_dashboard_v2
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
 from pricing import render_pricing_page
-from saved_reports import render_saved_reports
+from saved_reports import render_saved_reports  # noqa: F401  (legacy — kept for fallback)
+from saved_reports_dashboard import render_saved_reports_dashboard
 from swing_report import render_swing_report, build_swing_report_pdf
 from player_storage import (
     authenticate,
@@ -4223,12 +4224,15 @@ if st.session_state.get("page") == "dashboard":
     st.stop()
 
 
-# ---------- SAVED REPORTS PAGE ----------
-# Full archive of every analyzed swing. Search, filter, open, export,
-# delete. PDF generation is wired through the existing
-# build_swing_report_pdf so each card gets a per-report Download PDF.
+# ---------- SAVED REPORTS PAGE (DASHBOARD-STYLE) ----------
+# Sessions tab in the Edge masthead lands here. Renders the dashboard-
+# style saved-reports archive (see saved_reports_dashboard.py). Clicking
+# Open Report sets `page = "swing_report"` which routes through
+# swing_report_page.render_swing_report_page to the new dashboard-style
+# Premium Swing Report renderer. PDF download wiring is unchanged —
+# build_swing_report_pdf is passed through identically to the legacy page.
 if st.session_state.get("page") == "saved_reports":
-    render_saved_reports(user, build_pdf_fn=build_swing_report_pdf)
+    render_saved_reports_dashboard(user, build_pdf_fn=build_swing_report_pdf)
     st.stop()
 
 
@@ -4687,6 +4691,48 @@ if st.session_state.get("page") == "launch_progress":
 # ---------- SETTINGS PAGE ----------
 if st.session_state.get("view") == "settings":
     render_settings_page()
+    st.stop()
+
+
+# ---------- DASHBOARD-STYLE REPORT PREVIEW (NOT live; design approval) ----
+# Additive route — does NOT change the production Open Report flow below.
+# Reachable only via:
+#     ?page=swing_report_preview          (URL hint, sets session state)
+#  OR st.session_state["page"] == "swing_report_preview"
+# If a real swing is selected (view_swing_record / view_swing_path), it
+# renders with that record. Otherwise it falls back to a clearly-labeled
+# SAMPLE_RECORD inside swing_report_dashboard_preview.py.
+_qp_page = st.query_params.get("page") if hasattr(st, "query_params") else None
+if (
+    st.session_state.get("page") == "swing_report_preview"
+    or (isinstance(_qp_page, str) and _qp_page == "swing_report_preview")
+    or (isinstance(_qp_page, list) and "swing_report_preview" in _qp_page)
+):
+    st.session_state["page"] = "swing_report_preview"
+    try:
+        from swing_report_dashboard_preview import (
+            render_swing_report_dashboard_preview,
+            SAMPLE_RECORD,
+        )
+        _preview_rec = st.session_state.get("view_swing_record")
+        if not (isinstance(_preview_rec, dict) and _preview_rec):
+            _pv_path = st.session_state.get("view_swing_path")
+            if _pv_path:
+                _preview_rec = load_saved_swing_record(_pv_path)
+        _is_sample = not (isinstance(_preview_rec, dict) and _preview_rec)
+        if _is_sample:
+            _preview_rec = SAMPLE_RECORD
+            _preview_hist = SAMPLE_RECORD.get("score_history") or []
+        else:
+            try:
+                _preview_hist = load_swing_history(user["slug"]) or []
+            except Exception:
+                _preview_hist = []
+        render_swing_report_dashboard_preview(
+            _preview_rec, _preview_hist, is_sample=_is_sample,
+        )
+    except Exception as _prev_err:
+        st.error(f"Preview render failed: {_prev_err}")
     st.stop()
 
 
