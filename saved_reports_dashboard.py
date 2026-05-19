@@ -105,14 +105,14 @@ _PAGE_CSS = """
 }
 .srl-pagehead {
   display:flex; align-items:flex-end; justify-content:space-between;
-  padding-bottom: 0.9rem;
-  margin-bottom: 1.1rem;
+  padding: 1.1rem 0 0.8rem;
+  margin-bottom: 0.9rem;
   border-bottom: 1px solid var(--srl-line);
   gap: 2rem;
 }
 .srl-pagehead-title {
   font-family: var(--srl-serif);
-  font-size: 2.6rem;
+  font-size: 2.1rem;
   font-style: italic;
   line-height: 0.95;
   letter-spacing: -0.02em;
@@ -139,8 +139,8 @@ _PAGE_CSS = """
   background: var(--srl-glass-1);
   border: 1px solid var(--srl-line);
   border-radius: var(--srl-radius);
-  padding: 0.9rem 1.1rem;
-  margin-bottom: 1.4rem;
+  padding: 0.8rem 1.1rem;
+  margin-bottom: 0.9rem;
 }
 .srl-filter-eyebrow {
   font-family: var(--srl-mono);
@@ -169,7 +169,7 @@ _PAGE_CSS = """
 
 .srl-results-strip {
   display:flex; align-items:center; justify-content:space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
   font-family: var(--srl-mono);
   font-size: 10.5px;
   letter-spacing: 0.18em;

@@ -125,21 +125,32 @@ section.main > div.block-container,
 .block-container > div:first-child { margin-top: 0 !important; }
 /* The single st.markdown that holds the masthead must add no box of its
    own — it should be invisible structurally so the bar is seamless. */
-.st-key-bl_edge_masthead, .ble-host { margin: 0 !important; padding: 0 !important; }
+.st-key-bl_edge_masthead, .ble-host { margin: 0 !important; padding: 0 !important;
+  min-height: 0 !important; }
+.ble-host { display: none !important; }
 
-/* ---- Full-bleed flex bar, edge-to-edge, same ink as the dashboard ---- */
+/* ---- Collapse EVERY Streamlit gap/margin between the masthead and the
+   next block so the dashboard iframe / page body butts flush against
+   the nav — no empty rectangular dead zone, one continuous surface. */
+section.main [data-testid="stVerticalBlock"] { gap: 0 !important; }
+section.main [data-testid="stElementContainer"],
+section.main [data-testid="element-container"],
+section.main [data-testid="stIFrame"],
+section.main [data-testid="stCustomComponentV1"] {
+  margin: 0 !important;
+}
+section.main iframe { display: block !important; margin: 0 !important;
+  vertical-align: top !important; }
+
+/* ---- Full-bleed flex bar, edge-to-edge, same ink as the page; the
+   transition into content is seamless (no gradient slab divider, just
+   the faintest hairline so it reads as one designed surface). ---- */
 .ble-mast {
   position: relative;
   width: 100vw; left: 50%; right: 50%;
   margin-left: -50vw; margin-right: -50vw;
-  background: #0A0B0E;
-  border-bottom: 1px solid rgba(244,239,230,0.07);
-}
-.ble-mast::after {
-  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
-  background: linear-gradient(90deg, transparent,
-              rgba(232,193,112,0.22) 32%, rgba(230,69,48,0.22) 68%, transparent);
-  pointer-events: none;
+  background: linear-gradient(180deg, #0C0D11 0%, #0A0B0E 100%);
+  border-bottom: 1px solid rgba(244,239,230,0.045);
 }
 .ble-inner {
   max-width: 1560px; margin: 0 auto;
@@ -159,19 +170,46 @@ section.main > div.block-container,
   font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: 0;
   text-transform: none; color: #8B8E94; }
 
-/* nav — refined editorial text tabs, no pills, no boxes */
-.ble-nav { display: flex; align-items: center; gap: 2px; flex: 1 1 auto; }
+/* nav — a glass segmented control: dark frosted bar, soft inset
+   border, refined hover, active tab lit with a metal sheen + a
+   gold->red micro underline. Stripe/Linear/TrackMan-grade. */
+.ble-nav {
+  display: flex; align-items: center; gap: 2px; flex: 0 0 auto;
+  padding: 4px;
+  background: rgba(255,255,255,0.022);
+  border: 1px solid rgba(244,239,230,0.06);
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03),
+              0 1px 2px rgba(0,0,0,0.4);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
 .ble-tab { position: relative; text-decoration: none;
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
-  font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
-  text-transform: uppercase; color: #76797F;
-  padding: 9px 16px; border-radius: 7px;
-  transition: color .18s ease, background .18s ease; }
-.ble-tab:hover { color: #F4EFE6; background: rgba(244,239,230,0.04); }
-.ble-tab.is-active { color: #F4EFE6; }
+  font-size: 11px; font-weight: 500; letter-spacing: 0.15em;
+  text-transform: uppercase; color: #7C7F86;
+  padding: 8px 17px; border-radius: 9px;
+  border: 1px solid transparent;
+  transition: color .2s ease, background .2s ease,
+              border-color .2s ease, box-shadow .2s ease; }
+.ble-tab:hover {
+  color: #EDE7DA;
+  background: rgba(244,239,230,0.045);
+  border-color: rgba(244,239,230,0.05);
+}
+.ble-tab.is-active {
+  color: #F8F4EA;
+  background: linear-gradient(180deg, rgba(244,239,230,0.10),
+              rgba(244,239,230,0.045));
+  border-color: rgba(244,239,230,0.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.10),
+              0 2px 10px -4px rgba(232,193,112,0.30);
+}
 .ble-tab.is-active::after { content: ""; position: absolute;
-  left: 16px; right: 16px; bottom: 3px; height: 2px; border-radius: 2px;
-  background: linear-gradient(90deg, #E8C170, #E64530); }
+  left: 17px; right: 17px; bottom: -1px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, #E8C170, #E64530);
+  box-shadow: 0 0 8px -1px rgba(232,193,112,0.55); }
+/* spacer so the glass nav sits centred-left and the chip stays right */
+.ble-navwrap { display: flex; align-items: center; flex: 1 1 auto; }
 
 /* user chip */
 .ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto;

@@ -111,7 +111,7 @@ body::before {
   opacity: 0.035; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
-.app { max-width: 1560px; margin: 0 auto; padding: 0 56px 80px; position: relative; z-index: 1; }
+.app { max-width: 1560px; margin: 0 auto; padding: 28px 40px 72px; position: relative; z-index: 1; }
 
 /* =========================================================
    MASTHEAD + NAV PILLS
