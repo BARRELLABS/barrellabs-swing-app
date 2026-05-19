@@ -770,6 +770,45 @@ _DASHBOARD_CSS = """
   text-transform: uppercase;
 }
 
+.srd-cmp-summary {
+  margin-bottom: 1rem;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(74,227,140,0.05) 0%, transparent 55%),
+    var(--srd-glass-1);
+}
+.srd-cmp-summary-row {
+  display:flex; align-items:center; gap: 1.4rem;
+}
+.srd-cmp-summary-badge {
+  flex-shrink:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  width: 104px; padding: 1rem 0.6rem;
+  border-radius: var(--srd-radius);
+  border: 1px solid var(--srd-line-hi);
+  background: var(--srd-bg-2);
+  text-align:center;
+}
+.srd-cmp-summary-badge .big {
+  font-family: var(--srd-serif); font-style: italic;
+  font-size: 2.4rem; line-height: 1;
+}
+.srd-cmp-summary-badge.up .big   { color: var(--srd-green); }
+.srd-cmp-summary-badge.down .big { color: var(--srd-red); }
+.srd-cmp-summary-badge .of {
+  font-family: var(--srd-mono); font-size: 11px;
+  color: var(--srd-bone-60); margin-top: 4px;
+}
+.srd-cmp-summary-badge .lbl {
+  font-family: var(--srd-mono); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--srd-bone-60); margin-top: 6px;
+}
+.srd-cmp-summary-text {
+  color: var(--srd-bone-80);
+  font-size: 14.5px; line-height: 1.65;
+}
+.srd-cmp-summary-text strong { color: var(--srd-bone); font-weight: 600; }
+
 .srd-cmp-pair {
   display:grid;
   grid-template-columns: 1fr 110px 1fr;
@@ -915,6 +954,8 @@ _DASHBOARD_CSS = """
     border-radius: var(--srd-radius);
   }
   .srd-cmp-selector { grid-template-columns: 1fr; gap: 6px; }
+  .srd-cmp-summary-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .srd-cmp-summary-badge { flex-direction: row; gap: 10px; width: auto; padding: 0.6rem 1rem; }
 }
 @media (max-width: 560px) {
   .srd-wrap { padding: 1rem 0.9rem 3rem; }
@@ -1881,6 +1922,120 @@ def _compare_table_html(rows: List[Dict[str, Any]]) -> str:
 """
 
 
+def _num_from(s: Any) -> Optional[float]:
+    """Pull the first signed/decimal number out of a string like
+    '+6%', '-3', '0.18s', '72'. Returns None if there isn't one."""
+    import re
+    m = re.search(r"-?\d+(?:\.\d+)?", str(s))
+    return float(m.group()) if m else None
+
+
+def _compare_summary_html(prev: Dict[str, Any],
+                          rows: List[Dict[str, Any]]) -> str:
+    """Dynamic, real-data executive summary shown above the compare cards.
+
+    Built ONLY from the already-computed delta rows (never invents
+    data). Covers: metrics improved vs declined, overall score change,
+    MLB similarity change, largest improvement, and the largest
+    remaining opportunity (lowest current similarity).
+    """
+    # "Key metrics" = every row that produced a real delta (drop the
+    # rows we couldn't compare, marked with an em-dash).
+    keyrows = [r for r in rows if r.get("delta_str") not in (None, "—")]
+    if not keyrows:
+        return ""
+
+    improved = sum(1 for r in keyrows if r["delta_class"] == "up")
+    declined = sum(1 for r in keyrows if r["delta_class"] == "down")
+    total = len(keyrows)
+
+    score_row = next((r for r in rows if r["label"] == "Overall Score"), None)
+    mlb_row = next((r for r in rows if r["label"] == "MLB Similarity"), None)
+
+    prev_n = prev.get("swing_number")
+    prev_label = (f"Swing #{int(prev_n)}"
+                  if isinstance(prev_n, (int, float)) else "your previous swing")
+
+    sentences: List[str] = []
+
+    # 1. Improved vs declined headline
+    verb = "improved"
+    lead = f"<strong>{improved} of {total}</strong> key metrics {verb} since {html.escape(prev_label)}"
+    if declined:
+        lead += f" ({declined} declined)"
+    sentences.append(lead + ".")
+
+    # 2. Score + MLB similarity movement
+    movement_bits = []
+    if score_row and _num_from(score_row["prev"]) is not None:
+        sp, sc = score_row["prev"], score_row["curr"]
+        dnum = (_num_from(sc) or 0) - (_num_from(sp) or 0)
+        direction = ("increased" if dnum > 0 else
+                     "decreased" if dnum < 0 else "held")
+        movement_bits.append(
+            f"Your overall score {direction} from <strong>{html.escape(sp)}</strong> "
+            f"to <strong>{html.escape(sc)}</strong>"
+        )
+    if mlb_row and _num_from(mlb_row["prev"]) is not None:
+        mp, mc = mlb_row["prev"], mlb_row["curr"]
+        mdir = ("rose" if (_num_from(mc) or 0) > (_num_from(mp) or 0) else
+                "slipped" if (_num_from(mc) or 0) < (_num_from(mp) or 0) else "held")
+        movement_bits.append(
+            f"MLB similarity {mdir} from <strong>{html.escape(mp)}</strong> "
+            f"to <strong>{html.escape(mc)}</strong>"
+        )
+    if movement_bits:
+        sentences.append(", and ".join(movement_bits) + ".")
+
+    # 3. Largest improvement (biggest positive delta, excluding score)
+    ups = [
+        (r, abs(_num_from(r["delta_str"]) or 0))
+        for r in keyrows
+        if r["delta_class"] == "up" and r["label"] != "Overall Score"
+    ]
+    closing = []
+    if ups:
+        best = max(ups, key=lambda t: t[1])[0]
+        closing.append(
+            f"The biggest improvement was <strong>{html.escape(best['label'])}</strong> "
+            f"({html.escape(best['delta_str'])})"
+        )
+
+    # 4. Largest remaining opportunity = lowest current %-valued metric
+    pct_rows = [
+        r for r in rows
+        if r["label"] not in ("Overall Score",)
+        and str(r["curr"]).strip().endswith("%")
+        and _num_from(r["curr"]) is not None
+    ]
+    if pct_rows:
+        weak = min(pct_rows, key=lambda r: _num_from(r["curr"]))
+        # Only call it out if it isn't already the headline win.
+        if not (closing and weak["label"] in closing[0]):
+            phrase = (f"<strong>{html.escape(weak['label'])}</strong> "
+                      f"remains the largest opportunity for improvement "
+                      f"(now {html.escape(str(weak['curr']))})")
+            closing.append(phrase)
+    if closing:
+        sentences.append(", while ".join(closing) + "."
+                         if len(closing) == 2 else closing[0] + ".")
+
+    summary_text = " ".join(sentences)
+    trend_cls = "up" if improved >= declined else "down"
+    return f"""
+<div class="srd-card srd-cmp-summary">
+  <div class="srd-card-eyebrow"><span class="dot"></span>Executive Summary</div>
+  <div class="srd-cmp-summary-row">
+    <div class="srd-cmp-summary-badge {trend_cls}">
+      <span class="big">{improved}</span><span class="of">/ {total}</span>
+      <span class="lbl">improved</span>
+    </div>
+    <div class="srd-cmp-summary-text">{summary_text}</div>
+  </div>
+</div>
+"""
+
+
 def _compare_section_html(record: Dict[str, Any],
                           history: Optional[List[Dict[str, Any]]],
                           *,
@@ -1931,6 +2086,7 @@ def _compare_section_html(record: Dict[str, Any],
     prev_card = _compare_card_html(prev, role="previous")
     curr_card = _compare_card_html(record, role="current")
     table_html = _compare_table_html(rows)
+    summary_html = _compare_summary_html(prev, rows)
 
     return f"""
 <div class="srd-section">
@@ -1942,6 +2098,8 @@ def _compare_section_html(record: Dict[str, Any],
 </div>
 
 {selector_html}
+
+{summary_html}
 
 <div class="srd-cmp-pair">
   {prev_card}
@@ -2124,6 +2282,8 @@ def _render_compare_streamlit(record: Dict[str, Any],
     else:
         delta_class, delta_txt = "flat", "—"
     body = f"""
+{_compare_summary_html(selected, rows)}
+
 <div class="srd-cmp-pair">
   {_compare_card_html(selected, role='previous')}
   <div class="srd-cmp-delta-badge">

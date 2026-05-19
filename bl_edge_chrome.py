@@ -29,27 +29,66 @@ import base64
 import streamlit as st
 
 
-# Logo lookup — match the path dashboard_v3 uses so the iframe and the
-# Python-rendered chrome share the same mark.
+# Logo lookup. Resolve relative to THIS file's directory so the asset
+# is found regardless of the process working directory (Streamlit can
+# launch from anywhere). The official BarrelLabs mark ships at the repo
+# root as `barrellabs_logo.png` (underscore) and is mirrored into
+# static/ + assets/ as `barrellabs-logo.png` (hyphen). We accept all of
+# them so the masthead always finds the real logo — never a fallback.
+_HERE = Path(__file__).resolve().parent
 _LOGO_CANDIDATES = [
-    Path("static/barrellabs-logo.png"),
-    Path("static/logo.png"),
-    Path("assets/barrellabs-logo.png"),
-    Path("barrellabs-logo.png"),
+    _HERE / "static" / "barrellabs-logo.png",
+    _HERE / "assets" / "barrellabs-logo.png",
+    _HERE / "barrellabs_logo.png",   # official repo-root asset (underscore)
+    _HERE / "barrellabs-logo.png",
+    _HERE / "static" / "logo.png",
 ]
+
+_LOGO_DATA_URI_CACHE: Optional[str] = None
 
 
 def _logo_data_uri() -> str:
-    """Return a data: URI for the BarrelLabs mark, or an empty string."""
+    """Return a base64 PNG data URI for the official BarrelLabs mark.
+
+    The source PNG is 2000×2000; we downscale to 256×256 with Lanczos
+    so the masthead mark is crisp and never stretched/blurred, and we
+    cache the result (the logo never changes within a session). Falls
+    back to the raw bytes if Pillow is unavailable, and finally to an
+    empty string (the masthead then shows its CSS fallback dot).
+    """
+    global _LOGO_DATA_URI_CACHE
+    if _LOGO_DATA_URI_CACHE is not None:
+        return _LOGO_DATA_URI_CACHE
+
     for p in _LOGO_CANDIDATES:
-        if p.exists():
+        if not p.exists():
+            continue
+        # Preferred path: Pillow resize for a crisp, optimized mark.
+        try:
+            import io
+            from PIL import Image
+            img = Image.open(p).convert("RGBA").resize((256, 256), Image.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, "PNG", optimize=True)
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            _LOGO_DATA_URI_CACHE = "data:image/png;base64," + b64
+            return _LOGO_DATA_URI_CACHE
+        except Exception:
+            # Fallback: embed the raw bytes untouched (still crisp, just
+            # larger). Never stretch/crop — the <img> CSS uses
+            # object-fit:contain so aspect ratio is preserved.
             try:
                 b = p.read_bytes()
-                ext = p.suffix.lstrip(".") or "png"
-                mime = "image/png" if ext.lower() == "png" else f"image/{ext}"
-                return f"data:{mime};base64,{base64.b64encode(b).decode('ascii')}"
+                ext = p.suffix.lstrip(".").lower() or "png"
+                mime = "image/png" if ext == "png" else f"image/{ext}"
+                _LOGO_DATA_URI_CACHE = (
+                    f"data:{mime};base64,{base64.b64encode(b).decode('ascii')}"
+                )
+                return _LOGO_DATA_URI_CACHE
             except Exception:
                 continue
+
+    _LOGO_DATA_URI_CACHE = ""
     return ""
 
 

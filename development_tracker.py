@@ -26,6 +26,7 @@ import textwrap
 import streamlit as st
 
 from bl_theme import inject_global_theme
+from bl_edge_chrome import render_edge_masthead
 from player_storage import (
     load_swing_history,
     load_training_log,
@@ -1413,17 +1414,14 @@ def _render_empty_state(title: str, sub: str, icon: str = "◇"):
 # ============================================================
 def render_development_tracker():
     inject_global_theme()
+    # Unified Edge masthead — the single shared top nav across every
+    # page (Drills tab active). Replaces the old bespoke
+    # "← Back to Dashboard" row so the header is identical everywhere.
+    render_edge_masthead(
+        st.session_state.get("user") or {}, active_page="development_tracker"
+    )
     st.markdown(_DT_LOCAL_CSS, unsafe_allow_html=True)
     st.markdown('<div class="bl-page">', unsafe_allow_html=True)
-
-    # ---- Back nav ----
-    st.markdown('<div class="dt-back">', unsafe_allow_html=True)
-    back_l, _ = st.columns([1, 5])
-    with back_l:
-        if st.button("← Back to Dashboard", key="dt_back_btn"):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ---- Hero ----
     hero_html = textwrap.dedent("""

@@ -204,6 +204,33 @@ _PAGE_CSS = """
 .srl-card-score.amber { background: var(--srl-gold-soft);  color: var(--srl-gold);  border-color: rgba(232,193,112,0.25); }
 .srl-card-score.red   { background: var(--srl-red-soft);   color: var(--srl-red);   border-color: rgba(230,69,48,0.28); }
 
+/* Score delta pill + Personal Best badge + sparkline */
+.srl-delta {
+  display:inline-flex; align-items:center; gap:4px;
+  font-family: var(--srl-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid var(--srl-line); margin-top: 7px;
+}
+.srl-delta.up   { color: var(--srl-green); border-color: rgba(74,227,140,0.3);  background: var(--srl-green-soft); }
+.srl-delta.down { color: var(--srl-red);   border-color: rgba(230,69,48,0.3);   background: var(--srl-red-soft); }
+.srl-delta.flat { color: var(--srl-bone-60); }
+.srl-delta.new  { color: var(--srl-gold);  border-color: rgba(232,193,112,0.3); background: var(--srl-gold-soft); }
+.srl-pb {
+  display:inline-flex; align-items:center; gap:5px;
+  font-family: var(--srl-mono); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--srl-gold); background: var(--srl-gold-soft);
+  border: 1px solid rgba(232,193,112,0.35);
+  padding: 3px 8px; border-radius: 999px; margin-left: 8px;
+}
+.srl-mlb-line { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.srl-mlb-sim {
+  font-family: var(--srl-mono); font-size: 11px; font-weight: 600;
+  color: var(--srl-gold); letter-spacing: 0.04em;
+}
+.srl-spark { margin-top: 6px; opacity: 0.85; }
+.srl-spark svg { display:block; width: 120px; height: 30px; }
+
 .srl-col-label {
   font-family: var(--srl-mono);
   font-size: 9.5px; letter-spacing: 0.2em;
@@ -312,6 +339,40 @@ def _band_class(score: Optional[float]) -> str:
     if s >= 85: return "green"
     if s < 60:  return "red"
     return "amber"
+
+
+def _score_of(rec: Dict[str, Any]) -> Optional[float]:
+    try:
+        return float(rec.get("score"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _mini_sparkline(points: List[float], width: int = 120,
+                     height: int = 30) -> str:
+    """Tiny score-trend sparkline (gold). Empty string if <2 points."""
+    pts = [p for p in points if p is not None]
+    if len(pts) < 2:
+        return ""
+    lo, hi = min(pts), max(pts)
+    span = max(hi - lo, 1.0)
+    pad = 3
+    step = (width - 2 * pad) / max(len(pts) - 1, 1)
+    coords = []
+    for i, v in enumerate(pts):
+        x = pad + i * step
+        y = (height - pad) - ((v - lo) / span) * (height - 2 * pad)
+        coords.append((x, y))
+    path = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+    lx, ly = coords[-1]
+    return (
+        f'<div class="srl-spark"><svg viewBox="0 0 {width} {height}" '
+        f'preserveAspectRatio="none">'
+        f'<path d="{path}" fill="none" stroke="#E8C170" stroke-width="1.6" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="2.6" fill="#E8C170"/>'
+        f'</svg></div>'
+    )
 
 
 def _empty(title: str, sub: str, icon: str = "◇") -> None:
@@ -428,6 +489,27 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
 
     pending_delete_key = "srl_pending_delete_id"
 
+    # ---- Chronological context for per-card deltas / PB / trend ----
+    # `history` from load_swing_history is oldest-first. Build:
+    #   * prev_by_id : record-id -> immediately-prior swing's score
+    #   * pb_score   : best score across the player's whole history
+    #   * trend_pts  : score series (oldest->newest) for the sparkline
+    chrono = [r for r in history if _score_of(r) is not None]
+    trend_pts = [_score_of(r) for r in chrono]
+    pb_score = max(trend_pts) if trend_pts else None
+    prev_by_id: Dict[Any, Optional[float]] = {}
+    for _i, _r in enumerate(chrono):
+        _rid = _r.get("id") or _r.get("timestamp") or f"_c{_i}"
+        prev_by_id[_rid] = _score_of(chrono[_i - 1]) if _i > 0 else None
+
+    # MLB-similarity helper (reused from the report renderer). Lazy
+    # import keeps the Sessions page from pulling heavy report deps
+    # unless this page is actually rendered.
+    try:
+        from swing_report_dashboard_preview import _radar_sim_pct
+    except Exception:
+        _radar_sim_pct = lambda _rec: None  # noqa: E731
+
     # ---- Cards ----
     for idx, rec in enumerate(filtered):
         rec_id = rec.get("id") or rec.get("timestamp") or f"row{idx}"
@@ -450,6 +532,47 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
         if len(filename) > 24:
             filename = filename[:21] + "…"
 
+        # Score delta vs the immediately-prior swing (chronological).
+        cur_score = _score_of(rec)
+        prev_score = prev_by_id.get(
+            rec.get("id") or rec.get("timestamp") or f"row{idx}"
+        )
+        if prev_score is None or cur_score is None:
+            delta_html = '<span class="srl-delta new">★ NEW</span>'
+        else:
+            d = cur_score - prev_score
+            if d > 0:
+                delta_html = f'<span class="srl-delta up">▲ +{int(round(d))}</span>'
+            elif d < 0:
+                delta_html = f'<span class="srl-delta down">▼ {int(round(d))}</span>'
+            else:
+                delta_html = '<span class="srl-delta flat">± 0</span>'
+
+        # Personal Best badge — only when this swing equals the
+        # all-time best AND the player has more than one swing.
+        is_pb = (
+            cur_score is not None and pb_score is not None
+            and cur_score >= pb_score and len(trend_pts) > 1
+        )
+        pb_html = ('<span class="srl-pb">★ Personal Best</span>'
+                   if is_pb else "")
+
+        # MLB similarity % (real biomech radar avg; hidden if unknown).
+        try:
+            sim = _radar_sim_pct(rec)
+        except Exception:
+            sim = None
+        sim_html = (f'<span class="srl-mlb-sim">{int(sim)}% match</span>'
+                    if isinstance(sim, (int, float)) else "")
+
+        # Score-trend sparkline for swings up to & including this one.
+        try:
+            _upto = trend_pts[:trend_pts.index(cur_score) + 1] \
+                if cur_score in trend_pts else trend_pts
+        except ValueError:
+            _upto = trend_pts
+        spark_html = _mini_sparkline(_upto[-8:]) if len(_upto) >= 2 else ""
+
         st.markdown(
             f'<div class="srl-card">'
             f'  <div class="srl-card-score {band}">'
@@ -457,21 +580,26 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
             f'    <div class="srl-card-score-foot">/ 100</div>'
             f'  </div>'
             f'  <div>'
-            f'    <div class="srl-col-label">{html.escape(num_disp)}</div>'
-            f'    <div class="srl-col-val">{html.escape(ref)}</div>'
+            f'    <div class="srl-col-label">{html.escape(num_disp)}{pb_html}</div>'
+            f'    <div class="srl-mlb-line">'
+            f'      <span class="srl-col-val">{html.escape(ref)}</span>'
+            f'      {sim_html}'
+            f'    </div>'
             f'    <div class="srl-col-sub">{html.escape(date_disp)}</div>'
+            f'    {delta_html}'
             f'  </div>'
             f'  <div class="srl-card-cell-hide-mobile">'
             f'    <div class="srl-col-label">Top Priority</div>'
             f'    <div class="srl-col-val" style="font-size:1rem;">{html.escape(focus)}</div>'
+            f'    {spark_html}'
             f'  </div>'
             f'  <div class="srl-card-file-col srl-card-cell-hide-mobile">'
             f'    <div class="srl-col-label">Source</div>'
             f'    <div class="srl-col-val" style="font-size:1rem;font-family:var(--srl-mono);font-style:normal;letter-spacing:0;">{html.escape(filename)}</div>'
             f'  </div>'
             f'  <div class="srl-card-pdf-col srl-card-cell-hide-mobile">'
-            f'    <div class="srl-col-label">Status</div>'
-            f'    <div class="srl-col-val" style="font-size:1rem;">Saved</div>'
+            f'    <div class="srl-col-label">Trend</div>'
+            f'    <div class="srl-col-val" style="font-size:1rem;">{("PB" if is_pb else "Saved")}</div>'
             f'  </div>'
             f'</div>',
             unsafe_allow_html=True,
