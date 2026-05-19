@@ -109,20 +109,24 @@ _EDGE_MASTHEAD_CSS = """
   /* Wrapper for the Python-rendered Edge masthead. Lives OUTSIDE the
      iframe so clicks trigger real Streamlit reruns and Supabase auth
      tokens in st.session_state survive. */
-  div[data-bl-edge-masthead] {
+  .st-key-bl_edge_masthead {
     background: #0A0B0E;
     border-bottom: 1px solid rgba(244,239,230,0.08);
-    padding: 24px 56px 22px;
+    padding: 14px 56px 12px;
     position: relative;
   }
-  div[data-bl-edge-masthead]::after {
+  /* Kill Streamlit's default inter-element gap inside the masthead so
+     the row hugs the header band tightly (no phantom vertical space). */
+  .st-key-bl_edge_masthead [data-testid="stVerticalBlock"] { gap: 0 !important; }
+  .st-key-bl_edge_masthead [data-testid="stElementContainer"] { margin: 0 !important; }
+  .st-key-bl_edge_masthead::after {
     content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
     height: 1px; pointer-events: none;
     background: linear-gradient(90deg, transparent, rgba(244,239,230,0.16) 20%,
                 rgba(244,239,230,0.16) 80%, transparent);
   }
   /* Center the row at the same max-width as the editorial mock. */
-  div[data-bl-edge-masthead] > div[data-testid="stHorizontalBlock"] {
+  .st-key-bl_edge_masthead div[data-testid="stHorizontalBlock"] {
     max-width: 1560px;
     margin: 0 auto;
     align-items: center !important;
@@ -159,9 +163,11 @@ _EDGE_MASTHEAD_CSS = """
     font-size: 17px; letter-spacing: 0; text-transform: none;
     color: #F4EFE6;
   }
-  /* NAV column — compact pill cluster, not stretched buttons. */
-  div[data-bl-edge-masthead] .stButton { display: inline-block; }
-  div[data-bl-edge-masthead] .stButton > button {
+  /* NAV column — integrated text tabs, NOT stretched chunky pills.
+     width:fit-content so each tab hugs its label; small 8px radius so
+     the active state reads as a refined tab, never a giant pill. */
+  .st-key-bl_edge_masthead .stButton { display: inline-block; }
+  .st-key-bl_edge_masthead .stButton > button {
     background: transparent !important;
     border: 1px solid transparent !important;
     color: #8B8E94 !important;
@@ -170,22 +176,41 @@ _EDGE_MASTHEAD_CSS = """
     font-weight: 500 !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
-    padding: 8px 14px !important;
-    border-radius: 100px !important;
-    width: 100% !important;
+    padding: 7px 14px !important;
+    border-radius: 8px !important;
+    width: fit-content !important;
     min-height: 0 !important;
     box-shadow: none !important;
     transition: color 0.18s, background 0.18s, border-color 0.18s;
   }
-  div[data-bl-edge-masthead] .stButton > button:hover {
+  .st-key-bl_edge_masthead .stButton > button:hover {
     color: #F4EFE6 !important;
-    background: rgba(244,239,230,0.04) !important;
+    background: rgba(244,239,230,0.05) !important;
   }
-  div[data-bl-edge-masthead] .stButton > button[kind="primary"],
-  div[data-bl-edge-masthead] .stButton > button[data-testid="baseButton-primary"] {
-    color: #0A0B0E !important;
-    background: #F4EFE6 !important;
-    border-color: #F4EFE6 !important;
+  /* Active tab — SUBTLE premium treatment: faint translucent bone
+     tint + bone text + hairline border (no solid white block, no big
+     pill). Covers every Streamlit button-testid variant across
+     versions: kind=, baseButton-, stBaseButton-. */
+  .st-key-bl_edge_masthead .stButton > button[kind="primary"],
+  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-primary"],
+  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-primary"] {
+    color: #F4EFE6 !important;
+    background: rgba(244,239,230,0.09) !important;
+    border-color: rgba(244,239,230,0.16) !important;
+    font-weight: 600 !important;
+  }
+  .st-key-bl_edge_masthead .stButton > button[kind="primary"]:hover,
+  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-primary"]:hover,
+  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-primary"]:hover {
+    background: rgba(244,239,230,0.13) !important;
+  }
+  /* Make sure secondary (inactive) never shows Streamlit's default
+     border/fill — it must read as a quiet text tab. */
+  .st-key-bl_edge_masthead .stButton > button[kind="secondary"],
+  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-secondary"],
+  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-secondary"] {
+    background: transparent !important;
+    border-color: transparent !important;
   }
   /* Wrap the 5 nav buttons in an outer pill container */
   .bl-edge-nav-pillbox {
@@ -221,12 +246,12 @@ _EDGE_MASTHEAD_CSS = """
   }
   /* Responsive — collapse nav to scrollable strip on narrow viewports */
   @media (max-width: 1100px) {
-    div[data-bl-edge-masthead] { padding: 18px 24px 16px; }
-    div[data-bl-edge-masthead] > div[data-testid="stHorizontalBlock"] {
+    .st-key-bl_edge_masthead { padding: 12px 20px 10px; }
+    .st-key-bl_edge_masthead div[data-testid="stHorizontalBlock"] {
       gap: 16px !important;
     }
     .bl-edge-nav-pillbox { padding: 3px; }
-    div[data-bl-edge-masthead] .stButton > button {
+    .st-key-bl_edge_masthead .stButton > button {
       font-size: 10.5px !important;
       padding: 7px 10px !important;
       letter-spacing: 0.04em !important;
@@ -313,63 +338,70 @@ def render_edge_masthead(
     streak = streak_days if streak_days is not None else _streak_value(user)
     initials = _initials(user)
 
-    st.markdown('<div data-bl-edge-masthead>', unsafe_allow_html=True)
+    # IMPORTANT: a real keyed st.container is used (NOT a bare
+    # `st.markdown("<div ...>")` marker). Streamlit auto-closes an
+    # unclosed markdown div into an EMPTY sibling node, so descendant
+    # CSS like `.st-key-bl_edge_masthead .stButton` never matched the
+    # nav buttons — they fell back to chunky default Streamlit buttons,
+    # and the empty marker div added dead vertical space. A keyed
+    # container yields a real wrapper `.st-key-bl_edge_masthead` that
+    # actually contains the columns/buttons, so the premium nav CSS
+    # applies and there's no phantom spacer.
+    with st.container(key="bl_edge_masthead"):
+        # Layout: [brand 3] [nav 6] [user chip 3]
+        c_brand, c_nav, c_user = st.columns([3, 6, 3])
 
-    # Layout: [brand 3] [nav 6] [user chip 3]
-    c_brand, c_nav, c_user = st.columns([3, 6, 3])
-
-    with c_brand:
-        st.markdown(
-            f"""
-            <div class="bl-edge-brand">
-              {brand_mark}
-              <div class="bl-edge-wordmark">
-                Barrellabs <span class="sep">/</span><span class="product">Edge</span>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    with c_nav:
-        st.markdown('<div class="bl-edge-nav-pillbox">', unsafe_allow_html=True)
-        nav_cols = st.columns(len(_NAV_ENTRIES))
-        for i, (label, page_key, _alts) in enumerate(_NAV_ENTRIES):
-            with nav_cols[i]:
-                btn_type = "primary" if active == page_key else "secondary"
-                if st.button(
-                    label,
-                    key=f"_edge_nav_{page_key}",
-                    type=btn_type,
-                    use_container_width=True,
-                ):
-                    # Navigate: set page, clear any sub-page record state
-                    # so deep-linked records don't override the click.
-                    st.session_state["page"] = page_key
-                    st.session_state.pop("view_swing_record", None)
-                    st.session_state.pop("view_swing_path", None)
-                    st.session_state.pop("view_swing_report_id", None)
-                    st.session_state.pop("view", None)
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with c_user:
-        chip_parts = []
-        if streak is not None:
-            chip_parts.append(
-                f'<span class="bl-edge-user-streak">'
-                f'<span class="dot"></span>{streak}-day streak'
-                f'</span>'
+        with c_brand:
+            st.markdown(
+                f"""
+                <div class="bl-edge-brand">
+                  {brand_mark}
+                  <div class="bl-edge-wordmark">
+                    Barrellabs <span class="sep">/</span><span class="product">Edge</span>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-        chip_parts.append(
-            f'<span class="bl-edge-user-avatar" aria-label="account">{initials}</span>'
-        )
-        st.markdown(
-            '<div class="bl-edge-user-chip">' + "".join(chip_parts) + '</div>',
-            unsafe_allow_html=True,
-        )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        with c_nav:
+            st.markdown('<div class="bl-edge-nav-pillbox">', unsafe_allow_html=True)
+            nav_cols = st.columns(len(_NAV_ENTRIES))
+            for i, (label, page_key, _alts) in enumerate(_NAV_ENTRIES):
+                with nav_cols[i]:
+                    btn_type = "primary" if active == page_key else "secondary"
+                    if st.button(
+                        label,
+                        key=f"_edge_nav_{page_key}",
+                        type=btn_type,
+                        use_container_width=True,
+                    ):
+                        # Navigate: set page, clear any sub-page record
+                        # state so deep-linked records don't override
+                        # the click.
+                        st.session_state["page"] = page_key
+                        st.session_state.pop("view_swing_record", None)
+                        st.session_state.pop("view_swing_path", None)
+                        st.session_state.pop("view_swing_report_id", None)
+                        st.session_state.pop("view", None)
+                        st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with c_user:
+            chip_parts = []
+            if streak is not None:
+                chip_parts.append(
+                    f'<span class="bl-edge-user-streak">'
+                    f'<span class="dot"></span>{streak}-day streak'
+                    f'</span>'
+                )
+            chip_parts.append(
+                f'<span class="bl-edge-user-avatar" aria-label="account">{initials}</span>'
+            )
+            st.markdown(
+                '<div class="bl-edge-user-chip">' + "".join(chip_parts) + '</div>',
+                unsafe_allow_html=True,
+            )
 
 
 def hide_iframe_decorative_nav() -> None:
@@ -401,21 +433,31 @@ def render_edge_page_wrapper_open(*, max_width: int = 1560) -> None:
     st.markdown(
         f"""
         <style>
+          /* NOTE: render_edge_page_wrapper_open emits an *unclosed*
+             <div class="bl-edge-page"> which Streamlit auto-closes into
+             an EMPTY sibling node — it never actually wraps the page
+             content. Previously it carried `min-height:60vh` + 36px
+             padding, so that phantom box rendered as a huge blank
+             spacer ABOVE every page (the "massive dead space" on
+             Sessions). The real layout/max-width/padding is owned by
+             each page's own wrapper (.srl-wrap, .srd-wrap, .bl-page),
+             so this is now a zero-impact no-op. */
+          /* display:contents — the phantom wrapper div generates NO box
+             at all, so it can never add a sliver of dead space between
+             the masthead and the real page content. */
           .bl-edge-page {{
-            max-width: {max_width}px;
-            margin: 0 auto;
-            padding: 36px 56px 80px;
-            background: #0A0B0E;
-            color: #F4EFE6;
-            font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            min-height: 60vh;
+            display: contents;
           }}
-          @media (max-width: 1100px) {{
-            .bl-edge-page {{ padding: 28px 24px 60px; }}
-          }}
-          /* Make sure Streamlit's own block-container doesn't fight us */
+          /* Make sure Streamlit's own block-container doesn't fight us,
+             and collapse the default inter-block gap so the page hugs
+             the masthead's bottom divider (no excessive blank band).
+             Each page owns its real spacing via .srl-wrap / .srd-wrap. */
           [data-testid="stAppViewContainer"] > .main {{ padding: 0 !important; }}
           .block-container {{ padding: 0 !important; max-width: 100% !important; }}
+          [data-testid="stMainBlockContainer"] {{ padding-top: 0 !important; }}
+          [data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] {{
+            gap: 0.25rem !important;
+          }}
           body, html, [data-testid="stAppViewContainer"] {{ background: #0A0B0E !important; }}
           header[data-testid="stHeader"], [data-testid="stSidebar"],
           [data-testid="stToolbar"], [data-testid="stDecoration"], footer {{

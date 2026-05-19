@@ -91,6 +91,12 @@ class _StreamlitStub(types.ModuleType):
         n = spec if isinstance(spec, int) else len(spec)
         return [_ColCtx(self) for _ in range(n)]
 
+    def container(self, *a, **kw):
+        # render_edge_masthead now wraps its content in a real keyed
+        # st.container so the premium nav CSS can actually scope to it.
+        # The stub just needs a context manager.
+        return _ColCtx(self)
+
     def download_button(self, label, **kw):
         self._buttons_rendered.append((label, kw.get("key"), "download"))
         return False

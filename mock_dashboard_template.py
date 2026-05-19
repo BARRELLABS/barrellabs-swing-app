@@ -3281,7 +3281,50 @@ body::before {
     generated for design review &nbsp;·&nbsp; not connected to production data
   </div>
 </div>
+<script>
+/* Auto-height bridge — removes the nested-iframe scrollbar so the
+   Streamlit page is the ONLY scroll container and the shared masthead
+   scrolls naturally with the content. Measures real rendered height
+   and pushes it up through every channel a Streamlit components.html
+   iframe can honour (setFrameHeight API, the streamlit:setFrameHeight
+   postMessage, and a direct frameElement fallback). All wrapped in
+   try/catch so an opaque-origin sandbox can never throw. */
+(function () {
+  function contentHeight() {
+    var d = document;
+    return Math.ceil(Math.max(
+      d.body ? d.body.scrollHeight : 0,
+      d.body ? d.body.offsetHeight : 0,
+      d.documentElement ? d.documentElement.scrollHeight : 0,
+      d.documentElement ? d.documentElement.offsetHeight : 0
+    ));
+  }
+  var last = 0;
+  function push() {
+    var h = contentHeight();
+    if (!h || Math.abs(h - last) < 2) return;
+    last = h;
+    try { if (window.Streamlit && Streamlit.setFrameHeight) Streamlit.setFrameHeight(h); } catch (e) {}
+    try {
+      window.parent.postMessage(
+        { isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: h }, "*"
+      );
+    } catch (e) {}
+    try {
+      if (window.frameElement) {
+        window.frameElement.style.height = h + "px";
+        window.frameElement.setAttribute("scrolling", "no");
+      }
+    } catch (e) {}
+  }
+  window.addEventListener("load", push);
+  window.addEventListener("resize", push);
+  try { if (window.ResizeObserver) new ResizeObserver(push).observe(document.body); } catch (e) {}
+  [60, 200, 600, 1200, 2500].forEach(function (t) { setTimeout(push, t); });
+  push();
+})();
+</script>
 </body>
 </html>"""
 
-components.html(DASHBOARD_HTML, height=5800, scrolling=True)
+components.html(DASHBOARD_HTML, height=5800, scrolling=False)
