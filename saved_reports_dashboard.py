@@ -80,10 +80,16 @@ _PAGE_CSS = """
 
   font-family: var(--srl-sans);
   color: var(--srl-bone);
-  max-width: 1280px;
+  /* Same content frame as the masthead/dashboard (1560 / 40px) so
+     Sessions aligns with the nav and every other page. Tight top so
+     content starts right under the masthead, no dead gap. */
+  max-width: 1560px;
   margin: 0 auto;
-  padding: 1.4rem 1.4rem 3rem;
+  padding: 0.6rem 40px 3rem;
 }
+/* Collapse Streamlit's default block padding/gap so the page hugs the
+   masthead (the report cards must not sit below a blank screen). */
+.srl-wrap ~ div, .srl-wrap { margin-top: 0 !important; }
 .srl-eyebrow {
   font-family: var(--srl-mono);
   font-size: 10.5px;
@@ -99,19 +105,19 @@ _PAGE_CSS = """
 }
 .srl-pagehead {
   display:flex; align-items:flex-end; justify-content:space-between;
-  padding-bottom: 1.4rem;
-  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.1rem;
   border-bottom: 1px solid var(--srl-line);
   gap: 2rem;
 }
 .srl-pagehead-title {
   font-family: var(--srl-serif);
-  font-size: 3.2rem;
+  font-size: 2.6rem;
   font-style: italic;
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: var(--srl-bone);
-  margin: 0.6rem 0 0;
+  margin: 0.35rem 0 0;
 }
 .srl-pagehead-meta {
   text-align: right;
@@ -249,9 +255,15 @@ _PAGE_CSS = """
 }
 
 /* ACTION ROW */
+/* Tighten Streamlit's default 1rem inter-element gap so each card and
+   its action row read as ONE premium unit and cards sit close together
+   (no sparse, scroll-heavy list). Masthead overrides this to 0 via its
+   own scoped rule, so the header is unaffected. */
+section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+.srl-card { padding: 0.95rem 1.2rem; }
 .srl-actions {
-  margin-top: -8px;
-  margin-bottom: 1rem;
+  margin-top: -2px;
+  margin-bottom: 0.55rem;
   padding: 0 0.4rem;
 }
 .srl-actions [data-testid="stButton"] button {
@@ -311,12 +323,16 @@ _PAGE_CSS = """
 }
 
 /* RESPONSIVE */
+@media (max-width: 1100px) {
+  /* Track the masthead's responsive gutter so text stays aligned. */
+  .srl-wrap { padding: 0.6rem 22px 3rem; }
+}
 @media (max-width: 960px) {
   .srl-card { grid-template-columns: 80px 1fr 1fr; gap: 0.9rem; }
   .srl-card-pdf-col, .srl-card-file-col { display: none; }
 }
 @media (max-width: 560px) {
-  .srl-wrap { padding: 1rem 0.9rem 2.5rem; }
+  .srl-wrap { padding: 0.6rem 16px 2.5rem; }
   .srl-pagehead { flex-direction: column; align-items: flex-start; gap: 0.7rem; }
   .srl-pagehead-meta { text-align: left; }
   .srl-pagehead-title { font-size: 2.3rem; }

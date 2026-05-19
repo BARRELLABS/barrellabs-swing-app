@@ -106,191 +106,111 @@ _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
 
 _EDGE_MASTHEAD_CSS = """
 <style>
-  /* Wrapper for the Python-rendered Edge masthead. Lives OUTSIDE the
-     iframe so clicks trigger real Streamlit reruns and Supabase auth
-     tokens in st.session_state survive. */
-  /* Kill ALL dead space above the header so the page is seamless from
-     the very top — no "big black box" band. Applies on every page
-     since this CSS ships with the masthead. */
-  [data-testid="stMainBlockContainer"],
-  section.main > div.block-container,
-  .block-container {
-    padding-top: 0 !important;
-  }
-  [data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
-  /* THE MASTHEAD IS A SINGLE FLEX ROW — no st.columns (nested columns
-     auto-stack in Streamlit and inflate the header into a tall mess).
-     The keyed container itself is laid out as one horizontal,
-     non-wrapping bar: [brand] [nav links] ......... [user chip]. */
-  .st-key-bl_edge_masthead {
-    background: #0A0B0E;
-    border-bottom: 1px solid rgba(244,239,230,0.08);
-    padding: 12px 48px;
-    position: relative;
+/* ---- Strip every scrap of Streamlit chrome + top dead space so the
+   masthead is the FIRST thing on the page, flush to the very top. ---- */
+header[data-testid="stHeader"], [data-testid="stToolbar"],
+[data-testid="stDecoration"], [data-testid="stStatusWidget"],
+.stAppDeployButton, .stDeployButton, #MainMenu, footer {
+  display: none !important; height: 0 !important; visibility: hidden !important;
+}
+[data-testid="stAppViewContainer"] { background: #0A0B0E !important; }
+[data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+section.main > div.block-container,
+[data-testid="stMainBlockContainer"], .block-container {
+  padding-top: 0 !important; margin-top: 0 !important;
+}
+[data-testid="stMainBlockContainer"] > div:first-child,
+.block-container > div:first-child { margin-top: 0 !important; }
+/* The single st.markdown that holds the masthead must add no box of its
+   own — it should be invisible structurally so the bar is seamless. */
+.st-key-bl_edge_masthead, .ble-host { margin: 0 !important; padding: 0 !important; }
+
+/* ---- Full-bleed flex bar, edge-to-edge, same ink as the dashboard ---- */
+.ble-mast {
+  position: relative;
+  width: 100vw; left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw;
+  background: #0A0B0E;
+  border-bottom: 1px solid rgba(244,239,230,0.07);
+}
+.ble-mast::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent,
+              rgba(232,193,112,0.22) 32%, rgba(230,69,48,0.22) 68%, transparent);
+  pointer-events: none;
+}
+.ble-inner {
+  max-width: 1560px; margin: 0 auto;
+  padding: 15px 40px;
+  display: flex; align-items: center; gap: 44px;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* brand */
+.ble-brand { display: flex; align-items: center; gap: 13px; flex: 0 0 auto;
+  text-decoration: none; }
+.ble-brand img { width: 30px; height: 30px; object-fit: contain; display: block; }
+.ble-brand .wm { font-size: 13px; font-weight: 600; letter-spacing: 0.24em;
+  text-transform: uppercase; color: #F4EFE6; white-space: nowrap; }
+.ble-brand .wm .sl { color: #3A3D44; margin: 0 9px; font-weight: 300; }
+.ble-brand .wm .ed { font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: 0;
+  text-transform: none; color: #8B8E94; }
+
+/* nav — refined editorial text tabs, no pills, no boxes */
+.ble-nav { display: flex; align-items: center; gap: 2px; flex: 1 1 auto; }
+.ble-tab { position: relative; text-decoration: none;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
+  text-transform: uppercase; color: #76797F;
+  padding: 9px 16px; border-radius: 7px;
+  transition: color .18s ease, background .18s ease; }
+.ble-tab:hover { color: #F4EFE6; background: rgba(244,239,230,0.04); }
+.ble-tab.is-active { color: #F4EFE6; }
+.ble-tab.is-active::after { content: ""; position: absolute;
+  left: 16px; right: 16px; bottom: 3px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, #E8C170, #E64530); }
+
+/* user chip */
+.ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
+  margin-left: auto; }
+.ble-streak { font-family: 'Geist Mono', monospace; font-size: 10.5px;
+  letter-spacing: 0.04em; color: #E8C170; padding: 5px 11px; border-radius: 999px;
+  border: 1px solid rgba(232,193,112,0.26); background: rgba(232,193,112,0.07);
+  white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.ble-streak .d { width: 5px; height: 5px; border-radius: 50%; background: #E8C170; }
+.ble-av { width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #23262C, #101319);
+  border: 1px solid rgba(244,239,230,0.12); color: #F4EFE6;
+  font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
+  font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+@media (max-width: 1100px) {
+  .ble-inner { padding: 12px 22px; gap: 22px; }
+  .ble-tab { padding: 8px 11px; font-size: 10px; letter-spacing: 0.12em; }
+  .ble-brand .wm { font-size: 12px; }
+}
+@media (max-width: 720px) {
+  /* Mobile: brand + avatar on one row, nav becomes a clean
+     single-line swipeable strip beneath — never a vertical stack. */
+  .ble-inner { flex-wrap: wrap; row-gap: 10px; padding: 11px 16px; gap: 0; }
+  .ble-brand { flex: 1 1 auto; }
+  .ble-streak { display: none; }
+  .ble-user { margin-left: auto; }
+  .ble-nav {
+    order: 3; flex: 1 0 100%;
+    flex-wrap: nowrap; gap: 2px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 2px -16px -11px; padding: 6px 16px 8px;
+    border-top: 1px solid rgba(244,239,230,0.06);
   }
-  .st-key-bl_edge_masthead,
-  .st-key-bl_edge_masthead > [data-testid="stVerticalBlock"],
-  .st-key-bl_edge_masthead [data-testid="stVerticalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 4px !important;
-    row-gap: 0 !important;
-  }
-  .st-key-bl_edge_masthead [data-testid="stElementContainer"] {
-    width: auto !important;
-    flex: 0 0 auto !important;
-    margin: 0 !important;
-  }
-  /* Brand flush-left with breathing room; user chip pinned far-right. */
-  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:first-child {
-    margin-right: 22px !important;
-  }
-  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:last-child {
-    margin-left: auto !important;
-  }
-  .st-key-bl_edge_masthead::after {
-    content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
-    height: 1px; pointer-events: none;
-    background: linear-gradient(90deg, transparent, rgba(244,239,230,0.16) 20%,
-                rgba(244,239,230,0.16) 80%, transparent);
-  }
-  /* BRAND column */
-  .bl-edge-brand {
-    display: flex; align-items: center; gap: 16px;
-    min-height: 42px;
-  }
-  .bl-edge-brand-mark {
-    width: 42px; height: 42px; display: block; flex-shrink: 0;
-    object-fit: contain;
-    image-rendering: -webkit-optimize-contrast;
-  }
-  .bl-edge-brand-mark.is-fallback {
-    /* Plain dot if no logo asset is found — keeps the layout intact */
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: #E64530;
-    box-shadow: 0 0 0 1px rgba(244,239,230,0.10);
-  }
-  .bl-edge-wordmark {
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-weight: 600; font-size: 14px;
-    letter-spacing: 0.22em; text-transform: uppercase;
-    color: #F4EFE6;
-    white-space: nowrap;
-  }
-  .bl-edge-wordmark .sep { color: #565A62; margin: 0 10px; font-weight: 300; }
-  .bl-edge-wordmark .product {
-    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif;
-    font-style: italic; font-weight: 400;
-    font-size: 17px; letter-spacing: 0; text-transform: none;
-    color: #F4EFE6;
-  }
-  /* NAV column — integrated text tabs, NOT stretched chunky pills.
-     width:fit-content so each tab hugs its label; small 8px radius so
-     the active state reads as a refined tab, never a giant pill. */
-  .st-key-bl_edge_masthead .stButton { display: inline-block; }
-  .st-key-bl_edge_masthead .stButton > button {
-    background: transparent !important;
-    border: 1px solid transparent !important;
-    color: #8B8E94 !important;
-    font-family: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
-    font-size: 11.5px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    padding: 7px 14px !important;
-    border-radius: 8px !important;
-    width: fit-content !important;
-    min-height: 0 !important;
-    box-shadow: none !important;
-    transition: color 0.18s, background 0.18s, border-color 0.18s;
-  }
-  .st-key-bl_edge_masthead .stButton > button:hover {
-    color: #F4EFE6 !important;
-    background: rgba(244,239,230,0.05) !important;
-  }
-  /* Active tab — SUBTLE premium treatment: faint translucent bone
-     tint + bone text + hairline border (no solid white block, no big
-     pill). Covers every Streamlit button-testid variant across
-     versions: kind=, baseButton-, stBaseButton-. */
-  .st-key-bl_edge_masthead .stButton > button[kind="primary"],
-  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-primary"],
-  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-primary"] {
-    color: #F4EFE6 !important;
-    background: rgba(244,239,230,0.09) !important;
-    border-color: rgba(244,239,230,0.16) !important;
-    font-weight: 600 !important;
-  }
-  .st-key-bl_edge_masthead .stButton > button[kind="primary"]:hover,
-  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-primary"]:hover,
-  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-primary"]:hover {
-    background: rgba(244,239,230,0.13) !important;
-  }
-  /* Make sure secondary (inactive) never shows Streamlit's default
-     border/fill — it must read as a quiet text tab. */
-  .st-key-bl_edge_masthead .stButton > button[kind="secondary"],
-  .st-key-bl_edge_masthead .stButton > button[data-testid="baseButton-secondary"],
-  .st-key-bl_edge_masthead .stButton > button[data-testid="stBaseButton-secondary"] {
-    background: transparent !important;
-    border-color: transparent !important;
-  }
-  /* Wrap the 5 nav buttons in an outer pill container */
-  .bl-edge-nav-pillbox {
-    display: flex; gap: 4px; padding: 4px;
-    border: 1px solid rgba(244,239,230,0.08); border-radius: 100px;
-    background: rgba(255,255,255,0.025);
-    width: fit-content; margin: 0 auto;
-  }
-  /* USER chip column — streak + avatar */
-  .bl-edge-user-chip { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
-  .bl-edge-user-streak {
-    font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 11px; letter-spacing: 0.05em; color: #E8C170;
-    padding: 5px 10px;
-    border: 1px solid rgba(232,193,112,0.30);
-    border-radius: 100px;
-    background: rgba(232,193,112,0.10);
-    white-space: nowrap;
-  }
-  .bl-edge-user-streak .dot {
-    display: inline-block; width: 6px; height: 6px;
-    border-radius: 50%; background: #E8C170;
-    margin-right: 6px; transform: translateY(-1px);
-  }
-  .bl-edge-user-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: linear-gradient(135deg, #2A2D33, #11141A);
-    border: 1px solid rgba(244,239,230,0.12);
-    color: #F4EFE6; font-family: 'Geist Mono', monospace; font-size: 12px;
-    font-weight: 600;
-    display: inline-flex; align-items: center; justify-content: center;
-    text-transform: uppercase;
-  }
-  /* Responsive — collapse nav to scrollable strip on narrow viewports */
-  @media (max-width: 1100px) {
-    .st-key-bl_edge_masthead { padding: 12px 20px 10px; }
-    .st-key-bl_edge_masthead div[data-testid="stHorizontalBlock"] {
-      gap: 16px !important;
-    }
-    .bl-edge-nav-pillbox { padding: 3px; }
-    .st-key-bl_edge_masthead .stButton > button {
-      font-size: 10.5px !important;
-      padding: 7px 10px !important;
-      letter-spacing: 0.04em !important;
-    }
-  }
-  @media (max-width: 760px) {
-    .bl-edge-user-streak { display: none; }
-  }
-  /* Hide the in-iframe decorative nav inside mock_dashboard_template.
-     The iframe's <header class="masthead"> still renders the issue
-     line context, but the duplicate pill nav is suppressed so only
-     the Python-rendered masthead is visible. */
-  iframe[title="streamlit_component_html"] + style[data-bl-hide-iframe-nav],
-  iframe + style[data-bl-hide-iframe-nav] { display: none; }
+  .ble-nav::-webkit-scrollbar { display: none; }
+  .ble-tab { padding: 7px 12px; flex: 0 0 auto; }
+  .ble-tab.is-active::after { bottom: 2px; }
+}
 </style>
 """
 
@@ -353,74 +273,49 @@ def render_edge_masthead(
     user = user or {}
     active = _resolve_active(active_page)
 
-    # Logo data URI (or fallback dot)
     logo_uri = _logo_data_uri()
     if logo_uri:
-        brand_mark = f'<img class="bl-edge-brand-mark" src="{logo_uri}" alt="BarrelLabs">'
+        brand_mark = f'<img src="{logo_uri}" alt="BarrelLabs">'
     else:
-        brand_mark = '<span class="bl-edge-brand-mark is-fallback" aria-hidden="true"></span>'
+        brand_mark = ('<span style="width:30px;height:30px;border-radius:50%;'
+                      'background:#E64530;display:block;"></span>')
 
     streak = streak_days if streak_days is not None else _streak_value(user)
     initials = _initials(user)
+    streak_html = (
+        f'<span class="ble-streak"><span class="d"></span>{streak}-day streak</span>'
+        if streak is not None else ""
+    )
 
-    # IMPORTANT: a real keyed st.container is used (NOT a bare
-    # `st.markdown("<div ...>")` marker). Streamlit auto-closes an
-    # unclosed markdown div into an EMPTY sibling node, so descendant
-    # CSS like `.st-key-bl_edge_masthead .stButton` never matched the
-    # nav buttons — they fell back to chunky default Streamlit buttons,
-    # and the empty marker div added dead vertical space. A keyed
-    # container yields a real wrapper `.st-key-bl_edge_masthead` that
-    # actually contains the columns/buttons, so the premium nav CSS
-    # applies and there's no phantom spacer.
-    # Single flex row — NO st.columns. Nested Streamlit columns
-    # auto-stack below a width breakpoint, which wrapped the nav onto
-    # multiple lines and inflated the masthead into a tall black slab.
-    # Rendering brand → nav buttons → chip as plain sequential elements
-    # inside one keyed container, then laying that container out as a
-    # flex row via CSS, yields a clean single-line header that never
-    # wraps and sits flush at the very top of the page.
-    with st.container(key="bl_edge_masthead"):
-        # Brand (far left)
-        st.markdown(
-            f"""
-            <div class="bl-edge-brand">
-              {brand_mark}
-              <div class="bl-edge-wordmark">
-                Barrellabs <span class="sep">/</span><span class="product">Edge</span>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    tabs = []
+    for label, page_key, _alts in _NAV_ENTRIES:
+        cls = "ble-tab is-active" if active == page_key else "ble-tab"
+        tabs.append(
+            f'<a class="{cls}" href="?page={page_key}" target="_self">{label}</a>'
         )
+    nav_html = "".join(tabs)
 
-        # Nav links (left group, next to the brand)
-        for label, page_key, _alts in _NAV_ENTRIES:
-            btn_type = "primary" if active == page_key else "secondary"
-            if st.button(label, key=f"_edge_nav_{page_key}", type=btn_type):
-                # Navigate: set page, clear any sub-page record state so
-                # deep-linked records don't override the click.
-                st.session_state["page"] = page_key
-                st.session_state.pop("view_swing_record", None)
-                st.session_state.pop("view_swing_path", None)
-                st.session_state.pop("view_swing_report_id", None)
-                st.session_state.pop("view", None)
-                st.rerun()
+    # ONE pure-HTML block — no st.columns, no st.button. Navigation
+    # rides the existing ?page= URL bridge (auth is restored on reload
+    # via auth.current_profile), so there is zero Streamlit widget
+    # chrome: the bar is fully designed, full-bleed, and seamless with
+    # the dashboard below it.
+    st.markdown(
+        f"""
+<div class="ble-host"></div>
+<div class="ble-mast"><div class="ble-inner">
+  <a class="ble-brand" href="?page=dashboard" target="_self">
+    {brand_mark}
+    <span class="wm">BarrelLabs<span class="sl">/</span><span class="ed">Edge</span></span>
+  </a>
+  <div class="ble-nav">{nav_html}</div>
+  <div class="ble-user">{streak_html}<span class="ble-av">{initials}</span></div>
+</div></div>
+""",
+        unsafe_allow_html=True,
+    )
 
-        # User chip (pinned far right via margin-left:auto in CSS)
-        chip_parts = []
-        if streak is not None:
-            chip_parts.append(
-                f'<span class="bl-edge-user-streak">'
-                f'<span class="dot"></span>{streak}-day streak'
-                f'</span>'
-            )
-        chip_parts.append(
-            f'<span class="bl-edge-user-avatar" aria-label="account">{initials}</span>'
-        )
-        st.markdown(
-            '<div class="bl-edge-user-chip">' + "".join(chip_parts) + '</div>',
-            unsafe_allow_html=True,
-        )
+
 
 
 def hide_iframe_decorative_nav() -> None:

@@ -97,9 +97,12 @@ _DASHBOARD_CSS = """
   background: var(--srd-bg);
   color: var(--srd-bone);
   font-family: var(--srd-sans);
-  max-width: 1280px;
+  /* Match the masthead/dashboard content frame exactly (max-width
+     1560, 40px side gutter) so text aligns with the nav on every
+     page — one cohesive rhythm, never edge-crammed. */
+  max-width: 1560px;
   margin: 0 auto;
-  padding: 1.6rem 1.4rem 4rem;
+  padding: 1.8rem 40px 4rem;
   font-feature-settings: "ss01", "ss02", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -944,6 +947,10 @@ _DASHBOARD_CSS = """
 .srd-stack { display:flex; flex-direction:column; gap: 1rem; }
 
 /* RESPONSIVE */
+@media (max-width: 1100px) {
+  /* Track the masthead's responsive gutter so text stays aligned. */
+  .srd-wrap { padding: 1.4rem 22px 3.5rem; }
+}
 @media (max-width: 960px) {
   .srd-hero, .srd-pd-grid, .srd-prog-grid { grid-template-columns: 1fr; }
   .srd-hero-grid, .srd-mlb-grid { grid-template-columns: 1fr; gap: 1.2rem; }
@@ -958,7 +965,7 @@ _DASHBOARD_CSS = """
   .srd-cmp-summary-badge { flex-direction: row; gap: 10px; width: auto; padding: 0.6rem 1rem; }
 }
 @media (max-width: 560px) {
-  .srd-wrap { padding: 1rem 0.9rem 3rem; }
+  .srd-wrap { padding: 1rem 16px 3rem; }
   .srd-pagehead { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
   .srd-pagehead-title { font-size: 2.4rem; }
   .srd-pagehead-meta { text-align: left; }
