@@ -109,28 +109,53 @@ _EDGE_MASTHEAD_CSS = """
   /* Wrapper for the Python-rendered Edge masthead. Lives OUTSIDE the
      iframe so clicks trigger real Streamlit reruns and Supabase auth
      tokens in st.session_state survive. */
+  /* Kill ALL dead space above the header so the page is seamless from
+     the very top — no "big black box" band. Applies on every page
+     since this CSS ships with the masthead. */
+  [data-testid="stMainBlockContainer"],
+  section.main > div.block-container,
+  .block-container {
+    padding-top: 0 !important;
+  }
+  [data-testid="stAppViewContainer"] > .main { padding-top: 0 !important; }
+
+  /* THE MASTHEAD IS A SINGLE FLEX ROW — no st.columns (nested columns
+     auto-stack in Streamlit and inflate the header into a tall mess).
+     The keyed container itself is laid out as one horizontal,
+     non-wrapping bar: [brand] [nav links] ......... [user chip]. */
   .st-key-bl_edge_masthead {
     background: #0A0B0E;
     border-bottom: 1px solid rgba(244,239,230,0.08);
-    padding: 14px 56px 12px;
+    padding: 12px 48px;
     position: relative;
   }
-  /* Kill Streamlit's default inter-element gap inside the masthead so
-     the row hugs the header band tightly (no phantom vertical space). */
-  .st-key-bl_edge_masthead [data-testid="stVerticalBlock"] { gap: 0 !important; }
-  .st-key-bl_edge_masthead [data-testid="stElementContainer"] { margin: 0 !important; }
+  .st-key-bl_edge_masthead,
+  .st-key-bl_edge_masthead > [data-testid="stVerticalBlock"],
+  .st-key-bl_edge_masthead [data-testid="stVerticalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    row-gap: 0 !important;
+  }
+  .st-key-bl_edge_masthead [data-testid="stElementContainer"] {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+  }
+  /* Brand flush-left with breathing room; user chip pinned far-right. */
+  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:first-child {
+    margin-right: 22px !important;
+  }
+  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:last-child {
+    margin-left: auto !important;
+  }
   .st-key-bl_edge_masthead::after {
     content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
     height: 1px; pointer-events: none;
     background: linear-gradient(90deg, transparent, rgba(244,239,230,0.16) 20%,
                 rgba(244,239,230,0.16) 80%, transparent);
-  }
-  /* Center the row at the same max-width as the editorial mock. */
-  .st-key-bl_edge_masthead div[data-testid="stHorizontalBlock"] {
-    max-width: 1560px;
-    margin: 0 auto;
-    align-items: center !important;
-    gap: 28px !important;
   }
   /* BRAND column */
   .bl-edge-brand {
@@ -347,61 +372,55 @@ def render_edge_masthead(
     # container yields a real wrapper `.st-key-bl_edge_masthead` that
     # actually contains the columns/buttons, so the premium nav CSS
     # applies and there's no phantom spacer.
+    # Single flex row — NO st.columns. Nested Streamlit columns
+    # auto-stack below a width breakpoint, which wrapped the nav onto
+    # multiple lines and inflated the masthead into a tall black slab.
+    # Rendering brand → nav buttons → chip as plain sequential elements
+    # inside one keyed container, then laying that container out as a
+    # flex row via CSS, yields a clean single-line header that never
+    # wraps and sits flush at the very top of the page.
     with st.container(key="bl_edge_masthead"):
-        # Layout: [brand 3] [nav 6] [user chip 3]
-        c_brand, c_nav, c_user = st.columns([3, 6, 3])
+        # Brand (far left)
+        st.markdown(
+            f"""
+            <div class="bl-edge-brand">
+              {brand_mark}
+              <div class="bl-edge-wordmark">
+                Barrellabs <span class="sep">/</span><span class="product">Edge</span>
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        with c_brand:
-            st.markdown(
-                f"""
-                <div class="bl-edge-brand">
-                  {brand_mark}
-                  <div class="bl-edge-wordmark">
-                    Barrellabs <span class="sep">/</span><span class="product">Edge</span>
-                  </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        # Nav links (left group, next to the brand)
+        for label, page_key, _alts in _NAV_ENTRIES:
+            btn_type = "primary" if active == page_key else "secondary"
+            if st.button(label, key=f"_edge_nav_{page_key}", type=btn_type):
+                # Navigate: set page, clear any sub-page record state so
+                # deep-linked records don't override the click.
+                st.session_state["page"] = page_key
+                st.session_state.pop("view_swing_record", None)
+                st.session_state.pop("view_swing_path", None)
+                st.session_state.pop("view_swing_report_id", None)
+                st.session_state.pop("view", None)
+                st.rerun()
 
-        with c_nav:
-            st.markdown('<div class="bl-edge-nav-pillbox">', unsafe_allow_html=True)
-            nav_cols = st.columns(len(_NAV_ENTRIES))
-            for i, (label, page_key, _alts) in enumerate(_NAV_ENTRIES):
-                with nav_cols[i]:
-                    btn_type = "primary" if active == page_key else "secondary"
-                    if st.button(
-                        label,
-                        key=f"_edge_nav_{page_key}",
-                        type=btn_type,
-                        use_container_width=True,
-                    ):
-                        # Navigate: set page, clear any sub-page record
-                        # state so deep-linked records don't override
-                        # the click.
-                        st.session_state["page"] = page_key
-                        st.session_state.pop("view_swing_record", None)
-                        st.session_state.pop("view_swing_path", None)
-                        st.session_state.pop("view_swing_report_id", None)
-                        st.session_state.pop("view", None)
-                        st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with c_user:
-            chip_parts = []
-            if streak is not None:
-                chip_parts.append(
-                    f'<span class="bl-edge-user-streak">'
-                    f'<span class="dot"></span>{streak}-day streak'
-                    f'</span>'
-                )
+        # User chip (pinned far right via margin-left:auto in CSS)
+        chip_parts = []
+        if streak is not None:
             chip_parts.append(
-                f'<span class="bl-edge-user-avatar" aria-label="account">{initials}</span>'
+                f'<span class="bl-edge-user-streak">'
+                f'<span class="dot"></span>{streak}-day streak'
+                f'</span>'
             )
-            st.markdown(
-                '<div class="bl-edge-user-chip">' + "".join(chip_parts) + '</div>',
-                unsafe_allow_html=True,
-            )
+        chip_parts.append(
+            f'<span class="bl-edge-user-avatar" aria-label="account">{initials}</span>'
+        )
+        st.markdown(
+            '<div class="bl-edge-user-chip">' + "".join(chip_parts) + '</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def hide_iframe_decorative_nav() -> None:
