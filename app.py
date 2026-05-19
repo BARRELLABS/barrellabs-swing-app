@@ -1650,21 +1650,16 @@ if st.session_state.get("_session_expired"):
 # the design language.
 inject_global_theme()
 
-# Default landing for a fresh authenticated session = Dashboard. Only
-# applies when the user hasn't already navigated somewhere else (a saved
-# report, settings, or an explicit page).
-if not any(
-    k in st.session_state for k in ("page", "view", "view_swing_path", "view_swing_record")
-):
-    st.session_state["page"] = "dashboard"
-
-
 # ---------- URL → session-state routing bridge ----------
-# Lets deep-links like `/?page=saved_reports` actually navigate. Without
-# this bridge the dashboard would render no matter what `?page=` you passed,
-# because the routing dispatch below only reads `session_state["page"]`.
-# Bug surfaced when the v3 dashboard hid the sidebar (display:none on
-# data-testid=stSidebar) — users had no way to reach Saved Reports.
+# Lets deep-links like `/?page=saved_reports` actually navigate. The
+# masthead nav is now pure-HTML <a href="?page=KEY"> anchors, so EVERY
+# nav click arrives here. This MUST run BEFORE the "default to
+# dashboard" fallback below: otherwise a fresh reload from a nav anchor
+# (empty session_state) would get page="dashboard" assigned first, the
+# dashboard route would st.stop() before the saved_reports route, and
+# clicking Sessions would silently land on the Dashboard. Consuming
+# `?page=` first means the fallback only fires when there is genuinely
+# no target.
 _ALLOWED_PAGES_FROM_URL = {
     "dashboard", "saved_reports", "swing_report", "compare_swings",
     "development_tracker", "historical_charts", "billing",
@@ -1674,15 +1669,32 @@ try:
     _url_page = st.query_params.get("page")
     if _url_page and _url_page in _ALLOWED_PAGES_FROM_URL:
         st.session_state["page"] = _url_page
+        # Clear any stale open-report state so a nav click to Sessions
+        # (or any tab) doesn't get hijacked by a lingering
+        # view_swing_record/path from a previously opened report.
+        if _url_page != "swing_report":
+            for _k in ("view_swing_record", "view_swing_path",
+                       "view_swing_report_id", "view"):
+                st.session_state.pop(_k, None)
         # Don't leave it lingering — once consumed, drop it so refreshes
         # don't keep forcing us back to the URL-specified page after
-        # in-app navigation (e.g. the sidebar "Dashboard" button).
+        # in-app navigation.
         try:
             del st.query_params["page"]
         except Exception:
             pass
 except Exception:
     pass
+
+
+# Default landing for a fresh authenticated session = Dashboard. Only
+# applies when the user hasn't already navigated somewhere else (a saved
+# report, settings, or an explicit page) AND no ?page= deep-link was
+# just consumed above.
+if not any(
+    k in st.session_state for k in ("page", "view", "view_swing_path", "view_swing_record")
+):
+    st.session_state["page"] = "dashboard"
 
 
 # ---------- HELPERS ----------

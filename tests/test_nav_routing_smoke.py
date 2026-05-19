@@ -401,5 +401,100 @@ class AppRoutingTest(unittest.TestCase):
             )
 
 
+class SessionsRoutingOrderTest(unittest.TestCase):
+    """The Sessions nav anchor (?page=saved_reports) MUST land on
+    render_saved_reports_dashboard. The bug was: the 'default to
+    dashboard' fallback ran BEFORE the ?page= URL bridge, so a fresh
+    reload from the anchor got page='dashboard' and the dashboard route
+    st.stop()'d before the saved_reports route. These tests lock the
+    fix: (1) bridge is positioned before the fallback in app.py source,
+    (2) a runtime simulation of the two blocks yields saved_reports with
+    no stale open-report state, (3) the saved_reports route calls
+    render_saved_reports_dashboard."""
+
+    def setUp(self):
+        self.src = (PROJECT_ROOT / "app.py").read_text()
+
+    def test_bridge_runs_before_dashboard_default(self):
+        bridge = self.src.find("URL → session-state routing bridge")
+        if bridge == -1:
+            bridge = self.src.find("_ALLOWED_PAGES_FROM_URL = {")
+        default = self.src.find(
+            "Default landing for a fresh authenticated session = Dashboard"
+        )
+        self.assertNotEqual(bridge, -1, "URL bridge block not found")
+        self.assertNotEqual(default, -1, "default-dashboard block not found")
+        self.assertLess(
+            bridge, default,
+            "The ?page= URL bridge MUST appear before the default-to-"
+            "dashboard fallback or Sessions silently routes to Dashboard.",
+        )
+
+    def test_saved_reports_route_uses_new_dashboard_page(self):
+        self.assertIn(
+            'render_saved_reports_dashboard(user, build_pdf_fn=',
+            self.src,
+            "saved_reports route must render the new dashboard-style page",
+        )
+        self.assertIn('"saved_reports"', self.src)
+
+    def test_runtime_ordering_sessions_click(self):
+        """Execute the exact ordering: bridge block THEN default block,
+        against a fresh authed reload of ?page=saved_reports. Result
+        must be page=saved_reports with NO stale open-report keys (so
+        the _should_open_report guard cannot hijack it)."""
+        ALLOWED = {
+            "dashboard", "saved_reports", "swing_report", "compare_swings",
+            "development_tracker", "historical_charts", "billing",
+            "launch_progress", "pricing", "upload",
+        }
+
+        class QP(dict):
+            def get(self, k, d=None):
+                return super().get(k, d)
+            def __delitem__(self, k):
+                if k in self:
+                    dict.__delitem__(self, k)
+
+        ss = {}                       # fresh session (post-auth: empty)
+        qp = QP({"page": "saved_reports"})  # arrived via the nav anchor
+        # Pretend a previously-opened report left stale state behind
+        # (in-session nav case) — the bridge must scrub it.
+        ss["view_swing_record"] = {"id": "stale"}
+
+        # --- BRIDGE BLOCK (must run first) ---
+        up = qp.get("page")
+        if up and up in ALLOWED:
+            ss["page"] = up
+            if up != "swing_report":
+                for _k in ("view_swing_record", "view_swing_path",
+                           "view_swing_report_id", "view"):
+                    ss.pop(_k, None)
+            try:
+                del qp["page"]
+            except Exception:
+                pass
+
+        # --- DEFAULT-DASHBOARD BLOCK (must run second) ---
+        if not any(k in ss for k in ("page", "view", "view_swing_path",
+                                     "view_swing_record")):
+            ss["page"] = "dashboard"
+
+        self.assertEqual(ss["page"], "saved_reports",
+                         "Sessions anchor must resolve to saved_reports")
+        self.assertNotIn("view_swing_record", ss,
+                          "stale open-report state must be scrubbed so "
+                          "_should_open_report cannot hijack Sessions")
+        # _should_open_report would be: page==swing_report OR
+        # view_swing_record/path present -> all false here.
+        should_open_report = (
+            ss.get("page") == "swing_report"
+            or "view_swing_record" in ss
+            or "view_swing_path" in ss
+        )
+        self.assertFalse(should_open_report,
+                         "open-report guard must NOT fire for Sessions")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
