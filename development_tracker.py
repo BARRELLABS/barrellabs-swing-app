@@ -1903,11 +1903,11 @@ _DT_LOCAL_CSS = """
    day_threshold. The .is-tier-* class is added in Python before
    the reward card markup; here it just colours the border + an
    optional corner tier label. */
-.tp-shell .dt-reward.is-tier-bronze     { border-color: rgba(205,127,50,0.32) !important; }
-.tp-shell .dt-reward.is-tier-silver     { border-color: rgba(192,192,192,0.30) !important; }
-.tp-shell .dt-reward.is-tier-gold       { border-color: rgba(232,193,112,0.38) !important; }
-.tp-shell .dt-reward.is-tier-diamond    { border-color: rgba(173,216,255,0.38) !important; }
-.tp-shell .dt-reward.is-tier-legendary {
+.dt-reward.is-tier-bronze     { border-color: rgba(205,127,50,0.32) !important; }
+.dt-reward.is-tier-silver     { border-color: rgba(192,192,192,0.30) !important; }
+.dt-reward.is-tier-gold       { border-color: rgba(232,193,112,0.38) !important; }
+.dt-reward.is-tier-diamond    { border-color: rgba(173,216,255,0.38) !important; }
+.dt-reward.is-tier-legendary {
     border-color: rgba(230,69,48,0.42) !important;
     background:
         radial-gradient(120% 80% at 100% 0%, rgba(230,69,48,0.10) 0%, transparent 60%),
@@ -2064,20 +2064,20 @@ _DT_LOCAL_CSS = """
 
 /* Gamification section headers (Achievements / Rewards) — promote
    the title to serif italic to match the rest of v3. */
-.tp-shell .dt-gm-section-header {
+.dt-gm-section-header {
     border-bottom-color: var(--bl-line) !important;
     position: relative !important;
 }
-.tp-shell .dt-gm-section-header::after {
+.dt-gm-section-header::after {
     content: "";
     position: absolute; left: 0; bottom: -1px;
     width: 60px; height: 1px;
     background: linear-gradient(90deg, var(--tp-gold) 0%, transparent 100%);
 }
-.tp-shell .dt-gm-section-eyebrow {
+.dt-gm-section-eyebrow {
     color: var(--bl-ink-60) !important;
 }
-.tp-shell .dt-gm-section-title {
+.dt-gm-section-title {
     font-family: var(--tp-serif) !important;
     font-style: italic !important;
     font-weight: 400 !important;
@@ -3901,14 +3901,14 @@ _DT_LOCAL_CSS = """
    ============================================================ */
 
 /* Section breathing room. */
-.tp-shell .dt-ach-grid {
+.dt-ach-grid {
     gap: 14px !important;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
     margin: 1rem 0 1.8rem !important;
 }
 
 /* Base card: bigger, more breathing room, real depth. */
-.tp-shell .dt-ach {
+.dt-ach {
     padding: 18px 18px 16px !important;
     border-radius: 16px !important;
     background:
@@ -3923,7 +3923,7 @@ _DT_LOCAL_CSS = """
     overflow: hidden;
     position: relative;
 }
-.tp-shell .dt-ach:hover {
+.dt-ach:hover {
     transform: translateY(-2px) !important;
     border-color: var(--bl-line-hi) !important;
     box-shadow:
@@ -3933,21 +3933,21 @@ _DT_LOCAL_CSS = """
 
 /* LOCKED — restrained, but with a faint category color hint so the
    player knows what they're working toward. */
-.tp-shell .dt-ach.is-locked {
+.dt-ach.is-locked {
     opacity: 0.72 !important;
 }
-.tp-shell .dt-ach.is-locked .dt-ach-badge {
+.dt-ach.is-locked .dt-ach-badge {
     background: rgba(255,255,255,0.025) !important;
     border-color: var(--bl-line) !important;
     color: var(--bl-ink-40) !important;
     box-shadow: none !important;
 }
-.tp-shell .dt-ach.is-locked .dt-ach-foot {
+.dt-ach.is-locked .dt-ach-foot {
     color: var(--bl-ink-40) !important;
 }
 
 /* Badge — larger, more presence. */
-.tp-shell .dt-ach-badge {
+.dt-ach-badge {
     width: 44px !important;
     height: 44px !important;
     font-size: 1.2rem !important;
@@ -3957,7 +3957,7 @@ _DT_LOCAL_CSS = """
 }
 
 /* Title — promote to serif italic so achievements read editorial. */
-.tp-shell .dt-ach-title {
+.dt-ach-title {
     font-family: var(--tp-serif) !important;
     font-style: italic !important;
     font-weight: 400 !important;
@@ -3966,18 +3966,18 @@ _DT_LOCAL_CSS = """
     letter-spacing: -0.012em !important;
     margin-bottom: 0.4rem !important;
 }
-.tp-shell .dt-ach-desc {
+.dt-ach-desc {
     font-size: 0.86rem !important;
     line-height: 1.5 !important;
     margin-bottom: 0.7rem !important;
 }
-.tp-shell .dt-ach-foot {
+.dt-ach-foot {
     font-size: 0.55rem !important;
     letter-spacing: 0.22em !important;
 }
 
 /* ---- UNLOCKED — kills red default + paints by category ---- */
-.tp-shell .dt-ach.is-unlocked {
+.dt-ach.is-unlocked {
     /* Override the legacy red gradient. Final per-category colors
        layer ON TOP via the .is-cat-* rules below. */
     background:
@@ -3986,7 +3986,7 @@ _DT_LOCAL_CSS = """
     border-color: var(--bl-line-hi) !important;
 }
 /* The badge on unlocked cards gets a real foil treatment (per-cat). */
-.tp-shell .dt-ach.is-unlocked .dt-ach-badge {
+.dt-ach.is-unlocked .dt-ach-badge {
     color: #1a1206 !important;
     border-color: rgba(255,255,255,0.18) !important;
     box-shadow:
@@ -3995,7 +3995,7 @@ _DT_LOCAL_CSS = """
 }
 
 /* Foil shimmer ribbon — runs across every unlocked card via ::after. */
-.tp-shell .dt-ach.is-unlocked::after {
+.dt-ach.is-unlocked::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -4009,7 +4009,7 @@ _DT_LOCAL_CSS = """
     opacity: 0;
     transition: opacity 0.3s ease;
 }
-.tp-shell .dt-ach.is-unlocked:hover::after {
+.dt-ach.is-unlocked:hover::after {
     opacity: 1;
     animation: tp-foil-shimmer 1.6s ease-in-out infinite;
 }
@@ -4017,82 +4017,82 @@ _DT_LOCAL_CSS = """
 /* ---- Per-category color palettes (only for unlocked) ---- */
 
 /* SWING — gold (the brand metric) */
-.tp-shell .dt-ach.is-cat-swing.is-unlocked {
+.dt-ach.is-cat-swing.is-unlocked {
     border-color: rgba(232,193,112,0.50) !important;
     box-shadow:
         0 18px 36px -22px rgba(232,193,112,0.40),
         inset 0 1px 0 rgba(232,193,112,0.16) !important;
 }
-.tp-shell .dt-ach.is-cat-swing.is-unlocked .dt-ach-badge {
+.dt-ach.is-cat-swing.is-unlocked .dt-ach-badge {
     background: linear-gradient(180deg, #F4E4B0 0%, #E8C170 60%, #C9A350 100%) !important;
 }
-.tp-shell .dt-ach.is-cat-swing.is-unlocked .dt-ach-foot {
+.dt-ach.is-cat-swing.is-unlocked .dt-ach-foot {
     color: #E8C170 !important;
 }
 
 /* SCORE — gold (skill tier — same family as swing) */
-.tp-shell .dt-ach.is-cat-score.is-unlocked {
+.dt-ach.is-cat-score.is-unlocked {
     border-color: rgba(232,193,112,0.50) !important;
     box-shadow:
         0 18px 36px -22px rgba(232,193,112,0.40),
         inset 0 1px 0 rgba(232,193,112,0.16) !important;
 }
-.tp-shell .dt-ach.is-cat-score.is-unlocked .dt-ach-badge {
+.dt-ach.is-cat-score.is-unlocked .dt-ach-badge {
     background: linear-gradient(180deg, #F4E4B0 0%, #E8C170 60%, #C9A350 100%) !important;
 }
-.tp-shell .dt-ach.is-cat-score.is-unlocked .dt-ach-foot {
+.dt-ach.is-cat-score.is-unlocked .dt-ach-foot {
     color: #E8C170 !important;
 }
 
 /* IMPROVEMENT — emerald (growth) */
-.tp-shell .dt-ach.is-cat-improvement.is-unlocked {
+.dt-ach.is-cat-improvement.is-unlocked {
     border-color: rgba(74,227,140,0.42) !important;
     box-shadow:
         0 18px 36px -22px rgba(74,227,140,0.36),
         inset 0 1px 0 rgba(74,227,140,0.16) !important;
 }
-.tp-shell .dt-ach.is-cat-improvement.is-unlocked .dt-ach-badge {
+.dt-ach.is-cat-improvement.is-unlocked .dt-ach-badge {
     background: linear-gradient(180deg, #8DEDB5 0%, #4AE38C 60%, #2BB770 100%) !important;
 }
-.tp-shell .dt-ach.is-cat-improvement.is-unlocked .dt-ach-foot {
+.dt-ach.is-cat-improvement.is-unlocked .dt-ach-foot {
     color: #4AE38C !important;
 }
 
 /* DRILL — silver (consistency) */
-.tp-shell .dt-ach.is-cat-drill.is-unlocked {
+.dt-ach.is-cat-drill.is-unlocked {
     border-color: rgba(220,220,220,0.36) !important;
     box-shadow:
         0 18px 36px -22px rgba(220,220,220,0.30),
         inset 0 1px 0 rgba(220,220,220,0.20) !important;
 }
-.tp-shell .dt-ach.is-cat-drill.is-unlocked .dt-ach-badge {
+.dt-ach.is-cat-drill.is-unlocked .dt-ach-badge {
     background: linear-gradient(180deg, #F0F0F0 0%, #C8C4BB 60%, #8B8E94 100%) !important;
 }
-.tp-shell .dt-ach.is-cat-drill.is-unlocked .dt-ach-foot {
+.dt-ach.is-cat-drill.is-unlocked .dt-ach-foot {
     color: #DCDCDC !important;
 }
 
 /* STREAK — red (heat — the ONLY red on the page in v8) */
-.tp-shell .dt-ach.is-cat-streak.is-unlocked {
+.dt-ach.is-cat-streak.is-unlocked {
     border-color: rgba(230,69,48,0.48) !important;
     box-shadow:
         0 18px 36px -22px rgba(230,69,48,0.42),
         inset 0 1px 0 rgba(230,69,48,0.16) !important;
 }
-.tp-shell .dt-ach.is-cat-streak.is-unlocked .dt-ach-badge {
+.dt-ach.is-cat-streak.is-unlocked .dt-ach-badge {
     background: linear-gradient(180deg, #F4796A 0%, #E64530 60%, #B83320 100%) !important;
     color: #f7e0db !important;
 }
-.tp-shell .dt-ach.is-cat-streak.is-unlocked .dt-ach-foot {
+.dt-ach.is-cat-streak.is-unlocked .dt-ach-foot {
     color: #FF8675 !important;
 }
 
 /* Locked progress bar — bigger, more visible. */
-.tp-shell .dt-ach.is-locked .dt-ach-progress {
+.dt-ach.is-locked .dt-ach-progress {
     height: 5px !important;
     background: rgba(255,255,255,0.05) !important;
 }
-.tp-shell .dt-ach.is-locked .dt-ach-progress-fill {
+.dt-ach.is-locked .dt-ach-progress-fill {
     background: linear-gradient(90deg,
         rgba(232,193,112,0.50) 0%,
         rgba(232,193,112,0.80) 100%) !important;
@@ -4104,13 +4104,13 @@ _DT_LOCAL_CSS = """
    ============================================================ */
 
 /* Section breathing room. */
-.tp-shell .dt-reward-grid {
+.dt-reward-grid {
     gap: 14px !important;
     margin-bottom: 1.8rem !important;
 }
 
 /* Base card — bigger padding, more depth. */
-.tp-shell .dt-reward {
+.dt-reward {
     padding: 1.7rem 1.9rem !important;
     border-radius: 18px !important;
     background:
@@ -4124,39 +4124,39 @@ _DT_LOCAL_CSS = """
     overflow: hidden;
     position: relative;
 }
-.tp-shell .dt-reward:hover {
+.dt-reward:hover {
     transform: translateY(-2px) !important;
     box-shadow:
         0 22px 50px -22px rgba(0,0,0,0.65) !important;
 }
 
 /* Override the legacy red unlocked treatment. */
-.tp-shell .dt-reward.is-unlocked {
+.dt-reward.is-unlocked {
     background:
         radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,0.04) 0%, transparent 60%),
         rgba(255,255,255,0.025) !important;
 }
 
 /* Day pillar — promote to serif italic so the number reads premium. */
-.tp-shell .dt-reward-day {
+.dt-reward-day {
     background: rgba(0,0,0,0.30) !important;
     border-color: var(--bl-line) !important;
     border-radius: 14px !important;
 }
-.tp-shell .dt-reward-day-num {
+.dt-reward-day-num {
     font-family: var(--tp-serif) !important;
     font-style: italic !important;
     font-weight: 400 !important;
     letter-spacing: -0.025em !important;
     color: var(--bl-ink-100) !important;
 }
-.tp-shell .dt-reward.is-unlocked .dt-reward-day-num {
+.dt-reward.is-unlocked .dt-reward-day-num {
     /* Final color comes from per-tier rule below. */
     color: var(--bl-ink-100) !important;
 }
 
 /* Title to serif italic */
-.tp-shell .dt-reward-title {
+.dt-reward-title {
     font-family: var(--tp-serif) !important;
     font-style: italic !important;
     font-weight: 400 !important;
@@ -4165,7 +4165,7 @@ _DT_LOCAL_CSS = """
     letter-spacing: -0.012em !important;
     margin-bottom: 0.5rem !important;
 }
-.tp-shell .dt-reward-desc {
+.dt-reward-desc {
     font-size: 0.92rem !important;
     line-height: 1.55 !important;
     margin-bottom: 0.85rem !important;
@@ -4173,20 +4173,20 @@ _DT_LOCAL_CSS = """
 }
 
 /* Status pill — bigger, cleaner */
-.tp-shell .dt-reward-status {
+.dt-reward-status {
     padding: 8px 14px !important;
     font-size: 0.62rem !important;
     letter-spacing: 0.24em !important;
     background: rgba(0,0,0,0.30) !important;
     border-color: var(--bl-line-hi) !important;
 }
-.tp-shell .dt-reward.is-unlocked .dt-reward-status {
+.dt-reward.is-unlocked .dt-reward-status {
     /* Final color from per-tier. */
     background: rgba(255,255,255,0.04) !important;
 }
 
 /* Foil shimmer on hover for unlocked cards. */
-.tp-shell .dt-reward.is-unlocked::after {
+.dt-reward.is-unlocked::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -4201,7 +4201,7 @@ _DT_LOCAL_CSS = """
     transition: opacity 0.3s ease;
     border-radius: 18px;
 }
-.tp-shell .dt-reward.is-unlocked:hover::after {
+.dt-reward.is-unlocked:hover::after {
     opacity: 1;
     animation: tp-foil-shimmer 1.8s ease-in-out infinite;
 }
@@ -4209,110 +4209,110 @@ _DT_LOCAL_CSS = """
 /* ---- Per-tier color palettes ---- */
 
 /* BRONZE — copper, earthy */
-.tp-shell .dt-reward.is-tier-bronze.is-unlocked {
+.dt-reward.is-tier-bronze.is-unlocked {
     border-color: rgba(205,127,50,0.50) !important;
     box-shadow:
         0 18px 40px -22px rgba(205,127,50,0.40),
         inset 0 1px 0 rgba(205,127,50,0.18) !important;
 }
-.tp-shell .dt-reward.is-tier-bronze.is-unlocked .dt-reward-day {
+.dt-reward.is-tier-bronze.is-unlocked .dt-reward-day {
     background: linear-gradient(180deg, rgba(205,127,50,0.22), rgba(205,127,50,0.08)) !important;
     border-color: rgba(205,127,50,0.42) !important;
 }
-.tp-shell .dt-reward.is-tier-bronze.is-unlocked .dt-reward-day-num {
+.dt-reward.is-tier-bronze.is-unlocked .dt-reward-day-num {
     color: #E8A05A !important;
 }
-.tp-shell .dt-reward.is-tier-bronze.is-unlocked .dt-reward-status {
+.dt-reward.is-tier-bronze.is-unlocked .dt-reward-status {
     color: #E8A05A !important;
     background: rgba(205,127,50,0.10) !important;
     border-color: rgba(205,127,50,0.42) !important;
 }
 
 /* SILVER — cool metallic */
-.tp-shell .dt-reward.is-tier-silver.is-unlocked {
+.dt-reward.is-tier-silver.is-unlocked {
     border-color: rgba(220,220,220,0.40) !important;
     box-shadow:
         0 18px 40px -22px rgba(220,220,220,0.30),
         inset 0 1px 0 rgba(220,220,220,0.22) !important;
 }
-.tp-shell .dt-reward.is-tier-silver.is-unlocked .dt-reward-day {
+.dt-reward.is-tier-silver.is-unlocked .dt-reward-day {
     background: linear-gradient(180deg, rgba(220,220,220,0.18), rgba(220,220,220,0.06)) !important;
     border-color: rgba(220,220,220,0.40) !important;
 }
-.tp-shell .dt-reward.is-tier-silver.is-unlocked .dt-reward-day-num {
+.dt-reward.is-tier-silver.is-unlocked .dt-reward-day-num {
     color: #E8E8E8 !important;
 }
-.tp-shell .dt-reward.is-tier-silver.is-unlocked .dt-reward-status {
+.dt-reward.is-tier-silver.is-unlocked .dt-reward-status {
     color: #DCDCDC !important;
     background: rgba(220,220,220,0.08) !important;
     border-color: rgba(220,220,220,0.40) !important;
 }
 
 /* GOLD — brand metric (warm) */
-.tp-shell .dt-reward.is-tier-gold.is-unlocked {
+.dt-reward.is-tier-gold.is-unlocked {
     border-color: rgba(232,193,112,0.55) !important;
     box-shadow:
         0 18px 40px -22px rgba(232,193,112,0.45),
         inset 0 1px 0 rgba(232,193,112,0.22) !important;
 }
-.tp-shell .dt-reward.is-tier-gold.is-unlocked .dt-reward-day {
+.dt-reward.is-tier-gold.is-unlocked .dt-reward-day {
     background: linear-gradient(180deg, rgba(232,193,112,0.22), rgba(232,193,112,0.08)) !important;
     border-color: rgba(232,193,112,0.50) !important;
 }
-.tp-shell .dt-reward.is-tier-gold.is-unlocked .dt-reward-day-num {
+.dt-reward.is-tier-gold.is-unlocked .dt-reward-day-num {
     color: #F0CC7E !important;
 }
-.tp-shell .dt-reward.is-tier-gold.is-unlocked .dt-reward-status {
+.dt-reward.is-tier-gold.is-unlocked .dt-reward-status {
     color: #E8C170 !important;
     background: rgba(232,193,112,0.10) !important;
     border-color: rgba(232,193,112,0.42) !important;
 }
 
 /* DIAMOND — ice-blue prismatic */
-.tp-shell .dt-reward.is-tier-diamond.is-unlocked {
+.dt-reward.is-tier-diamond.is-unlocked {
     border-color: rgba(173,216,255,0.48) !important;
     box-shadow:
         0 18px 40px -22px rgba(173,216,255,0.45),
         inset 0 1px 0 rgba(173,216,255,0.20) !important;
 }
-.tp-shell .dt-reward.is-tier-diamond.is-unlocked .dt-reward-day {
+.dt-reward.is-tier-diamond.is-unlocked .dt-reward-day {
     background: linear-gradient(180deg, rgba(173,216,255,0.18), rgba(173,216,255,0.05)) !important;
     border-color: rgba(173,216,255,0.45) !important;
 }
-.tp-shell .dt-reward.is-tier-diamond.is-unlocked .dt-reward-day-num {
+.dt-reward.is-tier-diamond.is-unlocked .dt-reward-day-num {
     color: #BFDFFF !important;
 }
-.tp-shell .dt-reward.is-tier-diamond.is-unlocked .dt-reward-status {
+.dt-reward.is-tier-diamond.is-unlocked .dt-reward-status {
     color: #ADD8FF !important;
     background: rgba(173,216,255,0.08) !important;
     border-color: rgba(173,216,255,0.45) !important;
 }
 
 /* LEGENDARY — Hall of Fame: red + gold blend */
-.tp-shell .dt-reward.is-tier-legendary.is-unlocked,
-.tp-shell .dt-reward.is-tier-legendary {
+.dt-reward.is-tier-legendary.is-unlocked,
+.dt-reward.is-tier-legendary {
     border-color: rgba(232,193,112,0.55) !important;
     background:
         radial-gradient(120% 80% at 100% 0%, rgba(230,69,48,0.14) 0%, transparent 60%),
         radial-gradient(120% 80% at 0% 100%, rgba(232,193,112,0.14) 0%, transparent 60%),
         rgba(255,255,255,0.030) !important;
 }
-.tp-shell .dt-reward.is-tier-legendary.is-unlocked {
+.dt-reward.is-tier-legendary.is-unlocked {
     box-shadow:
         0 22px 48px -20px rgba(232,193,112,0.50),
         0 22px 48px -20px rgba(230,69,48,0.30),
         inset 0 1px 0 rgba(232,193,112,0.22) !important;
 }
-.tp-shell .dt-reward.is-tier-legendary .dt-reward-day {
+.dt-reward.is-tier-legendary .dt-reward-day {
     background: linear-gradient(135deg,
         rgba(230,69,48,0.22) 0%,
         rgba(232,193,112,0.22) 100%) !important;
     border-color: rgba(232,193,112,0.50) !important;
 }
-.tp-shell .dt-reward.is-tier-legendary .dt-reward-day-num {
+.dt-reward.is-tier-legendary .dt-reward-day-num {
     color: #F4D58A !important;
 }
-.tp-shell .dt-reward.is-tier-legendary.is-unlocked .dt-reward-status {
+.dt-reward.is-tier-legendary.is-unlocked .dt-reward-status {
     color: #F4D58A !important;
     background: linear-gradient(90deg,
         rgba(232,193,112,0.18),
@@ -4321,7 +4321,7 @@ _DT_LOCAL_CSS = """
 }
 
 /* ---- Tier corner tag — restyle the v3 tag to fit v8 ---- */
-.tp-shell .tp-tier-tag {
+.tp-tier-tag {
     top: 16px !important;
     right: 16px !important;
     padding: 4px 10px !important;
@@ -4334,11 +4334,11 @@ _DT_LOCAL_CSS = """
 }
 
 /* ---- Section header polish ---- */
-.tp-shell .dt-gm-section-title {
+.dt-gm-section-title {
     font-size: 1.85rem !important;
     margin-bottom: 2px;
 }
-.tp-shell .dt-gm-section-count {
+.dt-gm-section-count {
     font-family: var(--bl-mono);
     font-size: 10.5px;
     font-weight: 600;
@@ -4354,7 +4354,7 @@ _DT_LOCAL_CSS = """
 
 /* ---- Strip the legacy v3 .is-hoodie / .is-hof emphasis — the tier
    system now handles all special treatment. ---- */
-.tp-shell .dt-reward.is-hoodie {
+.dt-reward.is-hoodie {
     background:
         radial-gradient(120% 80% at 100% 0%, rgba(173,216,255,0.10) 0%, transparent 60%),
         rgba(255,255,255,0.025) !important;
@@ -4368,10 +4368,10 @@ _DT_LOCAL_CSS = """
    foil-shimmer `::after` defined earlier (for any unlocked reward)
    would otherwise be wiped by this rule, leaving the 180d Hoodie +
    365d Hall of Fame as the only unlocked cards without the shimmer. */
-.tp-shell .dt-reward.is-hoodie:not(.is-unlocked)::before,
-.tp-shell .dt-reward.is-hoodie:not(.is-unlocked)::after,
-.tp-shell .dt-reward.is-hof::before,
-.tp-shell .dt-reward.is-hof:not(.is-unlocked)::after {
+.dt-reward.is-hoodie:not(.is-unlocked)::before,
+.dt-reward.is-hoodie:not(.is-unlocked)::after,
+.dt-reward.is-hof::before,
+.dt-reward.is-hof:not(.is-unlocked)::after {
     content: none !important;
     display: none !important;
 }
@@ -4382,28 +4382,28 @@ _DT_LOCAL_CSS = """
 
 /* Responsive — keep tiered cards readable on mobile. */
 @media (max-width: 720px) {
-    .tp-shell .dt-ach-grid {
+    .dt-ach-grid {
         grid-template-columns: 1fr !important;
         gap: 12px !important;
     }
-    .tp-shell .dt-reward {
+    .dt-reward {
         grid-template-columns: 1fr !important;
         gap: 1rem !important;
         padding: 1.3rem 1.4rem !important;
     }
-    .tp-shell .dt-reward-day {
+    .dt-reward-day {
         justify-self: start;
         max-width: 110px;
         padding: 0.7rem 1.2rem !important;
     }
-    .tp-shell .dt-reward-status {
+    .dt-reward-status {
         justify-self: start;
     }
-    .tp-shell .tp-tier-tag {
+    .tp-tier-tag {
         top: 12px !important;
         right: 12px !important;
     }
-    .tp-shell .dt-gm-section-title {
+    .dt-gm-section-title {
         font-size: 1.5rem !important;
     }
 }
@@ -5838,7 +5838,7 @@ def _render_rewards(state: dict, persisted: dict) -> None:
         # diamond/legendary) driven by `day_threshold`, so the
         # rewards roadmap reads as a single ladder rather than 8
         # disconnected milestones. The tier visuals are scoped to
-        # `.tp-shell .dt-reward.is-tier-*` in _DT_LOCAL_CSS.
+        # `.dt-reward.is-tier-*` in _DT_LOCAL_CSS.
         tier = _tier_for_day_threshold(r.get("day_threshold"))
         classes = ["dt-reward", f"is-tier-{tier}"]
         if unlocked:
