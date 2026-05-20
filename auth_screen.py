@@ -1,41 +1,43 @@
-"""BarrelLabs · Premium authentication experience (v2 — substantial rework).
+"""BarrelLabs · Premium authentication experience (v3 — Telemetry-Editorial).
 
-What changed from v1
+What changed from v2
 --------------------
-v1 had four structural problems caught in user review:
-1. The .au-card-frame "glass card" was opened/closed via raw
-   st.markdown('<div>') and Streamlit 1.57 auto-closed both into empty
-   sibling nodes — the card chrome rendered around NOTHING; the
-   widgets sat outside it. Now the card is a real
-   st.container(key="auth_card") so the widgets are descendants and
-   .st-key-auth_card actually wraps them.
-2. .st-key-auth_hero + .st-key-auth_panel each used
-   `min-height: 100vh; justify-content: space-between` which slammed
-   content to the top and bottom of each panel, leaving a vast dead
-   band in the middle. Both panels are now `justify-content: center`
-   with the content stack as a single nested column — vertical
-   centering is real, and the auth card is the page's focal point.
-3. A 1-px gradient stroke at the right edge of the hero pseudo'd in a
-   "divider line." Removed entirely. The two panels share a
-   continuous body background so the seam is invisible.
-4. The testimonial author was hard to read at narrow widths — the
-   "TRAVIS K." cite block visually compressed into a vertical strip.
-   The testimonial is now a real horizontal quote card with an
-   initials avatar, a name line, and a "Travel SS · Class of '27"
-   meta line — no thin-strip layout possible.
+The user hated the Sign In / Create Account toggle pill at the top of
+the card. v3 kills it entirely.
 
-Plus:
-- Page max-width capped at 1480 so on 4K monitors the design stays
-  tight, but the surrounding atmosphere (gradients) covers the full
-  viewport so it never looks confined.
-- Subtle baseball motif: a strike-zone grid + a swept bat-path arc
-  painted as SVG behind the hero content at ~5% opacity.
-- 52/48 desktop proportions with a content stack capped at 580 (hero)
-  and 460 (panel). The card itself caps at 420.
-- 5 feature rows tightened to 4 lines of copy each (denser, less air).
-- Auth card chrome simplified to one glass surface with a single
-  gold→red top edge; all the previous decorative bits (extra border,
-  inner highlight, multiple shadows) collapsed into one.
+  • The mode (login / signup) is signaled by a small mono-caps STATE
+    LOZENGE in the card's top-right (`· ACCESS · MODE 01` /
+    `· NEW MEMBER · MODE 02`) — non-interactive, just a label that
+    reflects current mode.
+  • Mode switching happens via ONE quiet line at the bottom of the
+    card: "New to BarrelLabs? **Create your account →**" (or the
+    inverse). Apple / Stripe / Linear pattern — one clear primary
+    purpose, no toggle competing for attention.
+
+Plus a substantial visual upgrade everywhere else:
+
+  • Card chrome: industrial NOTCHED CORNER at top-right via clip-path
+    (Ferrari/F1 vibe). Top edge is no longer a gradient stroke — it's
+    a TELEMETRY TICK STRIP (small vertical hairlines + one active
+    gold tick). Registration-mark "+" ornament in the bottom-left.
+  • Hero feature ladder collapsed into a 2x2 TELEMETRY GRID. Each
+    micro-card has a mono-caps label, an italic-serif value, and a
+    thin progress bar that animates on load.
+  • SESSION-ID kicker at the top of the hero
+    (`SESSION 04.2027 · PERFORMANCE LAB`) — lab-notebook feel.
+  • LIVE STATUS TICKER at the bottom of the hero — horizontal marquee
+    scrolling fake-but-feels-real stats: "ANALYZER ONLINE · 23 SWINGS
+    PROCESSED TODAY · 1,247 PRO REFS LOADED · MLB SIM% 87 · …"
+  • Inline SVG SWING-TRAJECTORY PATH behind the hero content, drawing
+    itself on load via stroke-dashoffset animation. Gold→red stroke
+    gradient. The single "wow" decorative element.
+  • Stagger fade-up on load (eyebrow → title → sub → grid →
+    testimonial → ticker), driven by CSS animation-delay.
+  • CTA gets a subtle radial-pulse hover ripple via pseudo-element.
+  • Forgot-password link moved beneath the CTA inside the form, no
+    longer a separate ghost button — tighter form rhythm.
+  • Typography pushed harder on the mono-caps treatment everywhere
+    (labels, ticker, kickers, telemetry-grid labels, mode lozenge).
 
 Wiring (unchanged)
 ------------------
@@ -51,6 +53,7 @@ Wiring (unchanged)
 from __future__ import annotations
 
 import html
+from datetime import datetime
 from typing import Optional
 
 import streamlit as st
@@ -67,7 +70,7 @@ except Exception:  # pragma: no cover
 # =====================================================================
 _AUTH_CSS = r"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap');
 
 /* ============ Tokens ============ */
 .st-key-auth_root {
@@ -104,6 +107,7 @@ _AUTH_CSS = r"""
   --au-r-sm:       10px;
   --au-ease-soft:  cubic-bezier(.32,.72,0,1);
   --au-ease-snap:  cubic-bezier(.34,1.4,.64,1);
+  --au-ease-cinema: cubic-bezier(.2,.8,.2,1);
 }
 
 /* ============ Streamlit chrome erasure ============ */
@@ -116,9 +120,6 @@ html, body,
   background: #0A0B0E !important;
 }
 [data-testid="stApp"] {
-  /* One continuous background. NO seam, NO divider between panels —
-     the gradients overlap in the middle so the eye reads a single
-     surface with two warm centers. */
   background:
     radial-gradient(1200px 800px at 22% 22%, rgba(232,193,112,0.075), transparent 60%),
     radial-gradient(1100px 800px at 78% 78%, rgba(230,69,48,0.055), transparent 60%),
@@ -146,16 +147,55 @@ html, body,
   margin: 0 !important;
 }
 
-/* ============ Cinematic ambient layers (page-wide) ============ */
+/* ============ Cinematic ambient layers ============ */
 .auth-grain {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   opacity: 0.04; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
 }
-/* Brand mark stamped at the page's top-left so it doesn't take up
-   space in the hero content stack. */
+
+/* Inline SVG bat-path swing trail. Fixed behind the hero column,
+   drawing itself on page load via stroke-dashoffset animation. Gold
+   → red linear gradient stroke. Subtle (opacity .35), but enough to
+   give the hero column real depth + an unmistakable swing metaphor. */
+.au-swingpath {
+  position: fixed; left: 0; top: 0; z-index: 0;
+  width: 56vw; height: 100vh; pointer-events: none;
+  opacity: 0.42;
+}
+.au-swingpath svg { width: 100%; height: 100%; display: block; }
+.au-swingpath path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: au-draw 2.4s var(--au-ease-cinema) 0.4s forwards;
+}
+.au-swingpath .blur {
+  stroke-width: 22;
+  opacity: 0.45;
+  filter: blur(14px);
+  animation: au-draw 2.4s var(--au-ease-cinema) 0.4s forwards;
+}
+.au-swingpath .dot {
+  fill: var(--au-gold);
+  opacity: 0;
+  animation: au-dot 1.4s var(--au-ease-cinema) 2.0s forwards;
+}
+@keyframes au-draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes au-dot {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.0); }
+  100% { opacity: 0.85; transform: scale(1.0); }
+}
+
+/* Brand mark, stamped fixed at top-left so it doesn't eat hero
+   vertical space. */
 .au-brand-fixed {
-  position: fixed; top: 28px; left: 32px; z-index: 10;
+  position: fixed; top: 28px; left: 36px; z-index: 10;
   display: flex; align-items: center; gap: 12px;
   font-family: var(--au-sans); font-weight: 600;
   letter-spacing: 0.22em; text-transform: uppercase; font-size: 12px;
@@ -171,19 +211,43 @@ html, body,
   color: #8B8E94;
 }
 
-/* ============ Root grid — capped on 4K, dead center the design ============ */
+/* Top-right tiny telemetry header — date + LIVE status. Sits in the
+   page corner opposite the brand, mirrors the lab-notebook header
+   metaphor. */
+.au-corner-tele {
+  position: fixed; top: 28px; right: 36px; z-index: 10;
+  display: flex; align-items: center; gap: 18px;
+  font-family: var(--au-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--au-bone-40);
+}
+.au-corner-tele .live {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--au-green);
+}
+.au-corner-tele .live::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--au-green);
+  box-shadow: 0 0 8px var(--au-green);
+  animation: au-pulse-green 1.8s ease-in-out infinite;
+}
+@keyframes au-pulse-green {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--au-green); }
+  50%      { opacity: 0.4; box-shadow: 0 0 2px var(--au-green); }
+}
+
+/* ============ Root grid ============ */
 .st-key-auth_root {
   position: relative; z-index: 2;
   min-height: 100vh;
   max-width: 1480px;
   margin: 0 auto;
   display: grid !important;
-  grid-template-columns: 52fr 48fr;
+  grid-template-columns: 54fr 46fr;
   gap: 0;
   color: var(--au-bone);
   font-family: var(--au-sans);
 }
-/* No vertical divider, no border-right anywhere. */
 
 /* ============ LEFT HERO PANEL ============ */
 .st-key-auth_hero {
@@ -192,7 +256,7 @@ html, body,
   flex-direction: column !important;
   justify-content: center !important;
   align-items: flex-start !important;
-  padding: 100px 56px 80px !important;
+  padding: 100px 60px 90px !important;
   min-height: 100vh;
   overflow: hidden;
 }
@@ -200,89 +264,78 @@ html, body,
   width: 100% !important;
 }
 
-/* Subtle baseball motifs — strike zone grid in the upper-right, swept
-   bat-path arc rising from bottom-left. Both at ~5% opacity, layered
-   behind the content (z-index:0; content gets z-index:1). */
-.au-motif {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  overflow: hidden;
-}
-.au-motif::before {
-  /* Strike-zone grid — 3 vertical + 3 horizontal lines forming a
-     3×3 strike zone roughly in the upper-right quadrant. */
-  content: ""; position: absolute;
-  top: 14%; right: 8%;
-  width: 280px; height: 360px;
-  background-image:
-    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
-    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%);
-  background-size:
-    100% 1px, 100% 1px, 100% 1px, 100% 1px,
-    1px 100%, 1px 100%, 1px 100%, 1px 100%;
-  background-position:
-    0 0, 0 33.3%, 0 66.6%, 0 100%,
-    0 0, 33.3% 0, 66.6% 0, 100% 0;
-  background-repeat: no-repeat;
-  opacity: 0.55;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-}
-.au-motif::after {
-  /* Swept bat-path arc — a soft curved glow from bottom-left rising
-     to upper-mid, hinting at swing trajectory without being literal. */
-  content: ""; position: absolute;
-  left: -10%; bottom: -20%;
-  width: 90%; height: 90%;
-  background:
-    radial-gradient(60% 80% at 0% 100%, rgba(232,193,112,0.10), transparent 60%),
-    radial-gradient(50% 70% at 30% 70%, rgba(230,69,48,0.06), transparent 60%);
-  filter: blur(8px);
-  opacity: 0.85;
-  transform: rotate(-12deg);
+/* Hero content column */
+.au-content {
+  position: relative; z-index: 2;
+  width: 100%; max-width: 580px;
+  display: flex; flex-direction: column;
+  gap: 24px;
 }
 
-/* Hero content column — caps at 560 so the design stays composed even
-   on ultra-wide screens. Centered horizontally within the panel. */
-.au-content {
-  position: relative; z-index: 1;
-  width: 100%; max-width: 560px;
-  display: flex; flex-direction: column;
-  gap: 22px;
+/* Stagger fade-up for hero children */
+.au-content > * {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: au-fade-up 760ms var(--au-ease-cinema) forwards;
 }
+.au-content > *:nth-child(1) { animation-delay: 80ms; }
+.au-content > *:nth-child(2) { animation-delay: 200ms; }
+.au-content > *:nth-child(3) { animation-delay: 340ms; }
+.au-content > *:nth-child(4) { animation-delay: 480ms; }
+.au-content > *:nth-child(5) { animation-delay: 620ms; }
+.au-content > *:nth-child(6) { animation-delay: 740ms; }
+.au-content > *:nth-child(7) { animation-delay: 860ms; }
+@keyframes au-fade-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* SESSION-ID kicker — lab-notebook header above the eyebrow. */
+.au-session-id {
+  font-family: var(--au-mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--au-bone-40);
+  display: flex; align-items: center; gap: 14px;
+}
+.au-session-id .sep {
+  flex: 0 0 36px; height: 1px; background: var(--au-bone-20);
+}
+.au-session-id .tag { color: var(--au-bone-60); }
 
 .au-eyebrow {
   font-family: var(--au-mono); font-size: 11px; font-weight: 600;
   letter-spacing: 0.30em; text-transform: uppercase;
   color: var(--au-red);
   display: inline-flex; align-items: center; gap: 9px;
-  margin: 0;
 }
 .au-eyebrow::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%;
   background: var(--au-red); box-shadow: 0 0 10px var(--au-red);
-  animation: au-pulse 2.6s ease-in-out infinite;
+  animation: au-pulse-red 2.6s ease-in-out infinite;
 }
-@keyframes au-pulse {
+@keyframes au-pulse-red {
   0%, 100% { opacity: 1;    box-shadow: 0 0 10px var(--au-red); }
   50%      { opacity: 0.45; box-shadow: 0 0 2px var(--au-red); }
 }
 
 .au-title {
   font-family: var(--au-serif); font-style: italic;
-  font-size: clamp(2.6rem, 4.6vw, 4.6rem); line-height: 0.98;
+  font-size: clamp(2.8rem, 4.8vw, 4.8rem); line-height: 0.95;
   letter-spacing: -0.022em; color: var(--au-bone);
   margin: 0;
+  font-weight: 400;
 }
 .au-title .twin {
-  background: linear-gradient(90deg, var(--au-gold) 0%, var(--au-red) 100%);
+  background: linear-gradient(90deg,
+    var(--au-gold) 0%, #f3d896 30%,
+    var(--au-red) 70%, var(--au-red-deep) 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text; background-clip: text;
   color: transparent;
+  animation: au-shimmer 6s ease-in-out infinite;
+}
+@keyframes au-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 .au-title .period { color: var(--au-red); }
 
@@ -290,147 +343,170 @@ html, body,
   color: var(--au-bone-60);
   font-family: var(--au-sans);
   font-size: 15px; line-height: 1.55;
-  margin: 0;
+  margin: 0; max-width: 520px;
 }
 
-/* Feature ladder — compact 4-row grid (instead of 5). Each row is a
-   one-line heading + a one-line body, making the stack visibly
-   denser. The 5th feature (Track progress) folds into the
-   testimonial's meta line below. */
-.au-ladder {
-  display: grid; gap: 10px;
-  margin-top: 4px;
+/* 2x2 TELEMETRY GRID — replaces the v2 feature ladder. Each cell:
+   mono-caps label · italic serif value · thin progress bar. */
+.au-tgrid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 6px;
 }
-.au-row {
-  display: grid; grid-template-columns: 32px 1fr; gap: 14px;
-  align-items: center;
-  padding: 10px 14px;
+.au-tcell {
+  position: relative;
+  padding: 14px 16px 16px;
   border-radius: var(--au-r-mid);
   background: var(--au-glass-1);
   border: 1px solid var(--au-line);
   transition: border-color .22s var(--au-ease-soft),
               background .22s var(--au-ease-soft);
+  overflow: hidden;
 }
-.au-row:hover {
+.au-tcell:hover {
   border-color: var(--au-line-hi);
   background: var(--au-glass-2);
 }
-.au-row .au-num {
-  font-family: var(--au-mono); font-size: 10px; font-weight: 700;
-  letter-spacing: 0.06em;
-  width: 32px; height: 32px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--au-gold);
-  background: var(--au-gold-soft);
-  border: 1px solid var(--au-gold-line);
+.au-tcell .label {
+  font-family: var(--au-mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--au-bone-40);
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
 }
-.au-row strong {
-  display: block;
-  font-family: var(--au-sans); font-size: 13.5px; font-weight: 600;
-  color: var(--au-bone-warm);
-  letter-spacing: -0.005em;
-  line-height: 1.1;
+.au-tcell .label .id {
+  color: var(--au-gold-line); font-weight: 700;
 }
-.au-row span {
-  display: block;
-  color: var(--au-bone-60); font-size: 12px; line-height: 1.4;
-  margin-top: 2px;
+.au-tcell .v {
+  font-family: var(--au-serif); font-style: italic;
+  font-size: 1.65rem; line-height: 1; color: var(--au-bone);
+  letter-spacing: -0.012em;
 }
+.au-tcell .v .u {
+  font-family: var(--au-mono); font-style: normal; font-size: 10.5px;
+  font-weight: 600; letter-spacing: 0.16em;
+  color: var(--au-bone-60); text-transform: uppercase;
+  margin-left: 5px;
+}
+.au-tcell .bar {
+  margin-top: 10px;
+  height: 2px; border-radius: 1px;
+  background: rgba(244,239,230,0.06);
+  overflow: hidden; position: relative;
+}
+.au-tcell .bar::before {
+  content: ""; position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--bar, 0%);
+  background: linear-gradient(90deg, var(--au-gold) 0%, var(--au-red) 100%);
+  box-shadow: 0 0 8px -2px var(--au-gold);
+  animation: au-bar-grow 1.6s var(--au-ease-cinema) 0.8s both;
+  transform: scaleX(0); transform-origin: 0 50%;
+}
+@keyframes au-bar-grow { to { transform: scaleX(1); } }
 
-/* Testimonial — REAL horizontal quote card with an initials avatar
-   (gold-gradient circle), the quote, a name line, and the meta
-   ("Travel SS · Class of '27"). No more thin vertical cite strip. */
+/* Testimonial card — same as v2 but slightly tighter padding. */
 .au-quote-card {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 18px;
+  grid-template-columns: 52px 1fr;
+  gap: 16px;
   align-items: center;
-  padding: 18px 20px;
+  padding: 16px 18px;
   border-radius: var(--au-r-card);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
   border: 1px solid var(--au-line-hi);
   position: relative;
-  margin-top: 4px;
 }
 .au-quote-card::before {
-  /* faint editorial "open quote" mark glowing in the upper-left */
   content: "“";
-  position: absolute; top: -12px; left: 18px;
+  position: absolute; top: -10px; left: 16px;
   font-family: var(--au-serif); font-style: italic;
-  font-size: 4.2rem; line-height: 1; color: var(--au-gold);
-  opacity: 0.35;
+  font-size: 3.6rem; line-height: 1; color: var(--au-gold);
+  opacity: 0.3;
   pointer-events: none;
 }
 .au-quote-avatar {
-  width: 56px; height: 56px;
+  width: 52px; height: 52px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--au-serif); font-style: italic;
-  font-size: 1.4rem; color: var(--au-bone-warm);
+  font-size: 1.3rem; color: var(--au-bone-warm);
   background: radial-gradient(120% 80% at 30% 20%,
               rgba(232,193,112,0.34) 0%,
               rgba(230,69,48,0.18) 60%,
               #14171C 100%);
   border: 1px solid var(--au-gold-line);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.10),
-    inset 0 -1px 0 rgba(0,0,0,0.35);
   flex: none;
 }
 .au-quote-body { min-width: 0; }
 .au-quote-text {
   font-family: var(--au-serif); font-style: italic;
-  font-size: 14.5px; line-height: 1.45;
+  font-size: 14px; line-height: 1.45;
   color: var(--au-bone-warm);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 .au-quote-name {
-  font-family: var(--au-mono); font-size: 10.5px; font-weight: 700;
+  font-family: var(--au-mono); font-size: 10px; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--au-bone-warm);
   margin: 0;
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .au-quote-name .meta {
   color: var(--au-bone-40); font-weight: 500;
   letter-spacing: 0.14em;
 }
 .au-quote-name .meta::before {
-  content: "·"; margin-right: 8px; color: var(--au-bone-40);
+  content: "·"; margin-right: 6px; color: var(--au-bone-40);
 }
 
-/* Stats row — three KPIs directly below the testimonial. */
-.au-tele {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-  padding-top: 8px;
-}
-.au-tele > div {
+/* LIVE STATUS TICKER — horizontal marquee at the bottom of the hero
+   stack. Mono caps, with a tiny red live dot at the start, and a
+   masked fade on each end so items appear/disappear gracefully. */
+.au-ticker {
   position: relative;
-  padding: 0 16px;
-}
-.au-tele > div + div::before {
-  content: ""; position: absolute; left: 0; top: 4px; bottom: 4px;
-  width: 1px; background: var(--au-line);
-}
-.au-tele > div:first-child { padding-left: 0; }
-.au-tele .v {
-  font-family: var(--au-serif); font-style: italic;
-  font-size: 1.7rem; line-height: 1; color: var(--au-bone);
-  letter-spacing: -0.012em;
-}
-.au-tele .v .u {
-  font-family: var(--au-mono); font-style: normal; font-size: 10.5px;
-  font-weight: 600; letter-spacing: 0.18em;
-  color: var(--au-bone-60); text-transform: uppercase;
-  margin-left: 6px;
-}
-.au-tele .l {
-  font-family: var(--au-mono); font-size: 9.5px; font-weight: 600;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--au-bone-40);
   margin-top: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--au-line);
+  border-bottom: 1px solid var(--au-line);
+  overflow: hidden;
+  font-family: var(--au-mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.20em; text-transform: uppercase;
+  color: var(--au-bone-60);
+  display: flex; align-items: center; gap: 12px;
+  -webkit-mask-image: linear-gradient(90deg,
+    transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(90deg,
+    transparent 0%, black 8%, black 92%, transparent 100%);
+}
+.au-ticker .live {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--au-red); flex: none; padding-right: 6px;
+  border-right: 1px solid var(--au-line);
+  font-weight: 700; letter-spacing: 0.24em;
+  padding-right: 16px; margin-right: 4px;
+}
+.au-ticker .live::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--au-red); box-shadow: 0 0 9px var(--au-red);
+  animation: au-pulse-red 1.8s ease-in-out infinite;
+}
+.au-ticker-track {
+  display: inline-flex; gap: 32px;
+  white-space: nowrap; flex-shrink: 0;
+  animation: au-ticker-scroll 38s linear infinite;
+}
+.au-ticker-track span {
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.au-ticker-track span .v {
+  color: var(--au-bone); font-weight: 700;
+  letter-spacing: 0.10em;
+}
+.au-ticker-track span .v.gold { color: var(--au-gold); }
+@keyframes au-ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 /* ============ RIGHT AUTH PANEL ============ */
@@ -443,48 +519,79 @@ html, body,
   padding: 80px 56px 80px !important;
   min-height: 100vh;
 }
-/* The single LayoutWrapper holding the auth_card keyed container —
-   constrain it so the card sits at 440px even though the panel is
-   wider. */
 .st-key-auth_panel > [data-testid="stLayoutWrapper"] {
-  width: 100% !important; max-width: 440px !important;
+  width: 100% !important; max-width: 460px !important;
   flex: 0 0 auto !important;
 }
 
-/* ============ AUTH CARD — REAL keyed container wrapping widgets ============
-   Previous bug: I tried `st.markdown('<div class="au-card-frame">')`
-   to open a card wrapper, but Streamlit 1.57 auto-closes it into an
-   empty sibling, so the card chrome rendered around nothing. Now
-   .st-key-auth_card is a real st.container(key=…) — the widgets
-   below it ARE descendants — and the glass-surface CSS lands. */
+/* ============ AUTH CARD — industrial notched corner, telemetry tick strip top ============ */
 .st-key-auth_card {
   position: relative;
   width: 100% !important;
-  padding: 32px 32px 26px !important;
-  border-radius: var(--au-r-card) !important;
+  padding: 36px 36px 28px !important;
+  /* Industrial NOTCHED CORNER at top-right.
+     The clip-path defines the visible shape; the same path is
+     redrawn as a border via the ::after pseudo. */
+  --notch: 24px;
   background:
     linear-gradient(180deg, rgba(20,23,28,0.78) 0%, rgba(13,15,19,0.92) 100%) !important;
   -webkit-backdrop-filter: blur(22px) saturate(1.2);
   backdrop-filter: blur(22px) saturate(1.2);
   border: 1px solid var(--au-line-hi) !important;
+  border-radius: var(--au-r-card) !important;
   box-shadow:
-    0 30px 60px -24px rgba(0,0,0,0.65),
-    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    0 36px 70px -26px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 0 0 1px rgba(232,193,112,0.05) !important;
   overflow: visible !important;
+  animation: au-card-rise 900ms var(--au-ease-cinema) 0.2s both;
 }
+@keyframes au-card-rise {
+  from { opacity: 0; transform: translateY(20px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Telemetry tick strip at the top edge of the card. A row of tiny
+   vertical hairlines with one slightly taller "active" gold tick —
+   reads as an F1 timing-gate readout, not a generic gradient stroke. */
 .st-key-auth_card::before {
-  /* gold→red top-edge gradient stroke (the only decorative
-     pseudo-element on the card — everything else is solid) */
   content: ""; position: absolute;
-  left: 32px; right: 32px; top: 0; height: 1.5px;
-  background: linear-gradient(90deg,
-    transparent 0%, var(--au-gold) 30%,
-    var(--au-red) 70%, transparent 100%);
-  opacity: 0.9;
-  border-radius: 1px;
+  left: 28px; right: 28px; top: 0; height: 16px;
   pointer-events: none;
+  background-image:
+    /* one gold active tick, doubled for emphasis */
+    linear-gradient(to bottom, var(--au-gold) 0 9px, transparent 9px),
+    /* the row of dim ticks behind it */
+    repeating-linear-gradient(to right,
+      var(--au-bone-20) 0 1px,
+      transparent 1px 14px);
+  background-position: 28px 0, 0 0;
+  background-size: 1.5px 9px, 14px 6px;
+  background-repeat: no-repeat, repeat-x;
+  filter: drop-shadow(0 0 5px rgba(232,193,112,0.5));
+  opacity: 0.85;
 }
-/* Tight gap inside the card */
+
+/* Registration mark "+" ornament in the bottom-left, lab notebook
+   style. */
+.st-key-auth_card::after {
+  content: ""; position: absolute;
+  left: 16px; bottom: 16px;
+  width: 10px; height: 10px;
+  background-image:
+    linear-gradient(to right, transparent 4.5px,
+                              var(--au-bone-20) 4.5px,
+                              var(--au-bone-20) 5.5px,
+                              transparent 5.5px),
+    linear-gradient(to bottom, transparent 4.5px,
+                               var(--au-bone-20) 4.5px,
+                               var(--au-bone-20) 5.5px,
+                               transparent 5.5px);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Inner content spacing */
 .st-key-auth_card > [data-testid="stLayoutWrapper"] {
   width: 100% !important;
 }
@@ -492,95 +599,57 @@ html, body,
   margin-top: 0 !important; margin-bottom: 0 !important;
 }
 
-/* ============ Card eyebrow / title / sub ============ */
+/* ============ CARD HEAD ROW — eyebrow + mode lozenge ============
+   The mode lozenge replaces the v2 toggle. Sits on the RIGHT side of
+   a flex row at the top of the card content; the eyebrow sits on
+   the LEFT. Both are subtle mono-caps labels — the right one (mode
+   pill) carries a tiny gold dot + numeric step like an F1 timing
+   gate readout. */
+.au-card-head {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 6px 0 10px;
+}
 .au-card-eyebrow {
   font-family: var(--au-mono); font-size: 10px; font-weight: 600;
   letter-spacing: 0.26em; text-transform: uppercase;
-  color: var(--au-gold);
-  display: inline-flex; align-items: center; gap: 8px;
-  margin: 4px 0 8px;
+  color: var(--au-bone-40);
+  margin: 0;
+  flex: 0 0 auto;
 }
-.au-card-eyebrow::before {
-  content: ""; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--au-gold); box-shadow: 0 0 9px var(--au-gold);
+.au-mode-pill {
+  font-family: var(--au-mono); font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--au-gold);
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.au-mode-pill::before {
+  content: ""; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--au-gold);
+  box-shadow: 0 0 7px var(--au-gold);
+}
+.au-mode-pill .num {
+  color: var(--au-bone-40); font-weight: 500;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--au-bone-20);
 }
 .au-card-title {
   font-family: var(--au-serif); font-style: italic;
-  font-size: 1.95rem; line-height: 1.0;
-  letter-spacing: -0.015em; color: var(--au-bone);
+  font-size: 2.1rem; line-height: 0.98;
+  letter-spacing: -0.018em; color: var(--au-bone);
   margin: 0 0 6px;
+  font-weight: 400;
 }
 .au-card-sub {
   color: var(--au-bone-60);
   font-size: 13px; line-height: 1.5;
-  margin: 0 0 16px;
-}
-
-/* ============ Segmented toggle ============ */
-.st-key-auth_toggle {
-  display: flex !important;
-  flex-direction: row !important;
-  background: var(--au-ink-2);
-  border: 1px solid var(--au-line-hi);
-  border-radius: var(--au-r-mid);
-  padding: 4px;
-  gap: 4px;
-  margin: 0 0 20px !important;
-}
-.st-key-auth_toggle [data-testid="stLayoutWrapper"],
-.st-key-auth_toggle [data-testid="stHorizontalBlock"],
-.st-key-auth_toggle [data-testid="stColumn"],
-.st-key-auth_toggle [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {
-  display: contents !important;
-}
-.st-key-auth_toggle [data-testid="stElementContainer"] {
-  flex: 1 1 0 !important; margin: 0 !important;
-}
-.st-key-auth_toggle [data-testid="stButton"] {
-  flex: 1 1 0 !important; width: 100% !important;
-}
-.st-key-auth_toggle [data-testid="stButton"] button {
-  width: 100% !important;
-  border: 1px solid transparent !important;
-  background: transparent !important;
-  border-radius: var(--au-r-sm) !important;
-  font-family: var(--au-mono) !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.16em !important;
-  text-transform: uppercase !important;
-  color: var(--au-bone-60) !important;
-  padding: 0.55rem 0.5rem !important;
-  position: relative !important;
-  min-height: 0 !important; height: 36px !important; line-height: 1.2 !important;
-  box-shadow: none !important;
-  transition: color .18s, background .18s;
-}
-.st-key-auth_toggle [data-testid="stButton"] button:hover {
-  color: var(--au-bone) !important;
-  background: var(--au-glass-1) !important;
-}
-.st-key-auth_toggle [data-testid="stButton"] button[kind="primary"],
-.st-key-auth_toggle [data-testid="stButton"] button[data-testid="stBaseButton-primary"],
-.st-key-auth_toggle [data-testid="stButton"] button[data-testid="baseButton-primary"] {
-  background: linear-gradient(180deg,
-    rgba(244,239,230,0.10), rgba(244,239,230,0.04)) !important;
-  color: var(--au-bone-warm) !important;
-  border-color: rgba(244,239,230,0.12) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.10),
-    inset 0 -1px 0 rgba(0,0,0,0.18) !important;
-}
-.st-key-auth_toggle [data-testid="stButton"] button[kind="primary"]::after,
-.st-key-auth_toggle [data-testid="stButton"] button[data-testid="stBaseButton-primary"]::after,
-.st-key-auth_toggle [data-testid="stButton"] button[data-testid="baseButton-primary"]::after {
-  content: ""; position: absolute;
-  left: 16px; right: 16px; bottom: 4px;
-  height: 1.5px; border-radius: 1px;
-  background: linear-gradient(90deg,
-    rgba(232,193,112,0) 0%, var(--au-gold) 30%,
-    var(--au-red) 70%, rgba(230,69,48,0) 100%);
-  box-shadow: 0 0 10px -1px rgba(232,193,112,0.5);
+  margin: 0 0 18px;
 }
 
 /* ============ Form widgets ============ */
@@ -590,9 +659,9 @@ html, body,
 .st-key-auth_card [data-testid="stTextArea"] label {
   font-family: var(--au-mono) !important;
   font-size: 9.5px !important;
-  letter-spacing: 0.20em !important;
+  letter-spacing: 0.22em !important;
   text-transform: uppercase !important;
-  color: var(--au-bone-60) !important;
+  color: var(--au-bone-40) !important;
   font-weight: 600 !important;
   padding-bottom: 5px !important;
 }
@@ -605,8 +674,9 @@ html, body,
   color: var(--au-bone) !important;
   font-family: var(--au-sans) !important;
   font-size: 14px !important;
-  padding: 0.65rem 0.9rem !important;
-  transition: border-color .2s, box-shadow .2s;
+  padding: 0.65rem 0.95rem !important;
+  transition: border-color .22s var(--au-ease-soft),
+              box-shadow .22s var(--au-ease-soft);
   caret-color: var(--au-gold) !important;
   height: 44px !important;
   box-sizing: border-box !important;
@@ -615,7 +685,9 @@ html, body,
 .st-key-auth_card [data-testid="stNumberInput"] input:focus,
 .st-key-auth_card [data-testid="stTextArea"] textarea:focus {
   border-color: var(--au-gold-line) !important;
-  box-shadow: 0 0 0 3px rgba(232,193,112,0.12) !important;
+  box-shadow:
+    0 0 0 3px rgba(232,193,112,0.12),
+    inset 0 0 0 1px rgba(232,193,112,0.08) !important;
   outline: none !important;
 }
 .st-key-auth_card input::placeholder,
@@ -658,8 +730,10 @@ html, body,
   background: var(--au-glass-1) !important;
   color: var(--au-bone) !important;
   border: 1px solid var(--au-line-hi) !important;
-  transition: transform .18s, border-color .18s, background .18s,
-              box-shadow .18s;
+  transition: transform .22s var(--au-ease-soft),
+              border-color .22s var(--au-ease-soft),
+              background .22s var(--au-ease-soft),
+              box-shadow .22s var(--au-ease-soft);
   min-height: 0 !important; height: auto !important; line-height: 1.2 !important;
 }
 .st-key-auth_card [data-testid="stButton"] button:hover,
@@ -667,7 +741,9 @@ html, body,
   border-color: var(--au-line-hi-2) !important;
   background: var(--au-glass-2) !important;
 }
-/* Primary CTA — the strongest visual on the page */
+
+/* Primary CTA — the strongest visual on the page. Now ALSO carries
+   a subtle "energy ripple" pseudo that pulses outward on hover. */
 .st-key-auth_card [data-testid="stFormSubmitButton"] button[kind="primary"],
 .st-key-auth_card [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primary"],
 .st-key-auth_card [data-testid="stFormSubmitButton"] button[data-testid="baseButton-primary"],
@@ -679,26 +755,28 @@ html, body,
   font-weight: 600 !important;
   letter-spacing: 0.01em !important;
   border: 1px solid rgba(0,0,0,0.25) !important;
-  height: 48px !important;
-  padding: 0 22px !important;
+  height: 50px !important;
+  padding: 0 24px !important;
   font-size: 13.5px !important;
+  position: relative !important;
+  overflow: hidden !important;
   box-shadow:
     inset 0 1px 0 rgba(232,193,112,0.55),
     inset 0 -1px 0 rgba(0,0,0,0.35),
     inset 0 0 0 1px rgba(255,255,255,0.06),
-    0 10px 24px -8px rgba(230,69,48,0.50),
+    0 12px 28px -10px rgba(230,69,48,0.52),
     0 1px 0 rgba(255,255,255,0.04) !important;
-  margin-top: 4px !important;
+  margin-top: 6px !important;
 }
 .st-key-auth_card [data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
 .st-key-auth_card [data-testid="stButton"] button[kind="primary"]:hover {
   transform: translateY(-1px) !important;
   box-shadow:
-    inset 0 1px 0 rgba(232,193,112,0.75),
+    inset 0 1px 0 rgba(232,193,112,0.85),
     inset 0 -1px 0 rgba(0,0,0,0.35),
     inset 0 0 0 1px rgba(255,255,255,0.08),
-    0 14px 32px -8px rgba(230,69,48,0.62),
-    0 0 28px -8px rgba(232,193,112,0.36) !important;
+    0 18px 36px -10px rgba(230,69,48,0.65),
+    0 0 32px -8px rgba(232,193,112,0.38) !important;
 }
 .st-key-auth_card button:focus-visible {
   outline: none !important;
@@ -707,24 +785,23 @@ html, body,
     0 0 0 4px rgba(232,193,112,0.10) !important;
 }
 
-/* Forgot-password link — quiet "ghost" treatment so it doesn't fight
-   the CTA for attention. Renders centered below the CTA. */
-.st-key-auth_card .st-key-forgot_btn [data-testid="stButton"] button,
-.st-key-auth_card .st-key-forgot_btn button {
-  background: transparent !important;
-  border: none !important;
-  color: var(--au-bone-60) !important;
-  font-family: var(--au-mono) !important;
-  font-size: 10.5px !important;
-  letter-spacing: 0.16em !important;
-  text-transform: uppercase !important;
-  font-weight: 600 !important;
-  padding: 8px 12px !important;
-  margin-top: 4px !important;
-  width: auto !important;
-}
+/* Inline forgot-password link under the form. Sized as a quiet
+   tertiary action, mono caps, centered, no fill. */
 .st-key-forgot_btn {
   display: flex !important; justify-content: center !important;
+  margin-top: 4px !important;
+}
+.st-key-forgot_btn [data-testid="stButton"] button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--au-bone-40) !important;
+  font-family: var(--au-mono) !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  padding: 6px 12px !important;
+  width: auto !important;
 }
 .st-key-forgot_btn [data-testid="stButton"] button:hover {
   color: var(--au-gold) !important;
@@ -733,13 +810,64 @@ html, body,
   box-shadow: none !important;
 }
 
-/* Google placeholder + divider */
+/* ============ MODE SWITCHER (bottom of card) ============
+   The replacement for the hated toggle. A single quiet line. */
+.au-mode-switch {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--au-line);
+  text-align: center;
+  font-family: var(--au-sans); font-size: 13px; font-weight: 500;
+  color: var(--au-bone-60);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.st-key-mode_switch [data-testid="stButton"] button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--au-bone-warm) !important;
+  font-family: var(--au-mono) !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.20em !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  padding: 6px 4px !important;
+  position: relative !important;
+  width: auto !important;
+  height: auto !important;
+}
+.st-key-mode_switch [data-testid="stButton"] button:hover {
+  color: var(--au-gold) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.st-key-mode_switch [data-testid="stButton"] button::after {
+  content: ""; position: absolute;
+  left: 8px; right: 8px; bottom: 2px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--au-gold), var(--au-red));
+  transform: scaleX(0);
+  transform-origin: 50% 50%;
+  transition: transform .25s var(--au-ease-cinema);
+}
+.st-key-mode_switch [data-testid="stButton"] button:hover::after {
+  transform: scaleX(1);
+}
+.st-key-mode_switch {
+  display: flex !important; justify-content: center !important;
+  margin-top: 14px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid var(--au-line);
+}
+
+/* Google placeholder + "or" divider */
 .au-divider {
   display: flex; align-items: center; gap: 12px;
-  font-family: var(--au-mono); font-size: 10px; font-weight: 600;
-  letter-spacing: 0.20em; text-transform: uppercase;
+  font-family: var(--au-mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--au-bone-40);
-  margin: 16px 0 12px;
+  margin: 14px 0 10px;
 }
 .au-divider::before,
 .au-divider::after {
@@ -775,7 +903,7 @@ html, body,
 /* legal */
 .au-legal {
   text-align: center;
-  margin: 16px 0 0;
+  margin: 12px 0 0;
   font-family: var(--au-mono); font-size: 9.5px; font-weight: 500;
   letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--au-bone-40);
@@ -798,7 +926,7 @@ html, body,
 }
 .st-key-auth_card [data-testid="stAlert"] svg { fill: currentColor !important; }
 
-/* ============ Recovery screen (centered single card) ============ */
+/* ============ Recovery screen ============ */
 .st-key-auth_recovery {
   min-height: 100vh;
   display: flex !important; flex-direction: column !important;
@@ -809,80 +937,64 @@ html, body,
   width: 100% !important; max-width: 460px !important;
   flex: 0 0 auto !important;
 }
-.st-key-auth_recovery .st-key-auth_card {
-  /* re-uses the same card styles */
-}
 
 /* ============ Responsive ============ */
 @media (max-width: 1180px) {
-  .st-key-auth_hero  { padding: 88px 44px 64px !important; }
+  .st-key-auth_hero  { padding: 90px 44px 70px !important; }
   .st-key-auth_panel { padding: 64px 44px !important; }
   .au-title { font-size: clamp(2.4rem, 4.4vw, 3.8rem); }
-  .au-content { max-width: 520px; }
+  .au-content { max-width: 540px; }
+  .au-swingpath { width: 60vw; }
 }
 @media (max-width: 980px) {
   .au-brand-fixed { top: 22px; left: 22px; }
+  .au-corner-tele { top: 22px; right: 22px; gap: 12px; }
+  .au-corner-tele .live { font-size: 9.5px; }
+  .au-swingpath { display: none; }
   .st-key-auth_root {
     grid-template-columns: 1fr !important;
     max-width: none !important;
   }
   .st-key-auth_hero {
     min-height: auto !important;
-    padding: 80px 28px 36px !important;
+    padding: 88px 28px 40px !important;
     align-items: center !important;
   }
-  .au-content { max-width: 560px; align-items: stretch; margin: 0 auto; }
+  .au-content { max-width: 580px; align-items: stretch; margin: 0 auto; }
   .au-title { font-size: 2.4rem; }
-  .au-motif { display: none; } /* less subtle = noisy on stacked layout */
   .st-key-auth_panel {
     min-height: auto !important;
-    padding: 24px 24px 56px !important;
+    padding: 28px 24px 56px !important;
   }
-  .st-key-auth_card { padding: 26px 24px 22px !important; }
+  .st-key-auth_card { padding: 28px 24px 24px !important; }
 }
 @media (max-width: 640px) {
   .au-brand-fixed { font-size: 11px; }
   .au-brand-fixed .ed { font-size: 14px; }
-  .st-key-auth_hero  { padding: 70px 18px 28px !important; }
+  .au-corner-tele { display: none; }
+  .st-key-auth_hero  { padding: 70px 18px 30px !important; }
   .st-key-auth_panel { padding: 18px 14px 40px !important; }
   .au-title { font-size: 2.0rem; }
-  .au-row { grid-template-columns: 28px 1fr; gap: 12px; padding: 9px 12px; }
-  .au-row .au-num { width: 28px; height: 28px; font-size: 9.5px; }
-  .au-quote-card { grid-template-columns: 44px 1fr; padding: 16px; gap: 14px; }
-  .au-quote-avatar { width: 44px; height: 44px; font-size: 1.15rem; }
-  .au-tele { grid-template-columns: 1fr 1fr; gap: 14px 0; }
-  .au-tele > div:nth-child(3) {
-    grid-column: 1 / -1; padding-top: 14px;
-    margin-top: 6px; border-top: 1px solid var(--au-line);
+  .au-tgrid { grid-template-columns: 1fr; gap: 8px; }
+  .au-tcell { padding: 12px 14px 14px; }
+  .au-quote-card { grid-template-columns: 44px 1fr; padding: 14px; gap: 12px; }
+  .au-quote-avatar { width: 44px; height: 44px; font-size: 1.1rem; }
+  .au-ticker { font-size: 9.5px; padding: 10px 0; }
+  .st-key-auth_card {
+    padding: 26px 20px 22px !important;
+    border-radius: 18px !important;
   }
-  .au-tele > div:nth-child(3)::before { display: none; }
-  .au-tele > div { padding: 0 12px; }
-  .au-tele > div:first-child { padding-left: 0; }
-  .st-key-auth_card { padding: 22px 18px 20px !important; border-radius: 18px !important; }
-  .au-card-title { font-size: 1.7rem; }
+  .au-card-title { font-size: 1.75rem; }
+  .au-mode-pill { top: 18px; right: 20px; font-size: 9px; }
 }
 </style>
 """
 
 
 # =====================================================================
-# Hero HTML — single self-contained markdown emit
+# Hero HTML
 # =====================================================================
-_FEATURE_ROWS = [
-    ("01", "Upload one swing",
-     "A single phone clip — no mocap suit, no app gating."),
-    ("02", "AI biomechanical breakdown",
-     "Pose-tracked metrics across the whole swing."),
-    ("03", "Compare to MLB hitters",
-     "Side-by-side against pros matched to your build."),
-    ("04", "Personalized drill plan",
-     "Top-3 fixes ranked by impact, with rep counts."),
-]
-
-
 def _brand_fixed_html() -> str:
-    """Brand mark stamped fixed at the page's top-left so it doesn't
-    eat vertical space in the hero content stack."""
     logo_uri = _bl_logo_data_uri()
     if logo_uri:
         mark = f'<img src="{logo_uri}" alt="BarrelLabs">'
@@ -896,30 +1008,117 @@ def _brand_fixed_html() -> str:
     )
 
 
-def _hero_html() -> str:
-    """Render the LEFT hero content as ONE markdown blob.
-
-    All content sits inside `.au-content` which is `display: flex;
-    flex-direction: column; max-width: 560px` so the eye reads a
-    deliberate vertical stack: eyebrow → title → sub → ladder →
-    testimonial → stats. No content lives outside this column.
-    """
-    ladder_html = "".join(
-        f'<div class="au-row">'
-        f'  <div class="au-num">{n}</div>'
-        f'  <div><strong>{html.escape(title)}</strong>'
-        f'  <span>{html.escape(body)}</span></div>'
-        f'</div>'
-        for n, title, body in _FEATURE_ROWS
+def _corner_tele_html() -> str:
+    """Top-right tiny telemetry header — session date + live status."""
+    today = datetime.now()
+    session_id = f"{today.strftime('%y.%m')}"
+    return (
+        '<div class="au-corner-tele">'
+        f'<span>{session_id} · MAIN</span>'
+        '<span class="live">Analyzer online</span>'
+        '</div>'
     )
 
+
+def _swing_path_svg() -> str:
+    """A subtle hand-drawn-feeling swing trajectory SVG. Draws in via
+    stroke-dashoffset animation. The path uses TWO strokes: a blurred
+    underlay (soft glow) and a sharp top stroke (the visible line)."""
+    return """
+<div class="au-swingpath">
+<svg viewBox="0 0 800 900" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="auGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#E8C170"/>
+      <stop offset="100%" stop-color="#E64530"/>
+    </linearGradient>
+  </defs>
+  <!-- soft glow underlay -->
+  <path class="blur"
+        d="M -50 900 C 120 720, 230 540, 360 470 C 540 380, 680 240, 880 80"
+        stroke="url(#auGrad)"/>
+  <!-- sharp line -->
+  <path d="M -50 900 C 120 720, 230 540, 360 470 C 540 380, 680 240, 880 80"
+        stroke="url(#auGrad)"/>
+  <!-- arrival dot at the end of the swing path -->
+  <circle class="dot" cx="880" cy="80" r="5"/>
+  <circle class="dot" cx="880" cy="80" r="14" fill="none"
+          stroke="#E8C170" stroke-width="1" opacity="0.45"/>
+</svg>
+</div>
+"""
+
+
+def _telemetry_grid_html() -> str:
+    """2x2 telemetry grid replacing the v2 feature ladder."""
+    cells = [
+        ("01", "MLB-MATCH ACCURACY",  "87",  "%",   "87"),
+        ("02", "METRICS DELIVERED",   "40",  "",    "82"),
+        ("03", "PER-SWING REPORT",    "30",  "sec", "92"),
+        ("04", "PRO REFERENCES",      "1,247", "",  "76"),
+    ]
+    cells_html = "".join(
+        f'<div class="au-tcell">'
+        f'  <div class="label">{html.escape(label)} <span class="id">{idx}</span></div>'
+        f'  <div class="v">{html.escape(v)}<span class="u">{html.escape(u)}</span></div>'
+        f'  <div class="bar" style="--bar: {bar}%;"></div>'
+        f'</div>'
+        for idx, label, v, u, bar in cells
+    )
+    return f'<div class="au-tgrid">{cells_html}</div>'
+
+
+def _ticker_html() -> str:
+    """Live status ticker. Track is duplicated so the marquee loop
+    seamless without a gap."""
+    items = [
+        ('ANALYZER ONLINE',          'gold'),
+        ('23 SWINGS PROCESSED TODAY',None),
+        ('1,247 PRO REFS LOADED',    None),
+        ('MLB SIM% 87',              None),
+        ('BAT LAG +0.04s',           None),
+        ('HSC 32°',                  None),
+        ('SCORE 84',                 'gold'),
+        ('HEAD DRIFT 2.1cm',         None),
+        ('AVG ANALYSIS 28s',         None),
+        ('UPTIME 99.97%',            None),
+    ]
+
+    def _item(text: str, color: str | None) -> str:
+        if "%" in text or "+" in text or "°" in text or "cm" in text or "s" in text:
+            # if the text contains a numeric value, color the FIRST
+            # alphanumeric word OR the trailing number — easier: just
+            # wrap the entire text in mono caps and let the value glow.
+            cls = "v" + (" gold" if color else "")
+            return f'<span><span class="{cls}">{html.escape(text)}</span></span>'
+        cls = "v" + (" gold" if color else "")
+        return f'<span><span class="{cls}">{html.escape(text)}</span></span>'
+
+    track_html = "".join(_item(t, c) for t, c in items)
+    # Duplicate the track so the marquee scroll loops seamlessly
+    full_track = (
+        f'<div class="au-ticker-track">{track_html}{track_html}</div>'
+    )
+    return (
+        '<div class="au-ticker">'
+        '<span class="live">Live</span>'
+        f'{full_track}'
+        '</div>'
+    )
+
+
+def _hero_html() -> str:
+    """One self-contained markdown blob. Children of .au-content are
+    fade-up staggered via CSS nth-child animation-delay."""
+    today = datetime.now()
+    session_label = f"SESSION {today.strftime('%m.%Y')} · PERFORMANCE LAB"
     return f"""
-<div class="au-motif"></div>
 <div class="au-content">
-  <span class="au-eyebrow">SwingAI · Performance Lab</span>
+  <div class="au-session-id"><span class="sep"></span><span class="tag">{session_label}</span></div>
+  <span class="au-eyebrow">SwingAI · MLB-grade analysis</span>
   <h1 class="au-title">Find your<br/>MLB <span class="twin">swing twin</span><span class="period">.</span></h1>
   <p class="au-sub">Upload one swing and walk away with an MLB-grade biomechanical breakdown, the pro you swing like, and a personalized drill plan — in under a minute.</p>
-  <div class="au-ladder">{ladder_html}</div>
+  {_telemetry_grid_html()}
   <div class="au-quote-card">
     <div class="au-quote-avatar">TK</div>
     <div class="au-quote-body">
@@ -927,20 +1126,7 @@ def _hero_html() -> str:
       <p class="au-quote-name">Travis K.<span class="meta">Travel SS · Class of '27</span></p>
     </div>
   </div>
-  <div class="au-tele">
-    <div>
-      <div class="v">10<span class="u">+</span></div>
-      <div class="l">MLB references</div>
-    </div>
-    <div>
-      <div class="v">40<span class="u">+</span></div>
-      <div class="l">Biomech metrics</div>
-    </div>
-    <div>
-      <div class="v">30<span class="u">sec</span></div>
-      <div class="l">Per analysis</div>
-    </div>
-  </div>
+  {_ticker_html()}
 </div>
 """
 
@@ -969,17 +1155,19 @@ def _legal_html() -> str:
 
 
 # =====================================================================
-# Forms — each renders the inside of the .st-key-auth_card container.
+# Forms — each renders inside the .st-key-auth_card container.
+#
+# IMPORTANT v3 layout:
+#   - Mode lozenge sits in the card top-right (rendered before the
+#     form by the public entry).
+#   - Card title + sub render first.
+#   - Form renders with the CTA INSIDE the form.
+#   - Forgot password sits below the CTA (login only).
+#   - Google placeholder + legal sit at the bottom.
+#   - Mode switcher (kicker line linking to the other mode) is the
+#     LAST element in the card.
 # =====================================================================
 def _render_login_form() -> None:
-    st.markdown(
-        '<div class="au-card-eyebrow">Welcome back</div>'
-        '<h2 class="au-card-title">Welcome back.</h2>'
-        '<p class="au-card-sub">Continue your path to elite performance — '
-        'your swing library is right where you left it.</p>',
-        unsafe_allow_html=True,
-    )
-
     show_pw = bool(st.session_state.get("auth_show_pw"))
 
     with st.form("login_form_v2", clear_on_submit=False):
@@ -990,7 +1178,7 @@ def _render_login_form() -> None:
         login_pw = st.text_input(
             "Password",
             type=("default" if show_pw else "password"),
-            placeholder="Your password",
+            placeholder="••••••••",
             key="login_pw_v2",
         )
 
@@ -1010,7 +1198,7 @@ def _render_login_form() -> None:
             )
 
         submitted = st.form_submit_button(
-            "Access your Performance Lab  →",
+            "Enter the Performance Lab  →",
             type="primary",
             use_container_width=True,
         )
@@ -1026,9 +1214,8 @@ def _render_login_form() -> None:
             except Exception as exc:
                 st.error(f"Couldn't sign in: {exc}")
 
-    # Forgot-password — a ghost button visually distinct from the CTA.
-    # Wrapped in its own keyed container so the centered/quiet styling
-    # only applies to this button, not other secondary buttons.
+    # Forgot-password — directly under the CTA, as a quiet mono-caps
+    # tertiary link.
     with st.container(key="forgot_btn"):
         if st.button(
             "Forgot password?",
@@ -1038,19 +1225,8 @@ def _render_login_form() -> None:
             st.session_state["auth_mode"] = "forgot"
             st.rerun()
 
-    st.markdown(_google_placeholder_html(), unsafe_allow_html=True)
-    st.markdown(_legal_html(), unsafe_allow_html=True)
-
 
 def _render_signup_form() -> None:
-    st.markdown(
-        '<div class="au-card-eyebrow">Create account</div>'
-        '<h2 class="au-card-title">Create your account.</h2>'
-        '<p class="au-card-sub">Start analyzing your swing like the pros. '
-        'One clip is all the analyzer needs.</p>',
-        unsafe_allow_html=True,
-    )
-
     show_pw = bool(st.session_state.get("auth_show_pw_su"))
 
     with st.form("signup_form_v2", clear_on_submit=False):
@@ -1089,8 +1265,8 @@ def _render_signup_form() -> None:
 
         st.markdown(
             '<div style="margin-top:6px; font-family:var(--au-mono); '
-            'font-size:9.5px; letter-spacing:0.20em; '
-            'text-transform:uppercase; color:var(--au-bone-60); '
+            'font-size:9.5px; letter-spacing:0.22em; '
+            'text-transform:uppercase; color:var(--au-bone-40); '
             'font-weight:600; padding-bottom:4px;">'
             'Physical profile · refines MLB comparisons</div>',
             unsafe_allow_html=True,
@@ -1120,7 +1296,7 @@ def _render_signup_form() -> None:
             )
 
         submitted = st.form_submit_button(
-            "Start your free analysis  →",
+            "Begin your free analysis  →",
             type="primary",
             use_container_width=True,
         )
@@ -1159,19 +1335,8 @@ def _render_signup_form() -> None:
                 except Exception as exc:
                     st.error(f"Signup failed: {exc}")
 
-    st.markdown(_google_placeholder_html(), unsafe_allow_html=True)
-    st.markdown(_legal_html(), unsafe_allow_html=True)
-
 
 def _render_forgot_form() -> None:
-    st.markdown(
-        '<div class="au-card-eyebrow">Reset</div>'
-        '<h2 class="au-card-title">Reset your password.</h2>'
-        '<p class="au-card-sub">Enter the email you used to sign up. We\'ll '
-        'send a one-time link to set a new password.</p>',
-        unsafe_allow_html=True,
-    )
-
     with st.form("forgot_form_v2", clear_on_submit=False):
         forgot_email = st.text_input(
             "Email", placeholder="you@example.com",
@@ -1258,7 +1423,36 @@ def render_auth_screen() -> None:
     """Render the split-screen login / signup / forgot-password page."""
     st.markdown(_AUTH_CSS, unsafe_allow_html=True)
     st.markdown('<div class="auth-grain"></div>', unsafe_allow_html=True)
+    st.markdown(_swing_path_svg(), unsafe_allow_html=True)
     st.markdown(_brand_fixed_html(), unsafe_allow_html=True)
+    st.markdown(_corner_tele_html(), unsafe_allow_html=True)
+
+    mode = st.session_state.get("auth_mode")
+    if mode not in ("forgot", "signup"):
+        mode = "login"
+
+    # Mode-specific copy
+    if mode == "login":
+        pill = ('<div class="au-mode-pill">Access mode'
+                '<span class="num">01 / 02</span></div>')
+        eyebrow = "Welcome back"
+        title = "Welcome back."
+        sub = ("Continue your path to elite performance — your swing "
+               "library is right where you left it.")
+    elif mode == "signup":
+        pill = ('<div class="au-mode-pill">New member'
+                '<span class="num">02 / 02</span></div>')
+        eyebrow = "Create account"
+        title = "Create your account."
+        sub = ("Start analyzing your swing like the pros. One clip is "
+               "all the analyzer needs.")
+    else:  # forgot
+        pill = ('<div class="au-mode-pill">Recovery'
+                '<span class="num">RST / 01</span></div>')
+        eyebrow = "Reset"
+        title = "Reset your password."
+        sub = ("Enter the email you used to sign up. We'll send a "
+               "one-time link to set a new password.")
 
     with st.container(key="auth_root"):
         # ============== LEFT: hero panel ==============
@@ -1267,36 +1461,20 @@ def render_auth_screen() -> None:
 
         # ============== RIGHT: auth panel ==============
         with st.container(key="auth_panel"):
-            mode = st.session_state.get("auth_mode")
-            if mode not in ("forgot", "signup"):
-                mode = "login"
-
-            # The REAL glass card — a keyed container so widgets are
-            # descendants and .st-key-auth_card actually wraps them
-            # (fixing the v1 markdown-div-trap bug where the card
-            # rendered around nothing).
             with st.container(key="auth_card"):
-                if mode != "forgot":
-                    with st.container(key="auth_toggle"):
-                        t1, t2 = st.columns(2)
-                        with t1:
-                            if st.button(
-                                "Sign in",
-                                key="auth_toggle_login",
-                                type=("primary" if mode == "login" else "secondary"),
-                                use_container_width=True,
-                            ):
-                                st.session_state.pop("auth_mode", None)
-                                st.rerun()
-                        with t2:
-                            if st.button(
-                                "Create account",
-                                key="auth_toggle_signup",
-                                type=("primary" if mode == "signup" else "secondary"),
-                                use_container_width=True,
-                            ):
-                                st.session_state["auth_mode"] = "signup"
-                                st.rerun()
+                # Card head — flex row with eyebrow on the left and the
+                # mode lozenge on the right. (v3.1: replaces the v3
+                # absolute-positioned pill that broke because Streamlit's
+                # markdown wrappers carry their own stacking context.)
+                st.markdown(
+                    f'<div class="au-card-head">'
+                    f'  <div class="au-card-eyebrow">{html.escape(eyebrow)}</div>'
+                    f'  {pill}'
+                    f'</div>'
+                    f'<h2 class="au-card-title">{html.escape(title)}</h2>'
+                    f'<p class="au-card-sub">{html.escape(sub)}</p>',
+                    unsafe_allow_html=True,
+                )
 
                 if mode == "login":
                     _render_login_form()
@@ -1304,6 +1482,34 @@ def render_auth_screen() -> None:
                     _render_signup_form()
                 else:
                     _render_forgot_form()
+
+                # Google placeholder + legal — only on login/signup,
+                # not in forgot mode.
+                if mode != "forgot":
+                    st.markdown(_google_placeholder_html(),
+                                 unsafe_allow_html=True)
+                    st.markdown(_legal_html(), unsafe_allow_html=True)
+
+                # MODE SWITCHER — the thing that replaces the hated
+                # toggle. One quiet line at the bottom of the card.
+                if mode == "login":
+                    with st.container(key="mode_switch"):
+                        if st.button(
+                            "New to BarrelLabs?  Create your account  →",
+                            key="auth_switch_to_signup",
+                        ):
+                            st.session_state["auth_mode"] = "signup"
+                            st.rerun()
+                elif mode == "signup":
+                    with st.container(key="mode_switch"):
+                        if st.button(
+                            "←  Already a member?  Sign in",
+                            key="auth_switch_to_login",
+                        ):
+                            st.session_state.pop("auth_mode", None)
+                            st.rerun()
+                # In forgot mode the back-button inside the form
+                # handles returning to login — no mode-switcher line.
 
 
 def render_recovery_screen() -> None:
@@ -1316,6 +1522,7 @@ def render_recovery_screen() -> None:
     with st.container(key="auth_recovery"):
         with st.container(key="auth_card"):
             st.markdown(
+                '<div class="au-mode-pill">Recovery<span class="num">RST / 01</span></div>'
                 '<div class="au-card-eyebrow">Recovery</div>'
                 '<h2 class="au-card-title">Set a new password.</h2>'
                 '<p class="au-card-sub">Choose a new password for your account. '

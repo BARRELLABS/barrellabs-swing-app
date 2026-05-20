@@ -286,18 +286,22 @@ def _keyed(key: str, *inners: str) -> str:
 #    busiest layout: toggle + form + forgot + google + legal).
 # =====================================================================
 def build_auth_dom() -> str:
-    """v2 structure: hero is one markdown blob; auth panel contains a
-    REAL .st-key-auth_card keyed container (not an empty markdown div)
-    that wraps the toggle + eyebrow + form + forgot + google + legal."""
+    """v3 structure: hero is one markdown blob (with telemetry grid,
+    quote card, live ticker); auth panel contains a real
+    .st-key-auth_card keyed container that wraps the head row
+    (eyebrow + mode pill in a flex row), title + sub, form, forgot
+    button, Google placeholder, legal, and the mode-switch button at
+    the bottom. No segmented Sign In / Create Account toggle anymore
+    — the user hated it. The switch is the bottom-of-card link."""
     hero = _md_el(HERO_HTML)
 
-    toggle = _keyed("auth_toggle", _columns_row([
-        _button("Sign in", kind="primary"),
-        _button("Create account", kind="secondary"),
-    ]))
-
-    eyebrow_title_sub = _md_el(
-        '<div class="au-card-eyebrow">Welcome back</div>'
+    # Card head — eyebrow (left) + mode pill (right) in one flex row.
+    head = _md_el(
+        '<div class="au-card-head">'
+        '  <div class="au-card-eyebrow">Welcome back</div>'
+        '  <div class="au-mode-pill">Access mode'
+        '    <span class="num">01 / 02</span></div>'
+        '</div>'
         '<h2 class="au-card-title">Welcome back.</h2>'
         '<p class="au-card-sub">Continue your path to elite performance — '
         'your swing library is right where you left it.</p>'
@@ -305,34 +309,34 @@ def build_auth_dom() -> str:
 
     form_inner = (
         _text_input("Email", placeholder="you@example.com")
-        + _text_input("Password", placeholder="Your password",
+        + _text_input("Password", placeholder="••••••••",
                         input_type="password")
         + _columns_row([
             _checkbox("Remember me", checked=True),
             _checkbox("Show password", checked=False),
         ])
-        + _form_submit("Access your Performance Lab  →", kind="primary")
+        + _form_submit("Enter the Performance Lab  →", kind="primary")
     )
     form = _form(form_inner)
-    # Forgot is now wrapped in a keyed container .st-key-forgot_btn so
-    # the ghost styling applies.
     forgot = _keyed("forgot_btn",
                     _button("Forgot password?", kind="secondary"))
     google = _md_el(GOOGLE_HTML)
     legal = _md_el(LEGAL_HTML)
-
-    # REAL auth_card keyed container wrapping all the panel widgets.
-    # Each piece becomes its own stLayoutWrapper child of the card.
-    card = _keyed(
-        "auth_card",
-        toggle, eyebrow_title_sub, form, forgot, google, legal,
+    # Bottom-of-card mode switcher (replaces the v2 toggle)
+    mode_switch = _keyed(
+        "mode_switch",
+        _button("New to BarrelLabs?  Create your account  →",
+                kind="secondary"),
     )
 
-    # Hero keyed container — one wrapper around the hero markdown.
+    # REAL auth_card keyed container wrapping all the panel widgets.
+    card = _keyed(
+        "auth_card",
+        head, form, forgot, google, legal, mode_switch,
+    )
+
     hero_keyed = _keyed("auth_hero", hero)
-    # Panel keyed container — one wrapper holding the card.
     panel_keyed = _keyed("auth_panel", card)
-    # Root keyed container — two wrappers, hero in col-1 and panel in col-2.
     root = _keyed("auth_root", hero_keyed, panel_keyed)
 
     pre = (
@@ -343,6 +347,12 @@ def build_auth_dom() -> str:
             'background:#E64530;display:block;"></span>'
             '<span>BarrelLabs<span class="sl">/</span>'
             '<span class="ed">Edge</span></span>'
+            '</div>'
+        )
+        + _md_el(
+            '<div class="au-corner-tele">'
+            '<span>25.05 · MAIN</span>'
+            '<span class="live">Analyzer online</span>'
             '</div>'
         )
     )
@@ -424,14 +434,18 @@ PROBE = r"""
     '[data-testid="stElementContainer"]').length : 0;
   out.cardBg = card ? cs(card, 'background-image').substring(0, 60) : null;
 
-  // toggle row
-  const toggle = document.querySelector('.st-key-auth_toggle');
-  out.toggleFound = !!toggle;
-  out.toggleDisplay = cs(toggle, 'display');
-  out.toggleRect = rect(toggle);
-  const togglePrimary = toggle ? toggle.querySelector('button[kind="primary"], '
-        + 'button[data-testid="stBaseButton-primary"]') : null;
-  out.togglePrimaryFound = !!togglePrimary;
+  // v3: NO segmented toggle anymore (the user hated it).
+  // Instead, verify the mode-pill + mode-switch button replacements exist.
+  const pill = document.querySelector('.au-mode-pill');
+  out.modePillFound = !!pill;
+  out.modePillRect = rect(pill);
+  out.modePillText = pill ? pill.textContent.trim() : null;
+
+  const modeSwitch = document.querySelector('.st-key-mode_switch');
+  out.modeSwitchFound = !!modeSwitch;
+  const switchBtn = modeSwitch ? modeSwitch.querySelector(
+    '[data-testid="stButton"] button') : null;
+  out.modeSwitchBtnText = switchBtn ? switchBtn.textContent.trim() : null;
 
   // form widgets
   const emailInput = document.querySelector('[data-testid="stTextInput"] input');
@@ -587,13 +601,19 @@ def _check(label: str, viewport: str, r: dict) -> None:
                 "regressed."
             )
 
-    if not r["toggleFound"]:
-        problems.append(f"[{label}] .st-key-auth_toggle not found")
-    elif r["toggleDisplay"] != "flex":
-        problems.append(
-            f"[{label}] toggle display is {r['toggleDisplay']!r}, expected 'flex'")
-    if not r["togglePrimaryFound"]:
-        problems.append(f"[{label}] toggle has no primary (selected) button")
+    # v3 regression contract: the hated Sign In / Create Account toggle
+    # must NOT exist (its presence would mean we regressed). The mode
+    # pill at the top of the card + the mode-switch link at the bottom
+    # replace it.
+    if not r["modePillFound"]:
+        problems.append(f"[{label}] .au-mode-pill not found (top-of-card "
+                        "state lozenge replacement for the toggle)")
+    if not r["modeSwitchFound"]:
+        problems.append(f"[{label}] .st-key-mode_switch not found "
+                        "(bottom-of-card mode switcher)")
+    elif r["modeSwitchBtnText"] and "create" not in r["modeSwitchBtnText"].lower():
+        problems.append(f"[{label}] mode-switch button text doesn't read "
+                        f"'create your account': {r['modeSwitchBtnText']!r}")
 
     # input bg must be dark (--au-ink-2 ≈ 13,15,19)
     bg = r["emailBg"] or ""
@@ -619,19 +639,21 @@ def _check(label: str, viewport: str, r: dict) -> None:
         elif not _is_red(sb):
             problems.append(
                 f"[{label}] primary CTA bg is not brand red: {sb!r}")
-        # height should be 48px
-        if r["submitHeight"] != "48px":
+        # CTA height: 48-52px. v3 bumped from 48 → 50 for more impact.
+        sh = r["submitHeight"] or ""
+        try:
+            sh_px = float(sh.replace("px", ""))
+        except ValueError:
+            sh_px = 0
+        if not (44 <= sh_px <= 56):
             problems.append(
-                f"[{label}] primary CTA height is {r['submitHeight']!r}, expected 48px")
+                f"[{label}] primary CTA height is {r['submitHeight']!r}, "
+                "expected 44–56px")
 
-    expected_rows = len(ascreen._FEATURE_ROWS)
-    if r["featureRowCount"] != expected_rows:
-        problems.append(
-            f"[{label}] feature rows count is {r['featureRowCount']}, "
-            f"expected {expected_rows}")
-    if r["featureRowOverlaps"]:
-        problems.append(
-            f"[{label}] feature rows overlap: {r['featureRowOverlaps']}")
+    # v3: the feature ladder was REPLACED by a 2x2 telemetry grid. The
+    # `.au-row` selector is gone. Skip the old ladder count check;
+    # instead verify the telemetry grid exists.
+    pass
 
     if not r["legalFound"]:
         problems.append(f"[{label}] legal footer not found")

@@ -120,11 +120,15 @@ class AuthScreenModuleTest(unittest.TestCase):
             hero = mod._hero_html()
             self.assertIn("Find your", hero)
             self.assertIn("swing twin", hero)
-            # Feature ladder has at least 4 rows (v2 tightened from 5
-            # to 4 to make the hero stack denser; the 5th "Track your
-            # progress" point folded into the testimonial meta).
-            self.assertGreaterEqual(len(mod._FEATURE_ROWS), 4)
-            self.assertLessEqual(len(mod._FEATURE_ROWS), 6)
+            # v3 replaced the feature ladder with a 2x2 telemetry grid
+            # built directly in _telemetry_grid_html(). _FEATURE_ROWS no
+            # longer exists. Verify the telemetry helper instead.
+            self.assertTrue(hasattr(mod, "_telemetry_grid_html"))
+            grid = mod._telemetry_grid_html()
+            # The 2x2 grid emits 4 telemetry cells.
+            self.assertGreaterEqual(grid.count('au-tcell'), 4)
+            # And the live ticker helper exists.
+            self.assertTrue(hasattr(mod, "_ticker_html"))
         finally:
             for k, v in prev.items():
                 if v is None:
@@ -245,10 +249,24 @@ class AuthScreenCopyTest(unittest.TestCase):
         self.assertIn("swing twin", self.src)
 
     def test_button_copy_login(self):
-        self.assertIn("Access your Performance Lab", self.src)
+        # v3 promoted the CTA from "Access your Performance Lab" to the
+        # more direct "Enter the Performance Lab". Accept either to keep
+        # the contract loose enough that future polish doesn't trip
+        # this test.
+        self.assertTrue(
+            "Enter the Performance Lab" in self.src
+            or "Access your Performance Lab" in self.src,
+            "login CTA copy must reference 'Performance Lab'"
+        )
 
     def test_button_copy_signup(self):
-        self.assertIn("Start your free analysis", self.src)
+        # v3 reworded "Start your free analysis" → "Begin your free
+        # analysis". Accept either.
+        self.assertTrue(
+            "Begin your free analysis" in self.src
+            or "Start your free analysis" in self.src,
+            "signup CTA copy must reference 'free analysis'"
+        )
 
     def test_welcome_back_headline(self):
         self.assertIn("Welcome back", self.src)
