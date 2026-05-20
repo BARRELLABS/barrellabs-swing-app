@@ -3344,6 +3344,251 @@ _DT_LOCAL_CSS = """
 .tp-day.is-complete {
     box-shadow: 0 0 12px -4px rgba(232,193,112,0.40);
 }
+
+/* ============================================================
+   TRAINING PLAN v7 — production polish pass.
+     · More breathing room in hero stack
+     · KPI bento: hover lift + glow + staggered fade-in
+     · Edge Score gets emphasized scale + thicker gold rim
+     · Drill cards: deeper shadows + stronger gaps
+     · How-to body: more line-height + section spacing
+     · XP bar: taller + load-fill animation
+     · Confetti burst on completion (CSS-only)
+     · Hairline section dividers between major blocks
+   ============================================================ */
+
+/* ---- 1. HERO STACK: more vertical breathing room ---- */
+.tp-display { margin: 0 0 28px !important; }
+.tp-focus-tag { margin: 0 auto 22px !important; }
+.tp-deck { margin: 0 auto 16px !important; }
+.tp-hero-attribution { margin-top: 18px !important; }
+.tp-bento { margin: 36px auto 0 !important; }
+.tp-bento-tail { margin: 22px auto 0 !important; }
+.tp-mission { margin: 28px auto 8px !important; padding: 22px 26px 20px !important; }
+.tp-mission-headline { font-size: 1.5rem !important; line-height: 1.18 !important; }
+.tp-mission-body { line-height: 1.65 !important; margin-top: 6px !important; }
+
+/* ---- 2. KPI BENTO: hover lift + glow + staggered fade-in ---- */
+@keyframes tp-bento-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.tp-bento-card {
+    /* The on-load rise animation acts as a "the numbers just arrived"
+       beat — closest CSS-only proxy for the count-up animation that
+       would require JS. */
+    animation: tp-bento-rise 0.55s cubic-bezier(.32,.72,0,1) both;
+    transition:
+        transform 0.22s cubic-bezier(.32,.72,0,1),
+        border-color 0.22s cubic-bezier(.32,.72,0,1),
+        box-shadow 0.26s cubic-bezier(.32,.72,0,1) !important;
+}
+.tp-bento-card:nth-child(1) { animation-delay: 0.06s; }
+.tp-bento-card:nth-child(2) { animation-delay: 0.14s; }
+.tp-bento-card:nth-child(3) { animation-delay: 0.22s; }
+.tp-bento-card:nth-child(4) { animation-delay: 0.30s; }
+.tp-bento-card:hover {
+    transform: translateY(-3px) !important;
+    border-color: rgba(244,239,230,0.18) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 18px 36px -16px rgba(0,0,0,0.55),
+        0 0 24px -10px rgba(232,193,112,0.30) !important;
+}
+
+/* Edge Score card — slightly larger emphasis since it's the primary
+   performance metric. Scale + thicker gold rim + brighter underglow. */
+.tp-bento-card.is-gold {
+    border-color: rgba(232,193,112,0.36) !important;
+    background:
+        radial-gradient(80% 60% at 50% 0%, rgba(232,193,112,0.10) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 0 0 1px rgba(232,193,112,0.10),
+        0 18px 36px -18px rgba(232,193,112,0.30) !important;
+}
+.tp-bento-card.is-gold:hover {
+    border-color: rgba(232,193,112,0.55) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.06) inset,
+        0 0 0 1px rgba(232,193,112,0.18),
+        0 22px 44px -16px rgba(232,193,112,0.45) !important;
+}
+.tp-bento-card.is-gold .tp-bento-label {
+    color: #E8C170 !important;
+    font-weight: 600 !important;
+}
+
+/* ---- 3. DRILL CARDS: stronger gaps + depth ---- */
+.dt-drill {
+    margin-bottom: 22px !important;
+    border: 1px solid rgba(244,239,230,0.12) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.04) inset,
+        0 28px 60px -32px rgba(0,0,0,0.72) !important;
+}
+.dt-drill:hover {
+    border-color: rgba(244,239,230,0.20) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 32px 70px -28px rgba(0,0,0,0.78),
+        0 0 28px -10px rgba(232,193,112,0.22) !important;
+}
+.dt-drill.is-done {
+    border-color: rgba(74,227,140,0.40) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 0 0 1px rgba(74,227,140,0.12),
+        0 24px 52px -26px rgba(74,227,140,0.32) !important;
+}
+
+/* ---- 4. HOW-TO BODY: line-height + section spacing ---- */
+.tp-howto-body {
+    /* v7: more space between blocks, looser body line-height. */
+    gap: 24px 32px !important;
+    padding: 8px 24px 24px !important;
+}
+.tp-howto-list {
+    font-size: 0.95rem !important;
+    line-height: 1.65 !important;
+}
+.tp-howto-list li { margin-bottom: 8px !important; }
+.tp-howto-eyebrow { margin-bottom: 12px !important; }
+.tp-howto-success {
+    padding: 14px 18px !important;
+    line-height: 1.55 !important;
+    font-size: 1.05rem !important;
+}
+
+/* ---- 5. STATUS BADGE: "READY" gets a hint of motion ---- */
+.dt-drill-status-pill {
+    transition: all 0.2s ease !important;
+}
+.dt-drill:not(.is-done) .dt-drill-status-pill {
+    color: rgba(244,239,230,0.74) !important;
+    border-color: rgba(244,239,230,0.18) !important;
+    background: rgba(255,255,255,0.030) !important;
+}
+
+/* ---- 6. CONFETTI BURST on completion ----
+   Triggered by a session-state flag → Python renders a div with
+   class `tp-confetti` for one frame. Pure CSS animation; no JS.
+   Twelve absolutely-positioned squares fan out from a single point. */
+@keyframes tp-confetti-fly {
+    0%   { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0.6); }
+    15%  { opacity: 1; }
+    100% {
+        opacity: 0;
+        transform:
+            translate(var(--tp-x, 60px), var(--tp-y, -120px))
+            rotate(var(--tp-r, 540deg))
+            scale(0.9);
+    }
+}
+.tp-confetti {
+    position: fixed;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    z-index: 9999;
+    pointer-events: none;
+}
+.tp-confetti i {
+    position: absolute;
+    top: 0; left: 0;
+    width: 9px; height: 14px;
+    border-radius: 2px;
+    animation: tp-confetti-fly 1400ms cubic-bezier(.18,.72,.2,1.02) forwards;
+}
+/* 12 particles fanning in different directions with different colors. */
+.tp-confetti i:nth-child(1)  { --tp-x:  -180px; --tp-y: -140px; --tp-r: 480deg; background: #E8C170; animation-delay: 0.00s; }
+.tp-confetti i:nth-child(2)  { --tp-x:  -110px; --tp-y: -190px; --tp-r: -360deg; background: #4AE38C; animation-delay: 0.03s; }
+.tp-confetti i:nth-child(3)  { --tp-x:   -50px; --tp-y: -220px; --tp-r: 540deg; background: #F4EFE6; animation-delay: 0.06s; }
+.tp-confetti i:nth-child(4)  { --tp-x:    40px; --tp-y: -210px; --tp-r: -420deg; background: #E8C170; animation-delay: 0.04s; }
+.tp-confetti i:nth-child(5)  { --tp-x:   120px; --tp-y: -170px; --tp-r: 600deg; background: #4AE38C; animation-delay: 0.02s; }
+.tp-confetti i:nth-child(6)  { --tp-x:   200px; --tp-y: -120px; --tp-r: -480deg; background: #E64530; animation-delay: 0.05s; }
+.tp-confetti i:nth-child(7)  { --tp-x:  -200px; --tp-y:  -60px; --tp-r: 420deg; background: #F4EFE6; animation-delay: 0.07s; }
+.tp-confetti i:nth-child(8)  { --tp-x:  -130px; --tp-y:  -20px; --tp-r: -600deg; background: #E8C170; animation-delay: 0.01s; }
+.tp-confetti i:nth-child(9)  { --tp-x:   140px; --tp-y:   -30px; --tp-r: 540deg; background: #4AE38C; animation-delay: 0.08s; }
+.tp-confetti i:nth-child(10) { --tp-x:   220px; --tp-y:  -50px; --tp-r: -420deg; background: #E8C170; animation-delay: 0.05s; }
+.tp-confetti i:nth-child(11) { --tp-x:   -80px; --tp-y: -260px; --tp-r: 480deg; background: #F4EFE6; animation-delay: 0.10s; }
+.tp-confetti i:nth-child(12) { --tp-x:    70px; --tp-y: -280px; --tp-r: -540deg; background: #4AE38C; animation-delay: 0.09s; }
+
+/* ---- 7. XP BAR: taller + load-fill animation ---- */
+.dt-xp-bar {
+    height: 12px !important;
+    border-radius: 999px !important;
+    box-shadow:
+        inset 0 1px 2px rgba(0,0,0,0.45),
+        inset 0 -1px 0 rgba(255,255,255,0.025) !important;
+}
+@keyframes tp-xp-fill {
+    from { width: 0% !important; }
+    /* `to` width is set by the inline style emitted by the renderer. */
+}
+.dt-xp-bar-fill {
+    animation: tp-xp-fill 1.2s cubic-bezier(.32,.72,0,1) 0.20s both !important;
+    height: 12px !important;
+    background: linear-gradient(90deg, #C9A350, #E8C170, #F8E2A9) !important;
+    box-shadow:
+        0 0 18px rgba(232,193,112,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.30) !important;
+}
+.dt-xp-pill {
+    padding: 0.55rem 1.0rem !important;
+    font-size: 0.74rem !important;
+}
+.dt-xp-pill .dt-xp-num {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-size: 1.0rem !important;
+    letter-spacing: -0.01em !important;
+    margin-right: 4px;
+}
+.dt-xp-bar-foot {
+    font-size: 0.66rem !important;
+    letter-spacing: 0.22em !important;
+}
+.dt-xp-bar-foot .dt-xp-foot-next { color: #E8C170 !important; }
+
+/* ---- 8. SECTION TRANSITIONS: hairline dividers + breathing ---- */
+.tp-consistency,
+.dt-level-card,
+.dt-progress-card,
+.dt-cat-header {
+    /* Pull each major block onto its own breathing line. */
+    margin-top: 28px !important;
+}
+.dt-cat-header { margin-top: 38px !important; }
+.dt-retest { margin-top: 32px !important; }
+/* Subtle hairline above .dt-cat-header (priority section). */
+.dt-cat-header::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -20px; left: 0; right: 50%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(232,193,112,0.22) 60%, transparent);
+}
+.dt-cat-header { position: relative !important; }
+
+/* ---- 9. RESPONSIVE: shrink the polish on mobile ---- */
+@media (max-width: 720px) {
+    .tp-display { margin-bottom: 20px !important; }
+    .tp-focus-tag { margin-bottom: 16px !important; }
+    .tp-bento { margin-top: 22px !important; gap: 10px !important; }
+    .tp-bento-tail { margin-top: 16px !important; font-size: 9.5px !important; }
+    .tp-mission { margin-top: 22px !important; padding: 16px 18px 14px !important; }
+    .tp-mission-headline { font-size: 1.25rem !important; }
+    .dt-drill { margin-bottom: 16px !important; }
+    .tp-howto-body { gap: 18px !important; padding: 6px 16px 18px !important; }
+    .tp-howto-list { font-size: 0.92rem !important; line-height: 1.6 !important; }
+    .dt-level-card { padding: 1.4rem 1.5rem 1.3rem !important; }
+    .dt-level-name { font-size: 2.0rem !important; }
+    .dt-progress-card { grid-template-columns: 1fr !important; gap: 1rem !important; }
+    .dt-ring { width: 96px !important; height: 96px !important; margin: 0 !important; }
+    .dt-cat-header::before { display: none !important; }
+}
 </style>
 """
 
@@ -4853,6 +5098,31 @@ def render_development_tracker():
         '<div class="tp-shell bl-page">',
         unsafe_allow_html=True,
     )
+
+    # ---- Confetti burst on completion ----
+    # v7: pop any pending `_xp_burst_*` flag set by the prior render's
+    # "Complete Drill" click. Each flag becomes one CSS-only confetti
+    # burst — 12 colored particles fanning from screen-center, fading
+    # over ~1.4s. Pure CSS animation; no JS. Cleared the moment we
+    # render, so it never replays on a normal refresh.
+    _bursts_to_play = [
+        k for k in list(st.session_state.keys())
+        if k.startswith("_xp_burst_")
+    ]
+    if _bursts_to_play:
+        # One burst element is enough — multiple completed drills in
+        # the same render still trigger a single celebration. The
+        # particles dance on top of everything (position: fixed).
+        st.markdown(
+            '<div class="tp-confetti">'
+            '<i></i><i></i><i></i><i></i><i></i><i></i>'
+            '<i></i><i></i><i></i><i></i><i></i><i></i>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        for _k in _bursts_to_play:
+            st.session_state.pop(_k, None)
+
     # NOTE: the editorial brand hero is rendered ONLY inside the
     # early-return branches (unauth / no-Pro / no-swing). In the
     # has-data branch the data-driven hero (with bento + state-aware
@@ -5138,7 +5408,7 @@ def render_development_tracker():
             instr = _drill_instructions(name)
             status_text = (
                 f'✓ COMPLETED · {(saved.get("last_updated") or "")[11:16]}'
-                if is_done else "○ PENDING"
+                if is_done else "▸ READY"
             )
 
             # ---- Premium drill card (header + metadata + body) ----
@@ -5217,7 +5487,7 @@ def render_development_tracker():
                 f'<div class="tp-howto-video">'
                 f'<div class="tp-howto-video-thumb">▶</div>'
                 f'<div class="tp-howto-video-caption">'
-                f'Drill demo video — coming soon.'
+                f'Watch Coach Demo'
                 f'</div>'
                 f'</div>'
                 f'</div>'
@@ -5414,13 +5684,13 @@ def render_development_tracker():
             '<div>'
             '<div class="dt-retest-eyebrow">Your Re-Test Plan</div>'
             '<div class="dt-retest-title">'
-            'Follow this routine, then upload a new swing.'
+            'Upload Your Next Swing and Measure the Improvement.'
             '</div>'
             '<p class="dt-retest-prose">'
-            'Run this plan for the next 2–3 weeks, then upload a fresh '
+            'Run this plan for the next 2–3 weeks, then film a fresh '
             'swing. The new analysis is measured against today\'s '
-            'baseline — that\'s how you see the improvements you\'re '
-            'actually banking.'
+            'baseline — Analyze → Train → Re-test → Improve. That\'s '
+            'how you see the gains you\'re actually banking.'
             '</p>'
             f'<ul class="dt-retest-list">{items_html}</ul>'
             '</div>'

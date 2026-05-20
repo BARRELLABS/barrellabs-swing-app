@@ -213,7 +213,7 @@ def _howto_html(instr: dict) -> str:
       <div class="tp-howto-eyebrow">Video</div>
       <div class="tp-howto-video">
         <div class="tp-howto-video-thumb">▶</div>
-        <div class="tp-howto-video-caption">Drill demo video — coming soon.</div>
+        <div class="tp-howto-video-caption">Watch Coach Demo</div>
       </div>
     </div>
   </div>
@@ -224,7 +224,7 @@ def _howto_html(instr: dict) -> str:
 def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
                      reps: str, how: str, done: bool, mastery: int = 0,
                      instr: dict | None = None, cat_title: str = "") -> str:
-    status = (f'✓ COMPLETED · 14:23' if done else '○ PENDING')
+    status = (f'✓ COMPLETED · 14:23' if done else '▸ READY')
     done_cls = "is-done" if done else ""
     role_chip = f'<span class="dt-role {role_cls}">{role}</span>'
     mastery_chip = (f'<span class="tp-mastery">Mastered {mastery}×</span>'
