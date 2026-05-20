@@ -1,4 +1,4 @@
-"""Wiring tests for the premium split-screen auth_screen module.
+"""Wiring tests for the auth_screen module (v4 — Cinematic Entry).
 
 These tests don't need live Streamlit / Supabase — they verify the
 import-level contract:
@@ -112,22 +112,29 @@ class AuthScreenModuleTest(unittest.TestCase):
             self.assertEqual(len(sig_auth.parameters), 0)
             self.assertEqual(len(sig_rec.parameters), 0)
             # CSS blob exists, non-trivial, and uses the keyed scope.
+            # The .st-key-auth_root / -auth_panel / -auth_hero classes
+            # are the Streamlit `st.container(key="...")` hooks the form
+            # styling is scoped to — they must remain stable so other
+            # pages can't pick up the auth-only CSS by accident.
             self.assertIn("<style>", mod._AUTH_CSS)
             self.assertIn(".st-key-auth_root", mod._AUTH_CSS)
             self.assertIn(".st-key-auth_panel", mod._AUTH_CSS)
             self.assertIn(".st-key-auth_hero", mod._AUTH_CSS)
-            # Hero copy must include the primary message verbatim.
+            # Hero copy must include the primary message verbatim. The
+            # "Find your MLB swing twin" promise is the unique
+            # BarrelLabs hook — locking it down so a future polish pass
+            # doesn't accidentally swap it for generic SaaS copy.
             hero = mod._hero_html()
             self.assertIn("Find your", hero)
             self.assertIn("swing twin", hero)
-            # v3 replaced the feature ladder with a 2x2 telemetry grid
-            # built directly in _telemetry_grid_html(). _FEATURE_ROWS no
-            # longer exists. Verify the telemetry helper instead.
+            # Telemetry-grid / ticker helpers are retained as legacy
+            # hooks (v3 rendered them visibly; v4 keeps them hidden so
+            # the helper API stays the same and downstream callers /
+            # tests don't break). Both must still exist and still emit
+            # the expected structure.
             self.assertTrue(hasattr(mod, "_telemetry_grid_html"))
             grid = mod._telemetry_grid_html()
-            # The 2x2 grid emits 4 telemetry cells.
             self.assertGreaterEqual(grid.count('au-tcell'), 4)
-            # And the live ticker helper exists.
             self.assertTrue(hasattr(mod, "_ticker_html"))
         finally:
             for k, v in prev.items():
@@ -269,10 +276,16 @@ class AuthScreenCopyTest(unittest.TestCase):
         )
 
     def test_welcome_back_headline(self):
-        self.assertIn("Welcome back", self.src)
+        # v4 wraps the accent word in `<span class="gold">…</span>` so
+        # the literal "Welcome back" no longer appears as one string in
+        # the source. Check both halves of the title instead.
+        self.assertIn("Welcome <span", self.src)
+        self.assertIn(">back<", self.src)
 
     def test_create_account_headline(self):
-        self.assertIn("Create your account", self.src)
+        # Same gold-span treatment for the signup eyebrow text.
+        self.assertIn("Create your <span", self.src)
+        self.assertIn(">account<", self.src)
 
 
 if __name__ == "__main__":
