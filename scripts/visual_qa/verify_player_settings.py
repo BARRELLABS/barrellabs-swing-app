@@ -122,6 +122,15 @@ st.empty = lambda *a, **k: _Ctx()
 st.spinner = lambda *a, **k: _Ctx()
 st.form = lambda *a, **k: _Ctx()
 st.form_submit_button = lambda *a, **k: False
+# Player-settings v3 uses native st.segmented_control, st.pills, and
+# st.dialog. The stub must cover those or import-time decoration fails.
+st.segmented_control = lambda *a, **k: (a[1][0] if len(a) > 1 and a[1] else "")
+st.pills = lambda *a, **k: (a[1][0] if len(a) > 1 and a[1] else "")
+def _dialog_decorator(*dargs, **dkwargs):
+    def _wrap(fn):
+        return fn
+    return _wrap
+st.dialog = _dialog_decorator
 for _n in (
     "write", "error", "warning", "info", "success", "caption",
     "image", "rerun", "stop", "toast", "divider", "metric",

@@ -928,507 +928,19 @@ if st.session_state.get("page") == "pricing":
 # ============================================================
 # ---------- AUTH GATE ----------
 # ============================================================
-def render_auth_screen():
-    """Show login + signup. Sets st.session_state.user on success."""
-    # Background ambient glow — scoped to the auth screen ONLY so it can't
-    # leak onto the dashboard / drill plan / sub-pages.
-    st.markdown('<div class="auth-bg"></div>', unsafe_allow_html=True)
+# Premium split-screen login/signup lives in `auth_screen.py`. The two
+# entry points keep the exact contract the legacy in-app renderer had:
+#   - render_auth_screen() sets st.session_state.user on success.
+#   - render_recovery_screen() consumes a Supabase recovery token and
+#     calls auth.update_password().
+# All Supabase wiring (player_storage.authenticate / create_account,
+# auth.request_password_reset / consume_recovery_url /
+# consume_recovery_token_hash / update_password) is preserved.
+from auth_screen import (
+    render_auth_screen,
+    render_recovery_screen,
+)
 
-    # Local premium styles — scoped under .bl-auth-* so they can't bleed.
-    st.markdown("""
-<style>
-.bl-auth-mark {
-    text-align: center;
-    margin-top: 0.4rem;
-    margin-bottom: 0.8rem;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.32em;
-    color: #FF3B30;
-    font-weight: 700;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-}
-.bl-auth-mark-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #FF3B30;
-    box-shadow: 0 0 8px rgba(255,59,48,0.7);
-}
-.bl-auth-hero {
-    text-align: center;
-    max-width: 720px;
-    margin: 0.4rem auto 1.6rem auto;
-}
-.bl-auth-hero-title {
-    font-size: 3.4rem;
-    font-weight: 800;
-    letter-spacing: -0.045em;
-    line-height: 1.02;
-    color: #fafafa;
-    margin-bottom: 0.85rem;
-}
-.bl-auth-hero-title .accent { color: #FF3B30; }
-.bl-auth-hero-sub {
-    color: #a3a3a3;
-    font-size: 1.06rem;
-    line-height: 1.55;
-    max-width: 560px;
-    margin: 0 auto;
-}
-.bl-auth-pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    justify-content: center;
-    margin-top: 1.1rem;
-}
-.bl-auth-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.32rem 0.7rem;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.09);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    font-weight: 600;
-    color: #d4d4d4;
-}
-.bl-auth-pill-accent { color: #FF3B30; font-weight: 800; }
-
-/* The left feature column — sharper than the old bl-glass */
-.bl-auth-feat {
-    border-radius: 22px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background:
-        radial-gradient(ellipse at 10% -20%, rgba(255,59,48,0.10) 0%, transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
-    padding: 1.6rem 1.7rem;
-    position: relative;
-    overflow: hidden;
-}
-.bl-auth-feat-eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.26em;
-    color: #FF3B30;
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-}
-.bl-auth-feat-title {
-    font-size: 1.45rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    color: #fafafa;
-    line-height: 1.15;
-    margin-bottom: 1.1rem;
-}
-.bl-auth-feat-list { display: flex; flex-direction: column; gap: 0.7rem; }
-.bl-auth-feat-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
-    padding: 0.6rem 0.7rem;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.05);
-    transition: all 0.18s ease;
-}
-.bl-auth-feat-row:hover {
-    border-color: rgba(255,59,48,0.2);
-    background: rgba(255,59,48,0.04);
-}
-.bl-auth-feat-row-num {
-    flex: none;
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: rgba(255,59,48,0.10);
-    border: 1px solid rgba(255,59,48,0.22);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.66rem;
-    font-weight: 800;
-    color: #FF3B30;
-}
-.bl-auth-feat-row-text {
-    color: #e5e5e5;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    padding-top: 0.13rem;
-}
-.bl-auth-feat-row-text strong {
-    color: #fafafa;
-    font-weight: 700;
-}
-.bl-auth-feat-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.6rem;
-    margin-top: 1.1rem;
-    padding-top: 1.1rem;
-    border-top: 1px solid rgba(255,255,255,0.07);
-}
-.bl-auth-feat-stat-num {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #FF3B30;
-    letter-spacing: -0.025em;
-}
-.bl-auth-feat-stat-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.55rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: #8b8b8b;
-    font-weight: 600;
-    margin-top: 0.1rem;
-}
-
-/* Auth card — sharper, with subtle red top accent */
-.bl-auth-card-new {
-    border-radius: 22px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background:
-        radial-gradient(ellipse at 90% -20%, rgba(255,59,48,0.08) 0%, transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.012));
-    padding: 1.6rem 1.7rem;
-    position: relative;
-    overflow: hidden;
-}
-.bl-auth-card-new::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #FF3B30 50%, transparent);
-    opacity: 0.6;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # Centered logo at the top
-    logo_col_l, logo_col_c, logo_col_r = st.columns([2, 1, 2])
-    with logo_col_c:
-        show_barrellabs_logo(width=160)
-
-    st.markdown("""
-<div class="bl-auth-mark"><span class="bl-auth-mark-dot"></span>BarrelLabs · SwingAI · Performance Lab</div>
-<div class="bl-auth-hero">
-  <div class="bl-auth-hero-title">Built for <span class="accent">better</span><br/>swings.</div>
-  <div class="bl-auth-hero-sub">AI-powered swing analysis. Upload one clip, get an MLB comparison, exact mechanical gaps, and a personalized drill plan in under a minute.</div>
-  <div class="bl-auth-pill-row">
-    <div class="bl-auth-pill"><span class="bl-auth-pill-accent">10+</span> MLB Refs</div>
-    <div class="bl-auth-pill"><span class="bl-auth-pill-accent">40+</span> Metrics</div>
-    <div class="bl-auth-pill"><span class="bl-auth-pill-accent">~30s</span> Analysis</div>
-    <div class="bl-auth-pill"><span class="bl-auth-pill-accent">PDF</span> Reports</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    # Two-column layout: feature highlights on left, auth card on right
-    feat_col, auth_col = st.columns([1, 1.05], gap="large")
-
-    with feat_col:
-        st.markdown("""
-<div class="bl-auth-feat">
-  <div class="bl-auth-feat-eyebrow">What you get</div>
-  <div class="bl-auth-feat-title">The MLB-grade swing<br/>platform for hitters.</div>
-  <div class="bl-auth-feat-list">
-    <div class="bl-auth-feat-row">
-      <div class="bl-auth-feat-row-num">01</div>
-      <div class="bl-auth-feat-row-text"><strong>Pose-tracked biomechanics</strong> from one phone clip — no mocap suit, no equipment.</div>
-    </div>
-    <div class="bl-auth-feat-row">
-      <div class="bl-auth-feat-row-num">02</div>
-      <div class="bl-auth-feat-row-text"><strong>Side-by-side MLB comparison</strong> against pro reference swings, matched to your build &amp; stance.</div>
-    </div>
-    <div class="bl-auth-feat-row">
-      <div class="bl-auth-feat-row-num">03</div>
-      <div class="bl-auth-feat-row-text"><strong>Top 3 fixes</strong> ranked by impact, with the "why" and the feel — in plain English.</div>
-    </div>
-    <div class="bl-auth-feat-row">
-      <div class="bl-auth-feat-row-num">04</div>
-      <div class="bl-auth-feat-row-text"><strong>Personalized drill plan</strong> with reps, tracked in your Development Tracker.</div>
-    </div>
-    <div class="bl-auth-feat-row">
-      <div class="bl-auth-feat-row-num">05</div>
-      <div class="bl-auth-feat-row-text"><strong>Progress over time</strong> — measurable charts across every swing you upload.</div>
-    </div>
-  </div>
-  <div class="bl-auth-feat-stats">
-    <div>
-      <div class="bl-auth-feat-stat-num">10+</div>
-      <div class="bl-auth-feat-stat-label">MLB Refs</div>
-    </div>
-    <div>
-      <div class="bl-auth-feat-stat-num">40+</div>
-      <div class="bl-auth-feat-stat-label">Metrics</div>
-    </div>
-    <div>
-      <div class="bl-auth-feat-stat-num">∞</div>
-      <div class="bl-auth-feat-stat-label">Swings</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-    with auth_col:
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        tab_login, tab_signup = st.tabs(["Sign In", "Create Account"])
-
-        # ---- Sign In ----
-        with tab_login:
-            # Forgot-password mini-flow lives inside the login tab. We
-            # flip between the normal login form and a one-field
-            # "send me a reset link" form based on this session flag.
-            if st.session_state.get("auth_mode") == "forgot":
-                st.markdown("**Reset your password**")
-                st.caption(
-                    "Enter the email you used to sign up. We'll send you "
-                    "a link to set a new password."
-                )
-                with st.form("forgot_form", clear_on_submit=False):
-                    forgot_email = st.text_input(
-                        "Email", placeholder="you@example.com",
-                        key="forgot_email",
-                    )
-                    fc1, fc2 = st.columns([1, 1])
-                    sent = fc1.form_submit_button(
-                        "Send reset link",
-                        type="primary",
-                        width="stretch",
-                    )
-                    back = fc2.form_submit_button(
-                        "Back to sign in",
-                        width="stretch",
-                    )
-                    if sent:
-                        try:
-                            from auth import request_password_reset
-                            request_password_reset(forgot_email)
-                            st.success(
-                                "If an account exists for that email, a reset "
-                                "link is on the way. Check your inbox."
-                            )
-                        except ValueError as e:
-                            st.error(str(e))
-                    if back:
-                        st.session_state.pop("auth_mode", None)
-                        st.rerun()
-
-                # --- Manual paste-URL fallback (tucked away) ---
-                # If clicking the email link doesn't auto-trigger the
-                # recovery screen, the user can paste the URL from their
-                # browser bar here. Hidden inside an expander to keep the
-                # main flow clean.
-                with st.expander("Trouble with the link?", expanded=False):
-                    st.caption(
-                        "If clicking the reset link didn't take you to a "
-                        "password form, copy the full URL from your browser "
-                        "bar (it'll start with `http://localhost:8501/#access_token=…`) "
-                        "and paste it here."
-                    )
-                    with st.form("paste_recovery_form", clear_on_submit=False):
-                        pasted = st.text_input(
-                            "Reset link",
-                            placeholder="http://localhost:8501/#access_token=...",
-                            key="pasted_reset_url",
-                            label_visibility="collapsed",
-                        )
-                        use_link = st.form_submit_button(
-                            "Use this link",
-                            type="primary",
-                            width="stretch",
-                        )
-                        if use_link:
-                            try:
-                                from urllib.parse import urlparse, parse_qs
-                                u = urlparse((pasted or "").strip())
-                                blob = u.fragment or u.query or ""
-                                parts = parse_qs(blob)
-                                at = (parts.get("access_token")  or [""])[0]
-                                rt = (parts.get("refresh_token") or [""])[0]
-                                tp = (parts.get("type")          or [""])[0]
-                                if not (at and rt) or tp != "recovery":
-                                    st.error(
-                                        "That doesn't look like a valid reset "
-                                        "link. Make sure you copied the whole URL."
-                                    )
-                                else:
-                                    from auth import consume_recovery_url
-                                    if consume_recovery_url(
-                                        access_token=at,
-                                        refresh_token=rt,
-                                    ):
-                                        st.session_state["recovery_mode"] = True
-                                        st.rerun()
-                                    else:
-                                        st.error(
-                                            "Couldn't accept that link — it may "
-                                            "have expired. Send yourself a new "
-                                            "reset email."
-                                        )
-                            except Exception as exc:
-                                st.error(f"Couldn't parse that link: {exc}")
-            else:
-                with st.form("login_form", clear_on_submit=False):
-                    login_email = st.text_input("Email", placeholder="you@example.com")
-                    login_pw = st.text_input("Password", type="password")
-                    submitted = st.form_submit_button(
-                        "Log in",
-                        type="primary",
-                        width="stretch",
-                    )
-                    if submitted:
-                        user = authenticate(login_email, login_pw)
-                        if user:
-                            st.session_state.user = user
-                            st.rerun()
-                        else:
-                            st.error("Email or password is incorrect.")
-
-                # "Forgot password?" link beneath the form.
-                if st.button(
-                    "Forgot password?",
-                    key="forgot_link",
-                    type="tertiary" if hasattr(st, "tertiary") else "secondary",
-                    width="content",
-                ):
-                    st.session_state["auth_mode"] = "forgot"
-                    st.rerun()
-
-        # ---- Sign Up ----
-        with tab_signup:
-            with st.form("signup_form", clear_on_submit=False):
-                su_name = st.text_input("Full name", placeholder="First Last")
-                su_email = st.text_input("Email", placeholder="you@example.com",
-                                         key="su_email")
-                su_pw = st.text_input("Password (6+ characters)", type="password",
-                                      key="su_pw")
-                su_pw2 = st.text_input("Confirm password", type="password",
-                                       key="su_pw2")
-
-                st.markdown("")  # spacer
-                su_hand = st.radio(
-                    "Batting hand",
-                    options=["Right-handed", "Left-handed"],
-                    horizontal=True,
-                )
-
-                st.markdown("")  # spacer
-                st.caption("Physical info (used by the analyzer to refine comparisons)")
-                phys_cols = st.columns([1, 1, 1])
-                su_ft = phys_cols[0].number_input(
-                    "Height (ft)", min_value=3, max_value=8, value=5, step=1,
-                )
-                su_in = phys_cols[1].number_input(
-                    "Height (in)", min_value=0, max_value=11, value=10, step=1,
-                )
-                su_wt = phys_cols[2].number_input(
-                    "Weight (lb)", min_value=50, max_value=400, value=160, step=1,
-                )
-
-                submitted = st.form_submit_button(
-                    "Create account",
-                    type="primary",
-                    width="stretch",
-                )
-                if submitted:
-                    if su_pw != su_pw2:
-                        st.error("Passwords don't match.")
-                    else:
-                        try:
-                            hand = "RIGHT" if su_hand == "Right-handed" else "LEFT"
-                            height_in = int(su_ft) * 12 + int(su_in)
-                            user = create_account(
-                                name=su_name,
-                                email=su_email,
-                                password=su_pw,
-                                handedness=hand,
-                                height_in=height_in,
-                                weight_lb=int(su_wt),
-                            )
-                            st.session_state.user = user
-                            st.success("Account created! Logging you in...")
-                            st.rerun()
-                        except ValueError as e:
-                            st.error(str(e))
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Footer
-    st.markdown("""
-    <div style="text-align:center;margin-top:2rem;color:#6b7280;font-size:.78rem;letter-spacing:.05em;">
-        © BarrelLabs Performance Lab &nbsp;•&nbsp; SwingAI &nbsp;•&nbsp; Built for Better Swings
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# --- Password recovery screen ----------------------------------------
-def render_recovery_screen():
-    """
-    Shown when the user clicked the password-reset link in their email.
-    Supabase has already authenticated them via the recovery token, so
-    all we do here is collect a new password and update it.
-    """
-    st.markdown('<div class="auth-bg"></div>', unsafe_allow_html=True)
-
-    logo_col_l, logo_col_c, logo_col_r = st.columns([2, 1, 2])
-    with logo_col_c:
-        show_barrellabs_logo(width=160)
-
-    st.markdown("""
-    <div class="auth-hero">
-      <div class="auth-eyebrow">BarrelLabs · SwingAI</div>
-      <div class="auth-title">Set a new<br/>password.</div>
-      <div class="bl-stitch" style="margin-left:auto;margin-right:auto;"></div>
-      <div class="auth-sub">Choose a new password for your account.</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    _, mid_col, _ = st.columns([1, 1.2, 1])
-    with mid_col:
-        st.markdown('<div class="auth-card">', unsafe_allow_html=True)
-        with st.form("recovery_form", clear_on_submit=False):
-            new_pw  = st.text_input("New password (6+ characters)", type="password", key="rec_pw")
-            new_pw2 = st.text_input("Confirm new password", type="password", key="rec_pw2")
-            submitted = st.form_submit_button(
-                "Update password",
-                type="primary",
-                width="stretch",
-            )
-            if submitted:
-                if new_pw != new_pw2:
-                    st.error("Passwords don't match.")
-                else:
-                    try:
-                        from auth import update_password
-                        update_password(new_pw)
-                        st.success("Password updated. Logging you in…")
-                        # Drop the recovery-mode flag and reload so the
-                        # normal auth gate picks up the active session.
-                        st.session_state.pop("recovery_mode", None)
-                        try:
-                            st.query_params.clear()
-                        except Exception:
-                            pass
-                        st.rerun()
-                    except ValueError as e:
-                        st.error(str(e))
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- Recovery URL detection ------------------------------------------
@@ -3682,6 +3194,7 @@ _pages_with_own_hero = {
     "historical_charts",
     "billing",
     "launch_progress",
+    "player_settings",
 }
 # `view == "settings"` is the account/profile page — also has its own hero.
 _viewing_settings = st.session_state.get("view") == "settings"
@@ -4052,6 +3565,8 @@ elif st.session_state.get("page") == "billing":
     _active_key = "billing"
 elif st.session_state.get("page") == "launch_progress":
     _active_key = "launch"
+elif st.session_state.get("page") == "player_settings":
+    _active_key = "settings"
 elif st.session_state.get("view") == "settings":
     _active_key = "settings"
 
@@ -4710,6 +4225,17 @@ if st.session_state.get("view") == "settings":
     st.stop()
 
 
+# ---------- PLAYER SETTINGS PAGE (new dashboard-styled route) ----------
+# Triggered by clicking the avatar circle in the Edge masthead. The page
+# itself lives in player_settings_page.py — full edit surface for the
+# player profile, baseball context, swing preferences, account/billing,
+# privacy toggles, and the danger-zone account-delete flow.
+if st.session_state.get("page") == "player_settings":
+    from player_settings_page import render_player_settings_page
+    render_player_settings_page(user, build_pdf_fn=build_swing_report_pdf)
+    st.stop()
+
+
 # ---------- DASHBOARD-STYLE REPORT PREVIEW (NOT live; design approval) ----
 # Additive route — does NOT change the production Open Report flow below.
 # Reachable only via:
@@ -5267,8 +4793,15 @@ else:
     if _locked_slug:
         reference_arg = _locked_slug
 
+# Thread the player's training-goal (set on Player Settings) into the
+# analyzer so the drill plan can weight categories that move that goal.
+# Gap-derived weights still dominate — the goal just breaks ties between
+# roughly-equal categories. Soft-falls back to None if no goal is set.
+_pref_goal = (user or {}).get("primary_goal") or None
+
 try:
-    result = analyze(str(fingerprint_path), reference_arg)
+    result = analyze(str(fingerprint_path), reference_arg,
+                     preferred_goal=_pref_goal)
 except Exception as e:
     st.error(f"Analysis failed: {e}")
     st.stop()
