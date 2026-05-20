@@ -3082,55 +3082,54 @@ _DT_LOCAL_CSS = """
     margin-right: 3px;
 }
 
-/* ---- Premium "Complete Drill" CTA — unscoped, kills global red. ---- */
-.st-key-tp_action_01 .stButton > button[kind="primary"],
-.st-key-tp_action_02 .stButton > button[kind="primary"],
-.st-key-tp_action_03 .stButton > button[kind="primary"],
-.st-key-tp_action_04 .stButton > button[kind="primary"],
-.st-key-tp_action_05 .stButton > button[kind="primary"],
-.st-key-tp_action_06 .stButton > button[kind="primary"],
+/* ---- v7.1 Premium "Complete Drill" CTA — bone/gold ---- */
+/* Replaces the emerald button entirely. Mirrors the auth-screen
+   v4 "Enter the Performance Lab" treatment: bone surface, dark text,
+   gold on hover. Reads as ONE family with the rest of the BarrelLabs
+   brand instead of a Bootstrap-emerald outlier. */
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
 [class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"],
 [class*="st-key-tp_action_"] button[data-testid="baseButton-primary"] {
-    background: linear-gradient(180deg, #2fbf73 0%, #1f9659 100%) !important;
-    color: #f4f7f5 !important;
-    border: 1px solid rgba(232,193,112,0.45) !important;
-    border-radius: 16px !important;
-    padding: 18px 24px !important;
+    background: #F4EFE6 !important;
+    color: #0A0B0E !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    border-radius: 14px !important;
+    padding: 14px 22px !important;
     font-family: 'Geist', -apple-system, system-ui, sans-serif !important;
-    font-size: 1.02rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.045em !important;
+    font-size: 0.96rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
     text-transform: none !important;
     width: 100% !important;
     margin-top: 14px !important;
     box-shadow:
-        0 22px 44px -18px rgba(31,150,89,0.55),
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        inset 0 -1px 0 rgba(0,0,0,0.12),
-        inset 0 0 0 1px rgba(232,193,112,0.18) !important;
+        0 18px 36px -16px rgba(244,239,230,0.22),
+        inset 0 -1px 0 rgba(0,0,0,0.06) !important;
     animation: none !important;
     transition:
         transform 0.18s cubic-bezier(.34,1.4,.64,1),
-        box-shadow 0.22s ease,
-        background 0.22s ease !important;
+        box-shadow 0.22s cubic-bezier(.32,.72,0,1),
+        background 0.22s cubic-bezier(.32,.72,0,1),
+        color 0.22s cubic-bezier(.32,.72,0,1) !important;
 }
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover,
 [class*="st-key-tp_action_"] button[data-testid="baseButton-primary"]:hover,
 [class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"]:hover {
-    background: linear-gradient(180deg, #38cc7c 0%, #25a262 100%) !important;
-    color: #ffffff !important;
-    border-color: rgba(232,193,112,0.65) !important;
+    background: #E8C170 !important;
+    color: #1a1206 !important;
+    border-color: rgba(0,0,0,0.06) !important;
     transform: translateY(-2px) !important;
     box-shadow:
-        0 26px 52px -16px rgba(31,150,89,0.65),
-        inset 0 1px 0 rgba(255,255,255,0.28),
-        inset 0 -1px 0 rgba(0,0,0,0.14),
-        inset 0 0 0 1px rgba(232,193,112,0.32) !important;
+        0 22px 44px -14px rgba(232,193,112,0.45),
+        inset 0 -1px 0 rgba(0,0,0,0.08) !important;
 }
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:active {
     transform: translateY(0) scale(0.985) !important;
     transition-duration: 100ms !important;
+}
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]:focus-visible {
+    outline: 2px solid #E8C170 !important;
+    outline-offset: 3px !important;
 }
 
 /* ---- Secondary buttons inside the action row (Mark as not done) ---- */
@@ -3471,20 +3470,26 @@ _DT_LOCAL_CSS = """
     background: rgba(255,255,255,0.030) !important;
 }
 
-/* ---- 6. CONFETTI BURST on completion ----
-   Triggered by a session-state flag → Python renders a div with
-   class `tp-confetti` for one frame. Pure CSS animation; no JS.
-   Twelve absolutely-positioned squares fan out from a single point. */
+/* ---- 6. CONFETTI BURST on completion (v7.1 — dramatic) ----
+   v7 had 12 small particles fanning ~250px. v7.1 doubles size, doubles
+   count (24), triples travel distance (~600px), adds a central radial
+   flash, and stretches the duration so the moment LANDS. Still
+   pure CSS; still no JS. */
 @keyframes tp-confetti-fly {
-    0%   { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0.6); }
-    15%  { opacity: 1; }
+    0%   { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0.5); }
+    10%  { opacity: 1; transform: translate(0,0) rotate(0deg) scale(1.2); }
     100% {
         opacity: 0;
         transform:
             translate(var(--tp-x, 60px), var(--tp-y, -120px))
             rotate(var(--tp-r, 540deg))
-            scale(0.9);
+            scale(0.85);
     }
+}
+@keyframes tp-confetti-flash {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    25%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); }
 }
 .tp-confetti {
     position: fixed;
@@ -3493,26 +3498,56 @@ _DT_LOCAL_CSS = """
     z-index: 9999;
     pointer-events: none;
 }
+/* Central radial flash — a brief gold halo bursts out behind the
+   particles, giving the moment a real focal point. */
+.tp-confetti::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 360px; height: 360px;
+    transform: translate(-50%, -50%) scale(0.4);
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(232,193,112,0.50) 0%,
+        rgba(232,193,112,0.15) 40%,
+        transparent 70%);
+    animation: tp-confetti-flash 700ms cubic-bezier(.18,.72,.2,1) forwards;
+}
 .tp-confetti i {
     position: absolute;
     top: 0; left: 0;
-    width: 9px; height: 14px;
-    border-radius: 2px;
-    animation: tp-confetti-fly 1400ms cubic-bezier(.18,.72,.2,1.02) forwards;
+    /* v7.1: 2× particle size — proper visual weight. */
+    width: 14px; height: 22px;
+    border-radius: 3px;
+    animation: tp-confetti-fly 1800ms cubic-bezier(.18,.72,.2,1.02) forwards;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
-/* 12 particles fanning in different directions with different colors. */
-.tp-confetti i:nth-child(1)  { --tp-x:  -180px; --tp-y: -140px; --tp-r: 480deg; background: #E8C170; animation-delay: 0.00s; }
-.tp-confetti i:nth-child(2)  { --tp-x:  -110px; --tp-y: -190px; --tp-r: -360deg; background: #4AE38C; animation-delay: 0.03s; }
-.tp-confetti i:nth-child(3)  { --tp-x:   -50px; --tp-y: -220px; --tp-r: 540deg; background: #F4EFE6; animation-delay: 0.06s; }
-.tp-confetti i:nth-child(4)  { --tp-x:    40px; --tp-y: -210px; --tp-r: -420deg; background: #E8C170; animation-delay: 0.04s; }
-.tp-confetti i:nth-child(5)  { --tp-x:   120px; --tp-y: -170px; --tp-r: 600deg; background: #4AE38C; animation-delay: 0.02s; }
-.tp-confetti i:nth-child(6)  { --tp-x:   200px; --tp-y: -120px; --tp-r: -480deg; background: #E64530; animation-delay: 0.05s; }
-.tp-confetti i:nth-child(7)  { --tp-x:  -200px; --tp-y:  -60px; --tp-r: 420deg; background: #F4EFE6; animation-delay: 0.07s; }
-.tp-confetti i:nth-child(8)  { --tp-x:  -130px; --tp-y:  -20px; --tp-r: -600deg; background: #E8C170; animation-delay: 0.01s; }
-.tp-confetti i:nth-child(9)  { --tp-x:   140px; --tp-y:   -30px; --tp-r: 540deg; background: #4AE38C; animation-delay: 0.08s; }
-.tp-confetti i:nth-child(10) { --tp-x:   220px; --tp-y:  -50px; --tp-r: -420deg; background: #E8C170; animation-delay: 0.05s; }
-.tp-confetti i:nth-child(11) { --tp-x:   -80px; --tp-y: -260px; --tp-r: 480deg; background: #F4EFE6; animation-delay: 0.10s; }
-.tp-confetti i:nth-child(12) { --tp-x:    70px; --tp-y: -280px; --tp-r: -540deg; background: #4AE38C; animation-delay: 0.09s; }
+/* 24 particles. Travel distances tripled. Mix of gold / emerald /
+   bone / red so the burst reads as branded, not random. */
+.tp-confetti i:nth-child(1)  { --tp-x:  -460px; --tp-y: -260px; --tp-r:  720deg; background: #E8C170; animation-delay: 0.00s; }
+.tp-confetti i:nth-child(2)  { --tp-x:  -340px; --tp-y: -380px; --tp-r: -540deg; background: #4AE38C; animation-delay: 0.03s; }
+.tp-confetti i:nth-child(3)  { --tp-x:  -180px; --tp-y: -480px; --tp-r:  840deg; background: #F4EFE6; animation-delay: 0.06s; }
+.tp-confetti i:nth-child(4)  { --tp-x:   -40px; --tp-y: -540px; --tp-r: -600deg; background: #E8C170; animation-delay: 0.04s; }
+.tp-confetti i:nth-child(5)  { --tp-x:   120px; --tp-y: -520px; --tp-r:  720deg; background: #4AE38C; animation-delay: 0.02s; }
+.tp-confetti i:nth-child(6)  { --tp-x:   260px; --tp-y: -440px; --tp-r: -780deg; background: #E64530; animation-delay: 0.05s; }
+.tp-confetti i:nth-child(7)  { --tp-x:   400px; --tp-y: -320px; --tp-r:  600deg; background: #F4EFE6; animation-delay: 0.07s; }
+.tp-confetti i:nth-child(8)  { --tp-x:   520px; --tp-y: -200px; --tp-r: -840deg; background: #E8C170; animation-delay: 0.01s; }
+.tp-confetti i:nth-child(9)  { --tp-x:   560px; --tp-y:  -80px; --tp-r:  720deg; background: #4AE38C; animation-delay: 0.08s; }
+.tp-confetti i:nth-child(10) { --tp-x:   500px; --tp-y:   40px; --tp-r: -600deg; background: #E8C170; animation-delay: 0.05s; }
+.tp-confetti i:nth-child(11) { --tp-x:   380px; --tp-y:  140px; --tp-r:  840deg; background: #F4EFE6; animation-delay: 0.10s; }
+.tp-confetti i:nth-child(12) { --tp-x:   220px; --tp-y:  220px; --tp-r: -720deg; background: #4AE38C; animation-delay: 0.09s; }
+.tp-confetti i:nth-child(13) { --tp-x:    60px; --tp-y:  260px; --tp-r:  540deg; background: #E64530; animation-delay: 0.11s; }
+.tp-confetti i:nth-child(14) { --tp-x:  -100px; --tp-y:  260px; --tp-r: -660deg; background: #E8C170; animation-delay: 0.12s; }
+.tp-confetti i:nth-child(15) { --tp-x:  -260px; --tp-y:  200px; --tp-r:  780deg; background: #F4EFE6; animation-delay: 0.14s; }
+.tp-confetti i:nth-child(16) { --tp-x:  -400px; --tp-y:  100px; --tp-r: -720deg; background: #4AE38C; animation-delay: 0.13s; }
+.tp-confetti i:nth-child(17) { --tp-x:  -500px; --tp-y:  -40px; --tp-r:  600deg; background: #E8C170; animation-delay: 0.15s; }
+.tp-confetti i:nth-child(18) { --tp-x:  -520px; --tp-y: -160px; --tp-r: -840deg; background: #F4EFE6; animation-delay: 0.18s; }
+.tp-confetti i:nth-child(19) { --tp-x:  -120px; --tp-y: -560px; --tp-r:  900deg; background: #4AE38C; animation-delay: 0.16s; }
+.tp-confetti i:nth-child(20) { --tp-x:   180px; --tp-y: -580px; --tp-r: -780deg; background: #E8C170; animation-delay: 0.17s; }
+.tp-confetti i:nth-child(21) { --tp-x:  -280px; --tp-y: -560px; --tp-r:  660deg; background: #E64530; animation-delay: 0.19s; }
+.tp-confetti i:nth-child(22) { --tp-x:   340px; --tp-y: -540px; --tp-r: -600deg; background: #F4EFE6; animation-delay: 0.20s; }
+.tp-confetti i:nth-child(23) { --tp-x:  -600px; --tp-y:   60px; --tp-r:  840deg; background: #E8C170; animation-delay: 0.22s; }
+.tp-confetti i:nth-child(24) { --tp-x:   620px; --tp-y:  120px; --tp-r: -780deg; background: #4AE38C; animation-delay: 0.21s; }
 
 /* ---- 7. XP BAR: taller + load-fill animation ---- */
 .dt-xp-bar {
@@ -3571,6 +3606,93 @@ _DT_LOCAL_CSS = """
     background: linear-gradient(90deg, transparent, rgba(232,193,112,0.22) 60%, transparent);
 }
 .dt-cat-header { position: relative !important; }
+
+/* ============================================================
+   v7.1 — RERUN-FLICKER MASK + SECONDARY BUTTON POLISH
+   ============================================================ */
+
+/* Streamlit reruns the whole page on every interaction → the
+   default behaviour is a noticeable dim → repaint → re-show flash.
+   v7.1 wraps the page content in a soft fade-in so the brightening
+   reads as an intentional 250ms ease rather than a reload glitch.
+   Applied to the dev_tracker root, NOT body, so it only affects
+   this page. */
+@keyframes tp-page-fade {
+    from { opacity: 0.55; transform: translateY(2px); }
+    to   { opacity: 1;    transform: translateY(0); }
+}
+.tp-shell,
+.bl-page {
+    animation: tp-page-fade 280ms cubic-bezier(.32,.72,0,1) both;
+}
+
+/* ---- Secondary buttons (Mark as not done / View Details / Save
+   Session Notes / mode switch) — they were too cramped. Add more
+   horizontal padding, a clearer hit target, and a visible hover
+   state so they read as buttons instead of plain text. ---- */
+
+/* "Mark as not done" undo link inside the action row. */
+[class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]) {
+    padding: 10px 16px !important;
+    margin-top: 12px !important;
+    border: 1px solid rgba(244,239,230,0.10) !important;
+    border-radius: 999px !important;
+    font-size: 10.5px !important;
+    letter-spacing: 0.20em !important;
+    background: rgba(255,255,255,0.022) !important;
+    color: rgba(244,239,230,0.66) !important;
+    transition:
+        color 0.22s cubic-bezier(.32,.72,0,1),
+        border-color 0.22s cubic-bezier(.32,.72,0,1),
+        background 0.22s cubic-bezier(.32,.72,0,1) !important;
+    width: auto !important;
+}
+[class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]):hover {
+    color: #E64530 !important;
+    border-color: rgba(230,69,48,0.32) !important;
+    background: rgba(230,69,48,0.06) !important;
+}
+
+/* "View Details" summary on completed-drill cards. */
+.tp-done-details summary {
+    padding: 8px 14px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(244,239,230,0.10) !important;
+    background: rgba(255,255,255,0.022) !important;
+    width: fit-content !important;
+    transition:
+        color 0.22s cubic-bezier(.32,.72,0,1),
+        border-color 0.22s cubic-bezier(.32,.72,0,1),
+        background 0.22s cubic-bezier(.32,.72,0,1) !important;
+}
+.tp-done-details summary:hover {
+    color: #E8C170 !important;
+    border-color: rgba(232,193,112,0.36) !important;
+    background: rgba(232,193,112,0.06) !important;
+}
+
+/* "Save Session Notes" button inside the practice journal — restyle
+   to match the v7.1 bone CTA family. The `dt-save` keyed wrapper
+   already exists from the legacy code. */
+.dt-save .stButton > button {
+    background: rgba(255,255,255,0.025) !important;
+    border: 1px solid rgba(244,239,230,0.14) !important;
+    color: rgba(244,239,230,0.82) !important;
+    border-radius: 12px !important;
+    padding: 12px 22px !important;
+    font-family: 'Geist', system-ui, sans-serif !important;
+    font-size: 0.92rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.005em !important;
+    text-transform: none !important;
+    transition: all 0.22s cubic-bezier(.32,.72,0,1) !important;
+}
+.dt-save .stButton > button:hover {
+    color: #1a1206 !important;
+    background: #E8C170 !important;
+    border-color: rgba(0,0,0,0.06) !important;
+    transform: translateY(-1px) !important;
+}
 
 /* ---- 9. RESPONSIVE: shrink the polish on mobile ---- */
 @media (max-width: 720px) {
@@ -5113,11 +5235,11 @@ def render_development_tracker():
         # One burst element is enough — multiple completed drills in
         # the same render still trigger a single celebration. The
         # particles dance on top of everything (position: fixed).
+        # v7.1: 24 particles + a central radial flash for a real burst.
         st.markdown(
             '<div class="tp-confetti">'
-            '<i></i><i></i><i></i><i></i><i></i><i></i>'
-            '<i></i><i></i><i></i><i></i><i></i><i></i>'
-            '</div>',
+            + ('<i></i>' * 24)
+            + '</div>',
             unsafe_allow_html=True,
         )
         for _k in _bursts_to_play:
