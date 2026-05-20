@@ -262,7 +262,7 @@ def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
     reps_value = "3×10" if done else ""
     if done:
         actions = f"""
-<div class="st-key-tp_action_xx" style="margin:-14px 0 1.6rem;padding:16px 18px 14px;border:1px solid rgba(244,239,230,0.08);border-top:0;border-radius:0 0 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008));">
+<div class="st-key-tp_action_01">
   <div data-testid="stTextInput" style="margin-bottom:10px;">
     <label>Reps completed</label>
     <div data-baseweb="input"><input type="text" value="{reps_value}"></div>
@@ -276,28 +276,13 @@ def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
 """
     else:
         actions = f"""
-<div class="st-key-tp_action_xx" style="margin:-14px 0 1.6rem;padding:16px 18px 14px;border:1px solid rgba(244,239,230,0.08);border-top:0;border-radius:0 0 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008));">
+<div class="st-key-tp_action_01">
   <div data-testid="stTextInput" style="margin-bottom:10px;">
     <label>Reps completed</label>
     <div data-baseweb="input"><input type="text" placeholder="e.g. 4×10"></div>
   </div>
   <div class="stButton" style="margin-top:12px;">
-    <button kind="primary" data-testid="stButton" style="
-      width:100%;
-      background:linear-gradient(180deg,#43d985 0%,#2cb86b 100%);
-      color:#062414;
-      border:1px solid rgba(74,227,140,0.55);
-      border-radius:14px;
-      padding:16px 22px;
-      font-family:'Geist',sans-serif;
-      font-size:1rem;
-      font-weight:700;
-      letter-spacing:0.04em;
-      box-shadow:0 18px 36px -16px rgba(74,227,140,0.55),
-                 inset 0 1px 0 rgba(255,255,255,0.32),
-                 inset 0 -1px 0 rgba(0,0,0,0.10);
-      cursor:pointer;
-    ">⚡  Complete Drill</button>
+    <button kind="primary" data-testid="stButton">⚡  Complete Drill</button>
   </div>
 </div>
 """

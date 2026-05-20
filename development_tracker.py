@@ -2465,53 +2465,11 @@ _DT_LOCAL_CSS = """
     outline: none !important;
 }
 
-/* ---- The premium "Complete Drill" button (the big emerald CTA) ---- */
-@keyframes tp-glow-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(74,227,140,0.40), 0 18px 36px -16px rgba(74,227,140,0.55); }
-    50%      { box-shadow: 0 0 0 4px rgba(74,227,140,0.10), 0 18px 36px -16px rgba(74,227,140,0.55); }
-}
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
-.tp-shell [class*="st-key-tp_action_"] [data-testid="stButton"] button[kind="primary"] {
-    /* Override the global red-gradient primary button completely. */
-    background: linear-gradient(180deg, #43d985 0%, #2cb86b 100%) !important;
-    color: #062414 !important;
-    border: 1px solid rgba(74,227,140,0.55) !important;
-    border-radius: 14px !important;
-    padding: 16px 22px !important;
-    font-family: var(--bl-sans) !important;
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.04em !important;
-    text-transform: none !important;
-    width: 100% !important;
-    box-shadow:
-        0 18px 36px -16px rgba(74,227,140,0.55),
-        inset 0 1px 0 rgba(255,255,255,0.32),
-        inset 0 -1px 0 rgba(0,0,0,0.10) !important;
-    transition:
-        transform 0.18s cubic-bezier(.34,1.4,.64,1),
-        box-shadow 0.22s var(--au-ease, cubic-bezier(.32,.72,0,1)),
-        background 0.22s ease !important;
-    margin-top: 12px !important;
-    animation: tp-glow-pulse 2.6s ease-in-out infinite;
-}
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover {
-    transform: translateY(-2px) !important;
-    background: linear-gradient(180deg, #58e596 0%, #38c876 100%) !important;
-    box-shadow:
-        0 22px 44px -14px rgba(74,227,140,0.65),
-        inset 0 1px 0 rgba(255,255,255,0.40),
-        inset 0 -1px 0 rgba(0,0,0,0.12) !important;
-    animation: none;
-}
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:active {
-    transform: translateY(0) scale(0.985) !important;
-    transition-duration: 100ms !important;
-}
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:focus-visible {
-    outline: 2px solid rgba(74,227,140,0.65) !important;
-    outline-offset: 3px !important;
-}
+/* v7.2 NOTE: the legacy `.tp-shell`-scoped emerald CTA rules were
+   deleted here. The new "Performance Activation" charcoal-on-gold
+   button is defined further down without the `.tp-shell` prefix so
+   it wins everywhere (static preview AND live Streamlit, which
+   auto-closes the .tp-shell markdown wrapper). */
 
 /* The "Mark as not done" undo button (small ghost link). */
 .tp-shell [class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]) {
@@ -2831,40 +2789,9 @@ _DT_LOCAL_CSS = """
     padding-top: 8px;
 }
 
-/* ---- Softer, gold-rimmed Complete Drill button (less neon) ---- */
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
-.tp-shell [class*="st-key-tp_action_"] [data-testid="stButton"] button[kind="primary"] {
-    /* v5: dial the green back from saturated 43d985→2cb86b to a more
-       muted seafoam, then add a thin gold inner edge so it reads as
-       BarrelLabs gold-on-emerald instead of generic SaaS green. */
-    background: linear-gradient(180deg, #2fbf73 0%, #1f9659 100%) !important;
-    color: #f4f7f5 !important;
-    border: 1px solid rgba(232,193,112,0.45) !important;
-    border-radius: 16px !important;
-    padding: 18px 24px !important;
-    font-size: 1.02rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.045em !important;
-    box-shadow:
-        0 22px 44px -18px rgba(31,150,89,0.55),
-        inset 0 1px 0 rgba(255,255,255,0.22),
-        inset 0 -1px 0 rgba(0,0,0,0.12),
-        inset 0 0 0 1px rgba(232,193,112,0.18) !important;
-    animation: none !important;  /* drop the pulse — too needy */
-    margin-top: 14px !important;
-    text-transform: none !important;
-}
-.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover {
-    background: linear-gradient(180deg, #38cc7c 0%, #25a262 100%) !important;
-    color: #ffffff !important;
-    border-color: rgba(232,193,112,0.65) !important;
-    box-shadow:
-        0 26px 52px -16px rgba(31,150,89,0.65),
-        inset 0 1px 0 rgba(255,255,255,0.28),
-        inset 0 -1px 0 rgba(0,0,0,0.14),
-        inset 0 0 0 1px rgba(232,193,112,0.30) !important;
-    transform: translateY(-2px) !important;
-}
+/* v7.2 NOTE: the v5 seafoam CTA was also deleted here. The final
+   "Performance Activation" button lives in the unscoped block
+   below so it wins everywhere. */
 
 /* ---- Reps preset chips (radio styled as horizontal pills) ---- */
 .tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] {
@@ -3082,54 +3009,282 @@ _DT_LOCAL_CSS = """
     margin-right: 3px;
 }
 
-/* ---- v7.1 Premium "Complete Drill" CTA — bone/gold ---- */
-/* Replaces the emerald button entirely. Mirrors the auth-screen
-   v4 "Enter the Performance Lab" treatment: bone surface, dark text,
-   gold on hover. Reads as ONE family with the rest of the BarrelLabs
-   brand instead of a Bootstrap-emerald outlier. */
+/* ============================================================
+   v7.2 — PREMIUM "COMPLETE DRILL" CTA
+   "Performance Activation Button" — a real designed action button,
+   not a bone fill with a hover color.
+     · Charcoal base with a gold inner ring + top hairline accent
+     · Bold uppercase gold text, mono letter-spacing
+     · Idle: sits with depth (4px bottom-shadow simulates physical lift)
+     · Hover: gold gradient fill sweeps in from the left (CSS shimmer)
+       + button lifts 2px + bigger gold underglow
+     · Press: button settles 2px down + shadow inverts to inset, like
+       a real key being pressed
+     · Focus-visible: gold double-ring outline
+   ============================================================ */
+@keyframes tp-cta-shimmer {
+    0%   { background-position: -150% 0; }
+    100% { background-position: 250% 0; }
+}
+@keyframes tp-cta-hairline {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 0.85; }
+}
+
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
 [class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"],
 [class*="st-key-tp_action_"] button[data-testid="baseButton-primary"] {
-    background: #F4EFE6 !important;
-    color: #0A0B0E !important;
-    border: 1px solid rgba(0,0,0,0.06) !important;
+    /* Charcoal base — sits visually with the page's dark surface
+       rather than floating on top of it. */
+    background:
+        linear-gradient(180deg, rgba(232,193,112,0.045) 0%, transparent 60%),
+        linear-gradient(180deg, #14171C 0%, #0D0F13 100%) !important;
+    color: #E8C170 !important;
+    border: 1px solid rgba(232,193,112,0.42) !important;
     border-radius: 14px !important;
-    padding: 14px 22px !important;
+    /* Bigger height — confident action button, not a form submit. */
+    padding: 20px 28px !important;
     font-family: 'Geist', -apple-system, system-ui, sans-serif !important;
-    font-size: 0.96rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
-    text-transform: none !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
     width: 100% !important;
-    margin-top: 14px !important;
+    margin-top: 18px !important;
+    position: relative !important;
+    overflow: hidden !important;
     box-shadow:
-        0 18px 36px -16px rgba(244,239,230,0.22),
-        inset 0 -1px 0 rgba(0,0,0,0.06) !important;
+        /* "Button is sitting ON the card" — solid bottom bar gives a
+           physical 3D lift like a real keyboard key. */
+        0 4px 0 rgba(0,0,0,0.55),
+        /* Gold underglow halo. */
+        0 18px 36px -16px rgba(232,193,112,0.35),
+        /* Inner ring — thin gold hairline INSIDE the border. */
+        inset 0 0 0 1px rgba(232,193,112,0.10),
+        /* Top inner highlight. */
+        inset 0 1px 0 rgba(232,193,112,0.22),
+        /* Bottom inner darkening. */
+        inset 0 -1px 0 rgba(0,0,0,0.45) !important;
     animation: none !important;
     transition:
-        transform 0.18s cubic-bezier(.34,1.4,.64,1),
-        box-shadow 0.22s cubic-bezier(.32,.72,0,1),
-        background 0.22s cubic-bezier(.32,.72,0,1),
-        color 0.22s cubic-bezier(.32,.72,0,1) !important;
+        transform 0.20s cubic-bezier(.32,.72,0,1),
+        box-shadow 0.25s cubic-bezier(.32,.72,0,1),
+        background 0.30s cubic-bezier(.32,.72,0,1),
+        color 0.25s cubic-bezier(.32,.72,0,1),
+        border-color 0.25s cubic-bezier(.32,.72,0,1) !important;
+    /* Top gold hairline. Sits on the button as an accent stripe like
+       the gold-rule on the bento Edge Score card. */
+    background-image:
+        linear-gradient(180deg, rgba(232,193,112,0.045) 0%, transparent 60%),
+        linear-gradient(180deg, #14171C 0%, #0D0F13 100%);
 }
+
+/* Top accent hairline — pulses softly so the button feels "live." */
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 22%; right: 22%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(232,193,112,0.85) 50%,
+        transparent 100%);
+    animation: tp-cta-hairline 2.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Shimmer overlay — a gold gradient sweeps left-to-right on hover. */
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 35%,
+        rgba(255, 244, 200, 0.28) 50%,
+        transparent 65%);
+    background-size: 220% 100%;
+    background-position: -150% 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+}
+
+/* Hover: gold fill + dark text + shimmer activates + bigger lift. */
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover,
 [class*="st-key-tp_action_"] button[data-testid="baseButton-primary"]:hover,
 [class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"]:hover {
-    background: #E8C170 !important;
+    background:
+        linear-gradient(180deg, #F4E4B0 0%, #E8C170 60%, #C9A350 100%) !important;
     color: #1a1206 !important;
-    border-color: rgba(0,0,0,0.06) !important;
+    border-color: rgba(244, 244, 224, 0.85) !important;
     transform: translateY(-2px) !important;
     box-shadow:
-        0 22px 44px -14px rgba(232,193,112,0.45),
-        inset 0 -1px 0 rgba(0,0,0,0.08) !important;
+        0 6px 0 rgba(0,0,0,0.50),
+        0 24px 48px -12px rgba(232,193,112,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.45),
+        inset 0 -1px 0 rgba(0,0,0,0.12) !important;
 }
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover::before {
+    /* Hide the top hairline once the button is gold — would clash. */
+    opacity: 0;
+}
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover::after {
+    opacity: 1;
+    animation: tp-cta-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Active (pressed): the button "pushes down" into the card. Bottom
+   shadow shrinks, transform pushes the button 4px down, top inset
+   shadow makes it feel pressed. Real physical button behavior. */
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:active {
-    transform: translateY(0) scale(0.985) !important;
-    transition-duration: 100ms !important;
+    transform: translateY(2px) !important;
+    box-shadow:
+        0 1px 0 rgba(0,0,0,0.45),
+        0 6px 14px -8px rgba(232,193,112,0.45),
+        inset 0 2px 4px rgba(0,0,0,0.30),
+        inset 0 -1px 0 rgba(255,255,255,0.05) !important;
+    transition-duration: 90ms !important;
 }
+
+/* Focus-visible: gold double-ring outline for keyboard accessibility. */
 [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:focus-visible {
-    outline: 2px solid #E8C170 !important;
-    outline-offset: 3px !important;
+    outline: none !important;
+    box-shadow:
+        0 4px 0 rgba(0,0,0,0.55),
+        0 18px 36px -16px rgba(232,193,112,0.35),
+        inset 0 0 0 1px rgba(232,193,112,0.10),
+        inset 0 1px 0 rgba(232,193,112,0.22),
+        inset 0 -1px 0 rgba(0,0,0,0.45),
+        0 0 0 2px rgba(232,193,112,0.50),
+        0 0 0 4px rgba(232,193,112,0.20) !important;
+}
+
+/* ============================================================
+   v7.2 — UNCRAMP EVERY SECTION THAT FEELS TIGHT
+   ============================================================ */
+
+/* ---- Completed drill card — pull the stamp off the edge ---- */
+.tp-done-card {
+    padding: 22px 26px 20px !important;
+    gap: 18px !important;
+}
+.tp-done-card-head {
+    grid-template-columns: 44px 1fr auto !important;
+    gap: 20px !important;
+    align-items: start !important;
+}
+.tp-done-card-name {
+    margin-bottom: 12px !important;
+}
+.tp-done-card-row {
+    gap: 12px 28px !important;
+}
+.tp-done-card-stamp {
+    /* Push the stamp away from the right edge so it doesn't
+       feel jammed against the card border. */
+    align-self: start !important;
+    margin-top: 4px !important;
+    padding: 7px 14px !important;
+    letter-spacing: 0.22em !important;
+}
+
+/* ---- View Details — vertical breathing room from the card head ---- */
+.tp-done-details {
+    margin-top: 18px !important;
+    padding-top: 16px !important;
+}
+.tp-done-details summary {
+    padding: 9px 16px !important;
+}
+
+/* ---- Drill card — uncramp the reps tracker + button area ---- */
+[class*="st-key-tp_action_"] {
+    margin-top: -10px !important;
+    padding: 22px 24px 22px !important;
+}
+[class*="st-key-tp_action_"] [data-testid="stRadio"] {
+    margin-bottom: 6px !important;
+}
+
+/* "Reps logged" label gap above the chip row */
+[class*="st-key-tp_action_"] [data-testid="stRadio"] > label {
+    margin-bottom: 10px !important;
+}
+
+/* The text input that appears when "Custom" is selected. */
+[class*="st-key-tp_action_"] [data-testid="stTextInput"] {
+    margin-top: 4px !important;
+}
+[class*="st-key-tp_action_"] [data-testid="stTextInput"] label {
+    margin-bottom: 6px !important;
+}
+
+/* ---- Drill card header padding — bigger top inset so the
+       number/name don't sit right at the card edge ---- */
+.dt-drill {
+    padding: 22px 26px 18px !important;
+}
+.dt-drill-row {
+    gap: 18px !important;
+    align-items: flex-start !important;
+}
+.dt-drill-num {
+    /* Pad the number badge with a touch of vertical alignment. */
+    line-height: 1.05 !important;
+}
+.dt-drill-name {
+    margin-bottom: 6px !important;
+}
+.dt-drill-reps {
+    /* Pill needs its own space below the title. */
+    margin-top: 6px !important;
+    padding: 5px 12px !important;
+}
+
+/* ---- Metadata strip — looser horizontal spacing ---- */
+.tp-drill-meta-strip {
+    gap: 10px 22px !important;
+    padding: 12px 0 14px !important;
+}
+
+/* ---- How-to summary — bigger tap target ---- */
+.tp-howto summary {
+    padding: 16px 20px !important;
+}
+
+/* ---- Coach Notes — more padding inside ---- */
+.dt-coach {
+    padding: 1.5rem 1.6rem 1.4rem !important;
+    line-height: 1.6 !important;
+}
+
+/* ---- Re-Test card — pull title off the icon ---- */
+.dt-retest {
+    padding: 1.6rem 1.7rem !important;
+    gap: 1.4rem !important;
+}
+.dt-retest-title {
+    margin-bottom: 0.7rem !important;
+}
+
+/* ---- Bento — slightly more breathing between number + label ---- */
+.tp-bento-card {
+    padding: 22px 18px 18px !important;
+}
+.tp-bento-label {
+    margin-top: 14px !important;
+}
+.tp-bento-foot {
+    margin-top: 7px !important;
+}
+
+/* ---- Session journal save row — pull the button down a bit ---- */
+.dt-save { margin-top: 10px !important; }
+
+/* ---- "Save Session Notes" button - tighter copy ---- */
+.dt-save .stButton > button {
+    padding: 13px 24px !important;
 }
 
 /* ---- Secondary buttons inside the action row (Mark as not done) ---- */
