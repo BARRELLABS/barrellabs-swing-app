@@ -1355,6 +1355,37 @@ _DT_LOCAL_CSS = """
 .tp-deck .em { color: var(--bl-ink-100); font-weight: 500; }
 .tp-deck .gold { color: var(--tp-gold); font-weight: 500; }
 
+/* Small inline tag rendered under the headline when we have a
+   concrete priority-1 issue name from the analyzer. Sits between
+   the display headline and the deck so the analyzer's diagnosis
+   is never invisible, but doesn't compete with the headline. */
+.tp-focus-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: rgba(232,193,112,0.08);
+    border: 1px solid rgba(232,193,112,0.28);
+    font-family: var(--bl-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--bl-ink-80);
+}
+.tp-focus-tag .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--tp-gold);
+    box-shadow: 0 0 8px rgba(232,193,112,0.65);
+    flex-shrink: 0;
+}
+.tp-focus-tag .name {
+    color: var(--tp-gold);
+    font-weight: 700;
+}
+
 /* ---- BENTO STATS (Today / Edge / MLB Match / Streak) ---- */
 .tp-bento {
     display: grid;
@@ -1687,6 +1718,226 @@ _DT_LOCAL_CSS = """
     .tp-consistency-grid { gap: 5px; }
     .tp-day { padding: 8px 2px 6px; }
 }
+
+/* ============================================================
+   TRAINING PLAN v3 — restraint + premium completion polish.
+
+   Goals (from the v3 brief):
+     · Less red. Red is reserved for PRIMARY + TODAY + one signature
+       eyebrow on the hero. Every other red surface dials to a warm
+       neutral or to gold.
+     · Premium completion treatment. The drill card morphs visibly
+       Pending → Done with CSS-only transitions (no JS — Streamlit
+       doesn't let us hand-roll widgets, so we ride the existing
+       checkbox + restyle around it).
+     · Mastery surfacing. Lifetime completion count for the drill
+       NAME (not the per-swing instance) shows on each card.
+     · Reward tier visual. 1y journey reads as Bronze → Silver →
+       Gold → Diamond → Legendary alongside the existing reward
+       cards.
+   ============================================================ */
+
+/* ---- 1. Restraint pass: red → neutral on non-priority eyebrows. ---- */
+.tp-shell .tp-eyebrow {
+    color: var(--bl-ink-60) !important;       /* not red */
+}
+.tp-shell .tp-eyebrow .stitch {
+    background: var(--bl-ink-40) !important;  /* not red */
+}
+/* Section heads stay neutral too — only PRIMARY chips wear red. */
+.tp-shell .tp-section-eyebrow {
+    color: var(--bl-ink-60) !important;
+}
+.tp-shell .tp-section-head::after {
+    background: linear-gradient(90deg, var(--tp-gold) 0%, transparent 100%) !important;
+}
+/* Consistency eyebrow: also neutral. */
+.tp-shell .tp-consistency-eyebrow {
+    color: var(--bl-ink-60) !important;
+}
+/* Category priority pill (legacy): bone instead of red. */
+.tp-shell .dt-cat-priority-pill {
+    color: var(--bl-ink-80) !important;
+    background: rgba(244,239,230,0.04) !important;
+    border-color: var(--bl-line-hi) !important;
+}
+/* The data-hero stitch eyebrow keeps one small dose of red so the
+   page still has a deliberate accent. Override only the LAST
+   .tp-eyebrow on the data hero. (No reliable last-of-type without
+   restructuring; instead we add a new .is-signature variant when
+   the data hero is rendered.) */
+.tp-shell .tp-eyebrow.is-signature {
+    color: var(--bl-red) !important;
+}
+.tp-shell .tp-eyebrow.is-signature .stitch {
+    background: var(--bl-red) !important;
+    opacity: 0.85;
+}
+
+/* Soften the ambient hero radial — was gold; keep gold but reduce
+   intensity so the headline reads cleaner. */
+.tp-shell .tp-hero::before {
+    background: radial-gradient(ellipse at center,
+        rgba(232,193,112,0.07) 0%, transparent 70%) !important;
+}
+
+/* ---- 2. Bento cards: dial down the gold-card emphasis on Edge
+        Score; let it earn the emphasis only when the value's high. ---- */
+.tp-shell .tp-bento-card.is-gold {
+    border-color: var(--bl-line-hi) !important;
+    background:
+        radial-gradient(80% 60% at 50% 0%, rgba(232,193,112,0.05) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.009)) !important;
+}
+
+/* ---- 3. Premium completion treatment. ---- */
+/* The drill card itself already morphs to a green tint when .is-done.
+   Add three more details:
+     a. a subtle outer ring pulse on transition;
+     b. a "+XP" floating chip;
+     c. a checkmark glyph that scales in. */
+
+.tp-shell .dt-drill {
+    /* Make the transition snappier so the Pending → Done morph
+       feels intentional rather than incidental. */
+    transition:
+        border-color 0.32s cubic-bezier(.32,.72,0,1),
+        background 0.32s cubic-bezier(.32,.72,0,1),
+        box-shadow 0.32s cubic-bezier(.32,.72,0,1),
+        transform 0.22s cubic-bezier(.32,.72,0,1) !important;
+}
+
+@keyframes tp-ring-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(74,227,140,0.55); }
+    70%  { box-shadow: 0 0 0 14px rgba(74,227,140,0); }
+    100% { box-shadow: 0 0 0 0 rgba(74,227,140,0); }
+}
+@keyframes tp-xp-fly {
+    0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.85); }
+    20%  { opacity: 1; transform: translate(-50%, 0)  scale(1.0); }
+    80%  { opacity: 1; transform: translate(-50%, -10px) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -28px) scale(0.95); }
+}
+.tp-shell .dt-drill.is-done {
+    /* Single-shot pulse — the keyframe runs once when the .is-done
+       class lands on the card after the user toggles. */
+    animation: tp-ring-pulse 0.85s ease-out 1;
+}
+/* The +XP chip is purely decorative — sits in the bottom-right
+   corner of completed drills, fading in/up so the user can see
+   the reward without a custom component. */
+.tp-shell .dt-drill { position: relative; }
+.tp-shell .dt-drill.is-done::after {
+    content: "+25 XP";
+    position: absolute;
+    bottom: 12px; right: 16px;
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--tp-green);
+    background: rgba(74,227,140,0.08);
+    border: 1px solid rgba(74,227,140,0.32);
+    border-radius: 999px;
+    padding: 4px 9px;
+    animation: tp-xp-fly 1.8s cubic-bezier(.32,.72,0,1) 1;
+    animation-fill-mode: forwards;
+    /* `forwards` keeps the chip's final state — the keyframe ends
+       at opacity 0, so post-animation the chip is invisible. The
+       chip only appears on the transition from pending → done. */
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ---- 4. Drill mastery chip (lifetime completion count) ---- */
+.tp-mastery {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--bl-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--tp-gold);
+    background: rgba(232,193,112,0.07);
+    border: 1px solid rgba(232,193,112,0.28);
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.tp-mastery::before {
+    content: "★";
+    font-size: 10px;
+    line-height: 1;
+    color: var(--tp-gold);
+}
+
+/* Drill timestamp on completed cards — replaces the bone status
+   pill text with a friendlier "✓ COMPLETED · 14:23" string. */
+.tp-shell .dt-drill.is-done .dt-drill-status-pill::before {
+    content: "✓ ";
+    margin-right: 1px;
+}
+
+/* ---- 5. Reward tier visual (Bronze→Legendary) ----
+   Existing 8 rewards in gamification.REWARDS map to tier bands by
+   day_threshold. The .is-tier-* class is added in Python before
+   the reward card markup; here it just colours the border + an
+   optional corner tier label. */
+.tp-shell .dt-reward.is-tier-bronze     { border-color: rgba(205,127,50,0.32) !important; }
+.tp-shell .dt-reward.is-tier-silver     { border-color: rgba(192,192,192,0.30) !important; }
+.tp-shell .dt-reward.is-tier-gold       { border-color: rgba(232,193,112,0.38) !important; }
+.tp-shell .dt-reward.is-tier-diamond    { border-color: rgba(173,216,255,0.38) !important; }
+.tp-shell .dt-reward.is-tier-legendary {
+    border-color: rgba(230,69,48,0.42) !important;
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(230,69,48,0.10) 0%, transparent 60%),
+        radial-gradient(120% 80% at 0% 100%, rgba(232,193,112,0.10) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010)) !important;
+}
+.tp-tier-tag {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-family: var(--bl-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.30);
+    border: 1px solid var(--bl-line-hi);
+    color: var(--bl-ink-80);
+    backdrop-filter: blur(4px);
+}
+.tp-tier-tag.is-tier-bronze     { color: #CD7F32; border-color: rgba(205,127,50,0.45); }
+.tp-tier-tag.is-tier-silver     { color: #DCDCDC; border-color: rgba(192,192,192,0.45); }
+.tp-tier-tag.is-tier-gold       { color: #E8C170; border-color: rgba(232,193,112,0.50); }
+.tp-tier-tag.is-tier-diamond    { color: #ADD8FF; border-color: rgba(173,216,255,0.55); }
+.tp-tier-tag.is-tier-legendary  { color: #FFB498; border-color: rgba(230,69,48,0.60); }
+
+/* Existing .dt-reward is `position:relative` already (verified via
+   the in-place CSS above), so the absolute-positioned .tp-tier-tag
+   anchors to the card. */
+
+/* ---- 6. Empty state polish ---- */
+.tp-shell .dt-empty {
+    border-color: var(--bl-line-hi) !important;
+}
+
+/* ---- 7. Mode pill: reduce red noise on the hero subtitle band ---- */
+.tp-shell .dt-mode-pill {
+    background: rgba(244,239,230,0.04) !important;
+    border-color: var(--bl-line-hi) !important;
+    color: var(--bl-ink-80) !important;
+}
+.tp-shell .dt-mode-pill-dot {
+    background: var(--tp-gold) !important;
+    box-shadow: 0 0 8px rgba(232,193,112,0.55) !important;
+}
 </style>
 """
 
@@ -1726,6 +1977,81 @@ def _trim_drills_to_focus(categories: list, max_drills: int = 4) -> list:
         if cat2["drills"]:
             out.append(cat2)
     return out
+
+
+def _lifetime_completions(log: dict, drill_name: str) -> int:
+    """Count how many times the player completed this drill NAME PRIOR
+    to today.
+
+    Events live inside `log["drills"]["_completion_events"]` (the same
+    `_swing_meta`-style piggyback `player_storage` already uses, so
+    persistence costs zero schema migration). Today's completion is
+    deliberately excluded so the mastery chip on the card doesn't
+    bump in lock-step with the player ticking the box — the +25 XP
+    pulse is the instant feedback; the "Mastered N×" chip is the
+    slower, more meaningful retrospective.
+
+    Returns 0 for unknown drills, missing events list, or unparseable
+    timestamps — safe to call before the log has any history.
+    """
+    events = ((log or {}).get("drills") or {}).get("_completion_events") or []
+    target = (drill_name or "").strip().lower()
+    if not target:
+        return 0
+    try:
+        from datetime import datetime as _dt
+        today = _dt.now().date()
+    except Exception:
+        today = None
+    n = 0
+    for e in events:
+        if (e.get("drill_name", "") or "").strip().lower() != target:
+            continue
+        # Exclude today's events so the chip never updates in the same
+        # render as the +25 XP pulse.
+        if today is not None:
+            iso = (e.get("completed_at") or "").strip()
+            try:
+                if "T" in iso:
+                    when = _dt.fromisoformat(iso.replace("Z", "")).date()
+                else:
+                    when = _dt.fromisoformat(iso[:10]).date()
+                if when >= today:
+                    continue
+            except Exception:
+                # Unparseable timestamp — count it (better to over- than
+                # under-credit on legacy data).
+                pass
+        n += 1
+    return n
+
+
+def _tier_for_day_threshold(day_threshold: int) -> str:
+    """Map a reward's day_threshold to its tier (bronze/silver/gold/diamond/legendary).
+
+    Used by the rewards roadmap to render the existing 8 milestones
+    as an aspirational ladder without changing their content. The
+    bands mirror the brief's "Bronze → Silver → Gold → Diamond →
+    Legendary" arc:
+        bronze:    < 14   days  (7d badge)
+        silver:    14–30  days  (14d patch, 30d player card)
+        gold:      31–90  days  (60d progress report, 90d locker title)
+        diamond:   91–270 days  (180d hoodie, 270d lifetime discount)
+        legendary: 271+   days  (365d Hall of Fame)
+    """
+    try:
+        d = int(day_threshold or 0)
+    except Exception:
+        return "bronze"
+    if d < 14:
+        return "bronze"
+    if d <= 30:
+        return "silver"
+    if d <= 90:
+        return "gold"
+    if d <= 270:
+        return "diamond"
+    return "legendary"
 
 
 def _role_for(category_idx: int, drill_idx: int) -> tuple[str, str]:
@@ -1800,9 +2126,9 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
 
     # ---- Display headline ----
     # The primary issue title is the priority-1 category's display name
-    # from the analyzer-built drill_plan. The serif italic + gold treat-
-    # ment lands on this word/phrase so the page's emotional beat is
-    # exactly what the swing is asking the player to fix.
+    # from the analyzer-built drill_plan. v3 uses it as a small "focus
+    # tag" under the headline rather than awkwardly forcing it into the
+    # sentence ("Master your Sharpen Timing & Quickness" → out).
     plan = (saved_swing or {}).get("drill_plan") or {}
     cats = plan.get("categories") or []
     primary_issue = ""
@@ -1811,6 +2137,24 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
     if not primary_issue:
         primary_issue = "your swing"
 
+    # ---- How recent is this swing? ----
+    # Drives the "fresh-analysis" headline variant in
+    # `_hero_copy_variant`. Defaults to 0 (treat-as-fresh) on parse
+    # failure so the worst case is the most action-oriented copy.
+    swing_days_old = 0
+    try:
+        from datetime import datetime as _dt
+        iso = ((saved_swing or {}).get("timestamp")
+               or (saved_swing or {}).get("date") or "").strip()
+        if iso:
+            if "T" in iso:
+                ts = _dt.fromisoformat(iso.replace("Z", ""))
+            else:
+                ts = _dt.fromisoformat(iso[:10])
+            swing_days_old = max(0, (_dt.now() - ts).days)
+    except Exception:
+        swing_days_old = 0
+
     return {
         "today_pct": today_pct,
         "edge_score": edge_score,
@@ -1818,22 +2162,25 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
         "streak_days": streak_days,
         "primary_issue": primary_issue,
         "ref_name": ref_name,
+        "total_drills": int(total_drills or 0),
+        "total_completed": int(total_completed or 0),
+        "swing_days_old": int(swing_days_old or 0),
     }
 
 
 def _build_hero_brand_html(
     *,
-    headline: str = "Your daily swing <span class=\"ital\">development</span> plan.",
-    eyebrow: str = "Training Plan · Today's Focus",
-    deck: str = ("Updated from your most recent swing analysis. Focus on the "
-                 "highest-impact drills, then upload again to measure improvement."),
+    headline: str = "Today's <span class=\"ital\">Development</span> Plan.",
+    eyebrow: str = "Training Plan",
+    deck: str = ("Focus on the highest-impact drills from your most "
+                 "recent swing analysis. Small improvements compound."),
 ) -> str:
     """Render the always-on editorial brand hero — eyebrow + serif italic
     display + deck. No bento; pure identity. Branch-agnostic (renders
     the same for unauth / no-Pro / no-swing).
 
     The data-driven bento + consistency strip are rendered SEPARATELY
-    by `_build_bento_html` only when we have a real swing record.
+    by `_build_data_hero_html` only when we have a real swing record.
     """
     return (
         '<section class="tp-hero">'
@@ -1847,32 +2194,118 @@ def _build_hero_brand_html(
     )
 
 
-def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
-    """Editorial hero with the dynamic primary-issue headline + bento.
+def _hero_copy_variant(
+    *,
+    today_pct: int,
+    total_drills: int,
+    total_completed: int,
+    streak_days: int,
+    swing_days_old: int,
+) -> tuple[str, str]:
+    """Pick a headline + deck that reflects the player's current state.
 
-    Only called when we have a real `saved_swing` — so the display
-    headline can name the actual focus area (e.g., "Master your
-    hip-shoulder separation") and the four bento cards have real
-    numbers instead of dashes.
+    The previous "Master your <issue>" pattern broke on category names
+    like "Sharpen Timing & Quickness" (read as "Master your Sharpen
+    Timing & Quickness"). We swap to a small set of curated templates
+    selected by state, so the line is always idiomatic + true.
+
+    Returns (headline_html, deck_text).
     """
-    primary = _html.escape(metrics.get("primary_issue") or "your swing")
+    # All-done — celebrate, then point to the next move.
+    if total_drills > 0 and total_completed >= total_drills:
+        return (
+            "Today's <span class=\"ital\">work</span> is done.",
+            ("All prescribed drills complete. Rest, then upload a fresh "
+             "swing to see how today's reps moved the needle."),
+        )
+
+    # Brand new swing (< 24h) → fresh-priorities framing.
+    if swing_days_old <= 0 and total_drills > 0:
+        return (
+            "Your <span class=\"ital\">highest-leverage</span> work.",
+            ("Fresh analysis, two new priorities. The drills below are "
+             "the most impactful changes available to you right now."),
+        )
+
+    # Hot streak ≥ 7 days — protect it, name it.
+    if streak_days >= 7:
+        return (
+            f"Day <span class=\"ital\">{streak_days}</span>. Stay sharp.",
+            ("You're building real momentum. Today's drills protect the "
+             "streak and keep compound improvements stacking."),
+        )
+
+    # Partial progress today.
+    if total_drills > 0 and total_completed > 0:
+        remaining = total_drills - total_completed
+        plural = "drill" if remaining == 1 else "drills"
+        return (
+            f"<span class=\"ital\">{remaining}</span> to go.",
+            (f"You've checked {total_completed} off the list. "
+             f"Finish the remaining {remaining} {plural} to bank "
+             "today's work."),
+        )
+
+    # Default — neutral, action-oriented.
+    return (
+        "What <span class=\"ital\">moves</span> the needle today.",
+        ("Focus on the two mechanical priorities most likely to "
+         "improve your swing. Complete today's drills and upload "
+         "again to measure progress."),
+    )
+
+
+def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
+    """Editorial hero with state-aware headline + bento.
+
+    Only called when we have a real `saved_swing`. The headline now
+    adapts to the player's current state (fresh swing / partial / done
+    / streak) rather than forcing "Master your <issue>" into every
+    sentence regardless of fit.
+    """
     ref_name = _html.escape(metrics.get("ref_name") or "")
     date_str = _html.escape(swing_date or "your most recent swing")
     today_pct = int(metrics.get("today_pct") or 0)
     edge = metrics.get("edge_score", "—")
     mlb  = metrics.get("match_pct", "—")
     streak = int(metrics.get("streak_days") or 0)
+    total_drills = int(metrics.get("total_drills") or 0)
+    total_completed = int(metrics.get("total_completed") or 0)
+    swing_days_old = int(metrics.get("swing_days_old") or 0)
+    primary_issue = _html.escape(metrics.get("primary_issue") or "")
 
+    headline, deck = _hero_copy_variant(
+        today_pct=today_pct,
+        total_drills=total_drills,
+        total_completed=total_completed,
+        streak_days=streak,
+        swing_days_old=swing_days_old,
+    )
+
+    # The deck always references the source-of-truth — swing date +
+    # optional reference name — even when the headline is state-driven.
     if ref_name:
-        deck = (
-            f'Today\'s focus, drawn from your <span class="em">{date_str}</span> '
-            f'swing — measured against <span class="gold">{ref_name}</span>.'
+        deck_postscript = (
+            f' Drawn from your <span class="em">{date_str}</span> swing '
+            f'— measured against <span class="gold">{ref_name}</span>.'
         )
     else:
-        deck = (
-            f'Today\'s focus, drawn from your <span class="em">{date_str}</span> '
-            f'swing analysis.'
+        deck_postscript = (
+            f' Drawn from your <span class="em">{date_str}</span> swing.'
         )
+    deck = deck + deck_postscript
+
+    # If we have a primary issue identified, list it as a small
+    # "focus tag" below the headline so the analyzer's diagnosis is
+    # never invisible — just no longer awkwardly hard-coded into the
+    # sentence shape.
+    focus_html = (
+        f'<div class="tp-focus-tag">'
+        f'<span class="dot"></span>'
+        f'Primary focus · <span class="name">{primary_issue}</span>'
+        f'</div>'
+        if primary_issue and primary_issue != "your swing" else ""
+    )
 
     edge_num_html = (
         f'<span class="tp-bento-num is-gold">{edge}</span>'
@@ -1889,13 +2322,14 @@ def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
 
     return (
         '<section class="tp-hero">'
-        '<div class="tp-eyebrow">'
+        # The signature red eyebrow — the only red eyebrow on the page,
+        # so it reads as deliberate rather than noise.
+        '<div class="tp-eyebrow is-signature">'
         '<span class="stitch"></span>Training Plan · Today\'s Focus'
         '<span class="stitch"></span>'
         '</div>'
-        f'<h1 class="tp-display">'
-        f'Master your <span class="ital">{primary}</span>.'
-        f'</h1>'
+        f'<h1 class="tp-display">{headline}</h1>'
+        f'{focus_html}'
         f'<p class="tp-deck">{deck}</p>'
         '<div class="tp-bento">'
         '<div class="tp-bento-card">'
@@ -2241,7 +2675,13 @@ def _render_rewards(state: dict, persisted: dict) -> None:
         kind = (r.get("kind") or "").lower()
 
         # Base card class + per-reward emphasis hooks.
-        classes = ["dt-reward"]
+        # v3: each reward also wears a tier class (bronze/silver/gold/
+        # diamond/legendary) driven by `day_threshold`, so the
+        # rewards roadmap reads as a single ladder rather than 8
+        # disconnected milestones. The tier visuals are scoped to
+        # `.tp-shell .dt-reward.is-tier-*` in _DT_LOCAL_CSS.
+        tier = _tier_for_day_threshold(r.get("day_threshold"))
+        classes = ["dt-reward", f"is-tier-{tier}"]
         if unlocked:
             classes.append("is-unlocked")
         if rid == "r_hoodie":
@@ -2249,6 +2689,9 @@ def _render_rewards(state: dict, persisted: dict) -> None:
         elif rid == "r_hall_of_fame":
             classes.append("is-hof")
         card_cls = " ".join(classes)
+        tier_tag_html = (
+            f'<div class="tp-tier-tag is-tier-{tier}">{tier.upper()}</div>'
+        )
 
         kind_cls = f"dt-reward-kind is-{kind}" if kind else "dt-reward-kind"
         kind_label = kind.upper() if kind else "REWARD"
@@ -2269,6 +2712,7 @@ def _render_rewards(state: dict, persisted: dict) -> None:
 
         parts.append(
             f'<div class="{card_cls}">'
+            f'{tier_tag_html}'
             f'<div class="dt-reward-day">'
             f'<div class="dt-reward-day-num">{int(r["day_threshold"])}</div>'
             f'<div class="dt-reward-day-lbl">DAYS</div>'
@@ -2562,6 +3006,16 @@ def render_development_tracker():
             role_label, role_cls = _role_for(cat_idx - 1, drill_idx)
             role_chip = f'<span class="dt-role {role_cls}">{role_label}</span>'
 
+            # v3 mastery chip: reward earned reps. Threshold ≥ 3 keeps
+            # the chip out of the way until the player has actually
+            # built a relationship with the drill (no "0× mastered"
+            # noise on first encounter).
+            lifetime = _lifetime_completions(log, name)
+            mastery_chip = (
+                f'<span class="tp-mastery">Mastered {lifetime}×</span>'
+                if lifetime >= 3 else ""
+            )
+
             reps_chip = f'<span class="dt-drill-reps">SUGGESTED · {reps}</span>' if reps else ''
             how_html = f'<div class="dt-drill-how">{how}</div>' if how else ''
 
@@ -2570,7 +3024,7 @@ def render_development_tracker():
                 f'<div class="dt-drill-row">'
                 f'<div class="dt-drill-num">{num_label}</div>'
                 f'<div class="dt-drill-meta">'
-                f'<div class="dt-drill-name">{name}{role_chip}</div>'
+                f'<div class="dt-drill-name">{name}{role_chip}{mastery_chip}</div>'
                 f'{reps_chip}'
                 f'{how_html}'
                 f'</div>'
@@ -2599,12 +3053,29 @@ def render_development_tracker():
                 )
             st.markdown('</div>', unsafe_allow_html=True)
 
-            if completed != bool(saved.get("completed")) or reps_done != saved.get("reps_done", ""):
+            prev_completed = bool(saved.get("completed"))
+            if completed != prev_completed or reps_done != saved.get("reps_done", ""):
                 drill_log[drill_id] = {
                     "completed": bool(completed),
                     "reps_done": reps_done,
                     "last_updated": datetime.now().isoformat(timespec="seconds"),
                 }
+                # v3 mastery archive: append a permanent event on the
+                # pending → done transition (NOT on the reverse, and NOT
+                # on a reps-only edit). The event is stashed INSIDE
+                # drill_log under the sentinel `_completion_events` key
+                # — the same piggyback pattern player_storage uses for
+                # `_swing_meta`. That way it persists through
+                # `save_training_log`'s existing JSON `drill_state`
+                # column with zero schema migration.
+                if completed and not prev_completed:
+                    drill_log.setdefault("_completion_events", []).append({
+                        "drill_id": drill_id,
+                        "drill_name": drill.get("name", ""),
+                        "completed_at": datetime.now().isoformat(timespec="seconds"),
+                        "source_swing_date": swing_date,
+                        "reps_done": reps_done,
+                    })
                 dirty = True
 
     # ---- Re-Test Reminder ----
@@ -2642,12 +3113,24 @@ def render_development_tracker():
     )
 
     notes_key = f"notes__{player_id}"
-    last_note = log["session_notes"][-1]["note"] if log["session_notes"] else ""
+
+    # v3 journal fix: every render starts with a BLANK textarea.
+    # The previous version seeded `value=` with the last saved note,
+    # so the historical entry looked permanently glued to the active
+    # input. Now the input is treated as transient — a single session
+    # turn — and historical entries live exclusively in the
+    # `Previous sessions` expander.
+    #
+    # The mechanism: after a successful save we set a `_just_saved`
+    # flag and `st.rerun()`. On the next render we pop the widget's
+    # session-state value BEFORE the widget initialises, so Streamlit
+    # treats it as a fresh widget instance with no remembered text.
+    if st.session_state.pop("dt_journal_just_saved", False):
+        st.session_state.pop(notes_key, None)
 
     st.markdown('<div class="dt-notes-card">', unsafe_allow_html=True)
     note_text = st.text_area(
         "Session Notes",
-        value=st.session_state.get(notes_key, last_note),
         placeholder="What felt locked in? What drill clicked? Anything off?",
         key=notes_key,
         height=130,
@@ -2662,9 +3145,21 @@ def render_development_tracker():
             log["session_notes"].append({
                 "note": note_text.strip(),
                 "saved_at": datetime.now().isoformat(timespec="seconds"),
+                # Stamp the entry with the swing it relates to so the
+                # journal can later be cross-linked to the swing report
+                # in the analytics/parent-dashboard work.
+                "source_swing_date": swing_date,
+                "today_completed": int(total_completed),
+                "today_total":     int(total_drills),
             })
-            dirty = True
+            log["drills"] = drill_log
+            save_training_log(player_id, log)
+            # Belt-and-suspenders: write the log immediately AND set
+            # the rerun flag, so the next render sees the entry in the
+            # history list and the textarea blank.
+            st.session_state["dt_journal_just_saved"] = True
             st.success("Session notes saved.")
+            st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
     if dirty:
