@@ -206,24 +206,31 @@ iframe {
   > [data-testid="stElementContainer"] {
   flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
 }
-/* chip pinned far right (unambiguous via :has) */
-.st-key-bl_edge_masthead [data-testid="stElementContainer"]:has(.ble-user) {
+/* user chip (streak + avatar button) pinned far right */
+.st-key-bl_edge_masthead .st-key-bl_edge_userchip {
   margin-left: auto !important;
 }
 
-/* ---- the glass segmented nav bar (nested keyed container) ---- */
+/* ---- the segmented nav bar — a *recessed slot* in the masthead.
+   The previous version had a hard 1px border + 3px drop shadow which
+   read as a card "floating" on the masthead. We replace the border
+   with an inset shadow gradient (light-top / dark-bottom = looks set
+   INTO the surface), drop the outer shadow, and whisper the bg so it
+   reads as a refinement of the masthead, not a separate control. */
 .st-key-bl_edge_navbar {
   flex: 0 0 auto !important;
   display: flex !important; flex-direction: row !important;
   flex-wrap: nowrap !important; align-items: center !important;
-  gap: 3px !important; padding: 4px !important;
-  background: rgba(255,255,255,0.024) !important;
-  border: 1px solid rgba(244,239,230,0.065) !important;
-  border-radius: 13px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035),
-              0 1px 3px rgba(0,0,0,0.45) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
+  gap: 2px !important; padding: 4px !important;
+  background: rgba(255,255,255,0.012) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.035),
+    inset 0 -1px 0 rgba(0,0,0,0.35),
+    inset 0 0 0 1px rgba(244,239,230,0.028) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  backdrop-filter: blur(8px) saturate(1.1);
 }
 .st-key-bl_edge_navbar > div,
 .st-key-bl_edge_navbar > div > div[data-testid="stVerticalBlock"] {
@@ -234,20 +241,30 @@ iframe {
   flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
 }
 
-/* ---- the tabs: Streamlit buttons restyled, all 1.57 testid variants */
+/* ---- the tabs: Streamlit buttons restyled, all 1.57 testid variants.
+   Apple-style easing (cubic-bezier(.32,.72,0,1)) for color/bg so motion
+   feels considered, not generic. Tightened letter-spacing (0.17→0.16em)
+   and added Geist Mono stylistic alternates for refined glyphs. */
 .st-key-bl_edge_navbar button {
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: #7C7F86 !important;
+  color: #80838B !important;
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace !important;
   font-size: 11px !important; font-weight: 600 !important;
-  letter-spacing: 0.17em !important; text-transform: uppercase !important;
-  padding: 8px 17px !important; border-radius: 9px !important;
+  letter-spacing: 0.16em !important; text-transform: uppercase !important;
+  padding: 9px 18px !important; border-radius: 8px !important;
   min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
   box-shadow: none !important; width: auto !important;
-  -webkit-font-smoothing: antialiased; white-space: nowrap !important;
-  transition: color .2s, background .2s, border-color .2s,
-              box-shadow .2s, transform .18s cubic-bezier(.34,1.4,.64,1);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01" 1, "ss02" 1, "tnum" 1, "cv11" 1;
+  white-space: nowrap !important;
+  position: relative;
+  transition:
+    color 220ms cubic-bezier(.32,.72,0,1),
+    background-color 220ms cubic-bezier(.32,.72,0,1),
+    border-color 220ms cubic-bezier(.32,.72,0,1),
+    box-shadow 220ms cubic-bezier(.32,.72,0,1),
+    transform 260ms cubic-bezier(.34,1.4,.64,1);
 }
 .st-key-bl_edge_navbar button p,
 .st-key-bl_edge_navbar button div,
@@ -256,34 +273,211 @@ iframe {
   color: inherit !important; margin: 0 !important;
 }
 .st-key-bl_edge_navbar button:hover {
-  color: #EDE7DA !important; background: rgba(244,239,230,0.05) !important;
-  border-color: rgba(244,239,230,0.09) !important;
-  transform: translateY(-1px);
+  color: #EFE9DB !important;
+  background: rgba(244,239,230,0.045) !important;
+  border-color: rgba(244,239,230,0.075) !important;
+  transform: translateY(-0.5px);
 }
-.st-key-bl_edge_navbar button:focus,
-.st-key-bl_edge_navbar button:focus-visible,
 .st-key-bl_edge_navbar button:active {
-  box-shadow: none !important; outline: none !important;
+  transform: translateY(0) scale(0.985) !important;
+  transition-duration: 100ms !important;
 }
-/* active tab = type="primary" (cover every 1.57 testid spelling) */
+/* outline: hide on mouse, show subtle gold ring for keyboard users */
+.st-key-bl_edge_navbar button:focus { outline: none !important; }
+.st-key-bl_edge_navbar button:focus:not(:focus-visible) {
+  box-shadow: none !important;
+}
+.st-key-bl_edge_navbar button:focus-visible {
+  outline: none !important;
+  box-shadow:
+    0 0 0 2px rgba(232,193,112,0.45),
+    0 0 0 4px rgba(232,193,112,0.10) !important;
+}
+
+/* active tab = type="primary" (cover every 1.57 testid spelling).
+   Warmer text (hint of gold sympathy), softer top highlight, faint
+   bottom inset darkening, refined gold→red underline that fades at
+   both edges so it reads as a glow rather than a hard line. */
 .st-key-bl_edge_navbar button[kind="primary"],
 .st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"],
 .st-key-bl_edge_navbar button[data-testid="baseButton-primary"] {
-  position: relative;
-  color: #F8F4EA !important;
-  background: linear-gradient(180deg, rgba(244,239,230,0.115),
-              rgba(244,239,230,0.05)) !important;
-  border-color: rgba(244,239,230,0.16) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12),
-              0 2px 12px -4px rgba(232,193,112,0.34) !important;
+  color: #F8F2E0 !important;
+  background: linear-gradient(180deg,
+              rgba(244,239,230,0.095),
+              rgba(244,239,230,0.035)) !important;
+  border-color: rgba(244,239,230,0.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 -1px 0 rgba(0,0,0,0.18),
+    0 1px 2px rgba(0,0,0,0.35),
+    0 0 16px -6px rgba(232,193,112,0.45) !important;
+}
+.st-key-bl_edge_navbar button[kind="primary"]:hover,
+.st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"]:hover,
+.st-key-bl_edge_navbar button[data-testid="baseButton-primary"]:hover {
+  color: #FFFAEB !important;
+  transform: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.18),
+    0 1px 2px rgba(0,0,0,0.35),
+    0 0 22px -6px rgba(232,193,112,0.6) !important;
 }
 .st-key-bl_edge_navbar button[kind="primary"]::after,
 .st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"]::after,
 .st-key-bl_edge_navbar button[data-testid="baseButton-primary"]::after {
-  content: ""; position: absolute; left: 14px; right: 14px; bottom: -1px;
-  height: 2px; border-radius: 2px;
-  background: linear-gradient(90deg, #E8C170, #E64530);
-  box-shadow: 0 0 9px -1px rgba(232,193,112,0.6);
+  content: ""; position: absolute;
+  left: 16px; right: 16px; bottom: 1.5px;
+  height: 1.5px; border-radius: 2px;
+  background: linear-gradient(90deg,
+              rgba(232,193,112,0) 0%,
+              #E8C170 28%,
+              #E64530 72%,
+              rgba(230,69,48,0) 100%);
+  box-shadow:
+    0 0 10px -1px rgba(232,193,112,0.55),
+    0 0 4px -1px rgba(230,69,48,0.35);
+}
+
+/* ---- the "extra touch": whisper-thin separator hairline between
+   adjacent inactive tabs, like a premium segmented control (Linear,
+   Trackman). The hairline is a ::before on each button positioned in
+   the half-gap to its LEFT. Hidden on the first button, on the active
+   button, and on the button immediately after an active one (so the
+   active state never sits next to a divider line on either side). */
+.st-key-bl_edge_navbar button::before {
+  content: "";
+  position: absolute;
+  left: -2px;            /* sit in the 2px gap between buttons */
+  top: 28%;
+  bottom: 28%;
+  width: 1px;
+  background: linear-gradient(180deg,
+              rgba(244,239,230,0) 0%,
+              rgba(244,239,230,0.10) 50%,
+              rgba(244,239,230,0) 100%);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(.32,.72,0,1);
+}
+/* Hide on the first nav item (no left neighbour) */
+.st-key-bl_edge_navbar > div > div[data-testid="stVerticalBlock"]
+  > [data-testid="stElementContainer"]:first-child button::before {
+  opacity: 0;
+}
+/* Hide on the active button itself (it has its own visual frame) */
+.st-key-bl_edge_navbar button[kind="primary"]::before,
+.st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"]::before,
+.st-key-bl_edge_navbar button[data-testid="baseButton-primary"]::before {
+  opacity: 0;
+}
+/* Hide on the button immediately AFTER an active button (so the
+   active tab doesn't have a divider hugging its right edge). Uses
+   :has() to detect "the previous stElementContainer wraps a primary
+   button" — modern Chrome/Safari/Firefox all support this. */
+[data-testid="stElementContainer"]:has(> [data-testid="stButton"]
+  > button[kind="primary"])
+  + [data-testid="stElementContainer"]
+  button::before {
+  opacity: 0;
+}
+/* Hide on hovered button and the button that follows it (so the hover
+   bg sits cleanly without a divider biting into it) */
+.st-key-bl_edge_navbar button:hover::before {
+  opacity: 0;
+}
+[data-testid="stElementContainer"]:has(> [data-testid="stButton"]
+  > button:hover)
+  + [data-testid="stElementContainer"]
+  button::before {
+  opacity: 0;
+}
+
+/* ====================================================================
+   USER CHIP — streak + clickable avatar button.
+   The avatar is a real st.button (auth-safe in-session rerun) restyled
+   into a perfect circle showing the player's initials. Clicking it
+   routes to the player_settings page.
+   ==================================================================== */
+.st-key-bl_edge_userchip {
+  flex: 0 0 auto !important;
+  display: flex !important; flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+.st-key-bl_edge_userchip > div,
+.st-key-bl_edge_userchip > div > div[data-testid="stVerticalBlock"] {
+  display: contents !important;
+}
+.st-key-bl_edge_userchip [data-testid="stElementContainer"],
+.st-key-bl_edge_userchip [data-testid="stButton"] {
+  flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
+}
+
+/* Avatar button — perfect circle with the player's initials,
+   gold-tinted ring on hover so the player understands it's clickable
+   and feels like the editorial brand "stamp". */
+.st-key-bl_edge_userchip button {
+  width: 38px !important; height: 38px !important;
+  min-height: 38px !important; max-height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #23262C, #101319) !important;
+  border: 1px solid rgba(244,239,230,0.14) !important;
+  color: #F4EFE6 !important;
+  font-family: 'Instrument Serif', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    0 1px 3px rgba(0,0,0,0.45) !important;
+  position: relative;
+  cursor: pointer;
+  transition:
+    border-color 220ms cubic-bezier(.32,.72,0,1),
+    box-shadow 220ms cubic-bezier(.32,.72,0,1),
+    transform 260ms cubic-bezier(.34,1.4,.64,1),
+    color 220ms cubic-bezier(.32,.72,0,1);
+}
+.st-key-bl_edge_userchip button p,
+.st-key-bl_edge_userchip button div,
+.st-key-bl_edge_userchip button span {
+  font: inherit !important; letter-spacing: 0 !important;
+  color: inherit !important; margin: 0 !important; line-height: 1 !important;
+  text-transform: none !important;
+}
+.st-key-bl_edge_userchip button:hover {
+  color: #FFFAEB !important;
+  border-color: rgba(232,193,112,0.55) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    0 0 0 3px rgba(232,193,112,0.10),
+    0 0 16px -4px rgba(232,193,112,0.45) !important;
+  transform: translateY(-0.5px);
+}
+.st-key-bl_edge_userchip button:active {
+  transform: translateY(0) scale(0.96) !important;
+  transition-duration: 100ms !important;
+}
+.st-key-bl_edge_userchip button:focus { outline: none !important; }
+.st-key-bl_edge_userchip button:focus:not(:focus-visible) {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    0 1px 3px rgba(0,0,0,0.45) !important;
+}
+.st-key-bl_edge_userchip button:focus-visible {
+  outline: none !important;
+  border-color: rgba(232,193,112,0.60) !important;
+  box-shadow:
+    0 0 0 2px rgba(232,193,112,0.50),
+    0 0 0 4px rgba(232,193,112,0.12) !important;
 }
 
 /* ---- brand (left) + user chip (right) — unchanged look ---- */
@@ -297,20 +491,13 @@ iframe {
 .ble-brand .wm .ed { font-family: 'Instrument Serif', Georgia, serif;
   font-style: italic; font-weight: 400; font-size: 16px; letter-spacing: 0;
   text-transform: none; color: #8B8E94; }
-.ble-user { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
 .ble-streak { font-family: 'Geist Mono', monospace; font-size: 10.5px;
   letter-spacing: 0.04em; color: #E8C170; padding: 5px 11px;
   border-radius: 999px; border: 1px solid rgba(232,193,112,0.26);
   background: rgba(232,193,112,0.07); white-space: nowrap;
-  display: flex; align-items: center; gap: 6px; }
+  display: inline-flex; align-items: center; gap: 6px; }
 .ble-streak .d { width: 5px; height: 5px; border-radius: 50%;
   background: #E8C170; }
-.ble-av { width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, #23262C, #101319);
-  border: 1px solid rgba(244,239,230,0.12); color: #F4EFE6;
-  font-family: 'Instrument Serif', Georgia, serif; font-style: italic;
-  font-size: 14px; display: flex; align-items: center;
-  justify-content: center; }
 
 @media (max-width: 1100px) {
   .st-key-bl_edge_masthead {
@@ -318,8 +505,13 @@ iframe {
     padding: 11px max(20px, calc((100vw - 1560px) / 2)) !important;
   }
   .st-key-bl_edge_navbar button {
-    padding: 8px 11px !important; font-size: 10px !important;
-    letter-spacing: 0.12em !important;
+    padding: 8px 12px !important; font-size: 10px !important;
+    letter-spacing: 0.13em !important;
+  }
+  .st-key-bl_edge_navbar button[kind="primary"]::after,
+  .st-key-bl_edge_navbar button[data-testid="stBaseButton-primary"]::after,
+  .st-key-bl_edge_navbar button[data-testid="baseButton-primary"]::after {
+    left: 12px; right: 12px;
   }
   .ble-brand .wm { font-size: 12px; }
 }
@@ -338,7 +530,7 @@ iframe {
     scrollbar-width: none;
   }
   .st-key-bl_edge_navbar::-webkit-scrollbar { display: none; }
-  .st-key-bl_edge_navbar button { padding: 7px 12px !important; }
+  .st-key-bl_edge_navbar button { padding: 7px 13px !important; }
 }
 </style>
 """
@@ -436,6 +628,20 @@ def render_edge_masthead(
 """,
             unsafe_allow_html=True,
         )
+        # Leave-page guard: when the user is on the Player Settings page,
+        # ALWAYS route nav clicks through ps_pending_nav_to instead of
+        # navigating immediately. The Player Settings page itself decides
+        # whether to show the leave dialog (if there are unsaved edits)
+        # or to navigate through immediately (if nothing's dirty).
+        #
+        # We don't gate this on ps_is_dirty here, because the masthead
+        # renders BEFORE the page's dirty-state recompute on each rerun
+        # — so reading session_state["ps_is_dirty"] at masthead time
+        # would give stale (N-1) state. Letting the page own the dirty
+        # decision keeps the prompt accurate even when the user types
+        # and immediately clicks a nav tab in the same rerun.
+        _ps_intercept = (st.session_state.get("page") == "player_settings")
+
         with st.container(key="bl_edge_navbar"):
             for label, page_key, _alts in _NAV_ENTRIES:
                 if st.button(
@@ -443,6 +649,12 @@ def render_edge_masthead(
                     key=f"_ble_nav_{page_key}",
                     type=("primary" if active == page_key else "secondary"),
                 ):
+                    if _ps_intercept and page_key != "player_settings":
+                        # Stash the destination; the Player Settings page
+                        # picks it up on the next rerun and either shows
+                        # the leave dialog (dirty) or navs through (clean).
+                        st.session_state["ps_pending_nav_to"] = page_key
+                        st.rerun()
                     st.session_state["page"] = page_key
                     # Scrub stale open-report state so a nav click can't
                     # be hijacked by the _should_open_report guard.
@@ -451,11 +663,27 @@ def render_edge_masthead(
                                    "view_swing_report_id", "view"):
                             st.session_state.pop(_k, None)
                     st.rerun()
-        st.markdown(
-            f'<div class="ble-user">{streak_html}'
-            f'<span class="ble-av">{initials}</span></div>',
-            unsafe_allow_html=True,
-        )
+        # User chip: streak (markdown) + clickable avatar (st.button).
+        # The avatar is a real button so clicking it triggers an in-session
+        # rerun (auth preserved) and routes to the Player Settings page.
+        with st.container(key="bl_edge_userchip"):
+            if streak_html:
+                st.markdown(streak_html, unsafe_allow_html=True)
+            if st.button(
+                initials,
+                key="_ble_avatar_btn",
+                type=("primary" if active == "player_settings" else "secondary"),
+                help="Player Settings",
+            ):
+                # Clicking the avatar from the settings page itself is a
+                # no-op (it's the page you're already on) — but we still
+                # rerun cleanly. Otherwise route to settings.
+                if active != "player_settings":
+                    st.session_state["page"] = "player_settings"
+                    for _k in ("view_swing_record", "view_swing_path",
+                               "view_swing_report_id", "view"):
+                        st.session_state.pop(_k, None)
+                st.rerun()
 
 
 
