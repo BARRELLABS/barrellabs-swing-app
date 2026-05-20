@@ -1302,10 +1302,25 @@ _DT_LOCAL_CSS = """
 
 .tp-hero {
     text-align: center;
-    padding: 1.6rem 0 0.4rem;
-    margin-bottom: 1.4rem;
+    /* v6: tighter rhythm. Bottom-margin pulled into the bento spacing
+       below. Less dead space between hero stack and the first card. */
+    padding: 0.6rem 0 0.4rem;
+    margin-bottom: 0.6rem;
     position: relative;
 }
+/* Attribution caption (under the diagnostic deck — small, low-key). */
+.tp-hero-attribution {
+    margin: 4px auto 0;
+    max-width: 560px;
+    font-family: var(--bl-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+}
+.tp-hero-attribution .em { color: var(--bl-ink-80); }
+.tp-hero-attribution .gold { color: var(--tp-gold); font-weight: 600; }
 .tp-hero::before {
     content: ""; position: absolute;
     top: 10px; left: 50%; transform: translateX(-50%);
@@ -1322,7 +1337,8 @@ _DT_LOCAL_CSS = """
     text-transform: uppercase;
     color: var(--bl-red);
     font-weight: 600;
-    margin-bottom: 22px;
+    /* v6: tighter — headline closer to the eyebrow. */
+    margin-bottom: 14px;
 }
 .tp-eyebrow .stitch {
     display: inline-block; width: 30px; height: 1px;
@@ -2631,9 +2647,10 @@ _DT_LOCAL_CSS = """
 
 /* ---- Today's Mission card ---- */
 .tp-mission {
-    margin: 32px auto 4px;
+    /* v6: tighten the gap to the bento above. */
+    margin: 20px auto 4px;
     max-width: 760px;
-    padding: 20px 24px 18px;
+    padding: 18px 22px 16px;
     border-radius: 18px;
     border: 1px solid var(--tp-gold-line);
     background:
@@ -2959,27 +2976,66 @@ _DT_LOCAL_CSS = """
 /* ---- Level card: kill the red gradient. ---- */
 .dt-level-card {
     background:
-        radial-gradient(120% 80% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.008)) !important;
-    border: 1px solid rgba(244,239,230,0.08) !important;
-    border-radius: 20px !important;
-    margin-top: 1.4rem !important;
+        radial-gradient(120% 80% at 0% 0%, rgba(232,193,112,0.07) 0%, transparent 60%),
+        radial-gradient(120% 80% at 100% 100%, rgba(232,193,112,0.04) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010)) !important;
+    border: 1px solid rgba(232,193,112,0.22) !important;
+    border-radius: 22px !important;
+    margin-top: 1.6rem !important;
+    padding: 1.9rem 2.1rem 1.7rem !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 .dt-level-card::before { display: none !important; }
 .dt-level-card::after {
     content: "";
     position: absolute;
-    top: 0; left: 16%; right: 16%;
+    top: 0; left: 12%; right: 12%;
     height: 1px;
     background: linear-gradient(90deg, transparent, #E8C170 50%, transparent);
-    opacity: 0.45;
+    opacity: 0.62;
 }
-.dt-level-eyebrow { color: rgba(244,239,230,0.58) !important; }
+.dt-level-eyebrow {
+    color: #E8C170 !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.32em !important;
+    /* v6: gold not bone, with a small leading diamond to read as
+       a real status indicator. */
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+.dt-level-eyebrow::before {
+    content: "◆";
+    font-size: 9px;
+    line-height: 1;
+    color: #E8C170;
+}
 .dt-level-name {
+    /* v6: bigger + a subtle metallic gradient fill so the level name
+       reads as a prestige status, not a sans-serif label. */
     font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
     font-style: italic !important;
     font-weight: 400 !important;
-    letter-spacing: -0.015em !important;
+    font-size: 2.4rem !important;
+    letter-spacing: -0.025em !important;
+    line-height: 1 !important;
+    background: linear-gradient(180deg, #F8F2E0 0%, #C9A350 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    margin-bottom: 0.55rem !important;
+}
+/* Status caption underneath the level title — "Locked in" / "Earning
+   XP" / etc. — kept neutral so the gradient title carries the prestige. */
+.dt-level-tagline {
+    color: rgba(244,239,230,0.82) !important;
+    font-family: 'Geist Mono', 'JetBrains Mono', monospace !important;
+    font-size: 0.66rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
 }
 .dt-xp-pill {
     background: rgba(232,193,112,0.06) !important;
@@ -3238,13 +3294,20 @@ _DT_LOCAL_CSS = """
     border-color: rgba(244,239,230,0.16) !important;
 }
 
-/* Progress card: gold ring, calm surface. */
+/* Progress card: gold ring, calm surface, COMPRESSED height. */
 .dt-progress-card {
     background:
         radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 65%),
         rgba(255,255,255,0.022) !important;
     border-radius: 20px !important;
+    /* v6: tighter padding so the card height drops. */
+    padding: 1.4rem 1.7rem !important;
+    grid-template-columns: 130px 1fr !important;
+    gap: 1.4rem !important;
 }
+/* Smaller ring — drops the card's vertical footprint significantly
+   without sacrificing the visual anchor. */
+.dt-ring { width: 110px !important; height: 110px !important; }
 .dt-ring-fill {
     stroke: #E8C170 !important;
     filter: drop-shadow(0 0 14px rgba(232,193,112,0.55)) !important;
@@ -3253,14 +3316,34 @@ _DT_LOCAL_CSS = """
     font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
     font-style: italic !important;
     font-weight: 400 !important;
+    font-size: 1.8rem !important;
 }
+.dt-progress-meta-eyebrow { font-size: 0.56rem !important; }
 .dt-progress-meta-title {
     font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
     font-style: italic !important;
     font-weight: 400 !important;
-    font-size: 1.6rem !important;
+    /* v6: a touch smaller so the card reads as compact mission-progress. */
+    font-size: 1.35rem !important;
+    margin-bottom: 0.4rem !important;
 }
+.dt-progress-meta-line { font-size: 0.84rem !important; margin-bottom: 0.7rem !important; }
+.dt-stat-row { gap: 1.2rem !important; }
+.dt-stat-item { padding: 0.55rem 0.85rem !important; min-width: 92px !important; }
 .dt-stat-num.is-red { color: #E8C170 !important; }
+.dt-stat-num { font-size: 1.35rem !important; }
+
+/* ---- v6 consistency strip: stronger "today" pulse + completion glow. ---- */
+@keyframes tp-today-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230,69,48,0.32); }
+    50%      { box-shadow: 0 0 0 5px rgba(230,69,48,0.0); }
+}
+.tp-day.is-today {
+    animation: tp-today-pulse 2.4s ease-in-out infinite;
+}
+.tp-day.is-complete {
+    box-shadow: 0 0 12px -4px rgba(232,193,112,0.40);
+}
 </style>
 """
 
@@ -3902,15 +3985,70 @@ _CATEGORY_COACHING_PHRASE = {
 }
 
 
-def _coaching_phrase_for(category_title: str) -> str:
-    """Return the athletic verb-phrase version of a category title.
+# v6: outcome-named display headlines used in the hero, replacing the
+# generic "Your highest-leverage work" line. Keyed by category title.
+_CATEGORY_HEADLINE = {
+    "Sharpen Timing & Quickness":    "Get the Barrel on Time.",
+    "Drive Hip-Shoulder Separation": "Find Your Power Sequence.",
+    "Open the Hips Sooner":          "Let the Hips Lead.",
+    "Block With the Front Knee":     "Anchor Your Contact Point.",
+    "Quiet the Head":                "Lock the Eye-Line.",
+}
 
-    Falls through to the original title for unknown categories so
-    nothing breaks when the analyzer ships a new focus area before
-    the mapping catches up.
-    """
+
+# v6: diagnostic deck — describes the SPECIFIC swing fault and the
+# improvement to expect. Replaces source-attribution copy ("drawn
+# from your <date> swing") with coaching copy ("Your last swing
+# arrived late to contact. Today's plan trains quicker hands…").
+_CATEGORY_DIAGNOSTIC = {
+    "Sharpen Timing & Quickness": (
+        "Your last swing arrived late to contact. Today's plan trains "
+        "<em>quicker hands</em> and a shorter path so the barrel gets "
+        "there on time."
+    ),
+    "Drive Hip-Shoulder Separation": (
+        "Your hips and shoulders fired together — costing you bat "
+        "speed. Today's plan builds <em>real separation</em> so the "
+        "swing releases like a coiled spring."
+    ),
+    "Open the Hips Sooner": (
+        "Your back hip stayed loaded too long. Today's plan trains an "
+        "<em>earlier rotation</em> so the swing clears clean and "
+        "stays on plane."
+    ),
+    "Block With the Front Knee": (
+        "Your front leg gave way at contact. Today's plan builds a "
+        "<em>firm front-leg block</em> so power transfers up through "
+        "the chain instead of leaking forward."
+    ),
+    "Quiet the Head": (
+        "Your head drifted through the swing. Today's plan steadies "
+        "the <em>eye-line</em> so contact becomes consistent and "
+        "you see the ball through impact."
+    ),
+}
+
+
+def _coaching_phrase_for(category_title: str) -> str:
+    """Return the athletic verb-phrase version of a category title."""
     raw = (category_title or "").strip()
     return _CATEGORY_COACHING_PHRASE.get(raw, raw)
+
+
+def _category_headline_for(category_title: str) -> str:
+    """Return the outcome-named display headline for the hero."""
+    raw = (category_title or "").strip()
+    return _CATEGORY_HEADLINE.get(raw, "Your Highest-Leverage Work.")
+
+
+def _category_diagnostic_for(category_title: str) -> str:
+    """Return the diagnostic deck copy describing the swing fault."""
+    raw = (category_title or "").strip()
+    return _CATEGORY_DIAGNOSTIC.get(
+        raw,
+        "Today's plan targets the highest-impact change available to "
+        "you right now — built directly from your most recent analysis."
+    )
 
 
 def _role_for(category_idx: int, drill_idx: int) -> tuple[str, str]:
@@ -3985,15 +4123,16 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
 
     # ---- Display headline ----
     # The primary issue title is the priority-1 category's display name
-    # from the analyzer-built drill_plan. v4: we promote the raw
-    # category name ("Sharpen Timing & Quickness") through the
-    # coaching-phrase mapping so the focus chip reads as an athletic
-    # outcome ("Build Quicker Hands") instead of a feature name.
+    # from the analyzer-built drill_plan. v6 stores BOTH the coaching
+    # phrase (for the focus chip) AND the raw category title (so the
+    # hero can pick the outcome-named headline + diagnostic deck).
     plan = (saved_swing or {}).get("drill_plan") or {}
     cats = plan.get("categories") or []
     primary_issue = ""
+    primary_category_raw = ""
     if cats:
-        primary_issue = _coaching_phrase_for(cats[0].get("title") or "")
+        primary_category_raw = (cats[0].get("title") or "").strip()
+        primary_issue = _coaching_phrase_for(primary_category_raw)
     if not primary_issue:
         primary_issue = "your swing"
 
@@ -4021,6 +4160,7 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
         "match_pct": match_pct,
         "streak_days": streak_days,
         "primary_issue": primary_issue,
+        "primary_category_raw": primary_category_raw,
         "ref_name": ref_name,
         "total_drills": int(total_drills or 0),
         "total_completed": int(total_completed or 0),
@@ -4116,49 +4256,54 @@ def _hero_copy_variant(
 
 
 def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
-    """Editorial hero with state-aware headline + bento.
+    """v6 editorial hero — outcome-named headline + diagnostic deck.
 
-    Only called when we have a real `saved_swing`. The headline now
-    adapts to the player's current state (fresh swing / partial / done
-    / streak) rather than forcing "Master your <issue>" into every
-    sentence regardless of fit.
+    Replaces the prior generic "Your highest-leverage work." with a
+    headline drawn directly from the analyzer's primary issue ("Get
+    the Barrel on Time."), and a deck that NAMES the swing fault
+    plus the improvement to expect. The per-KPI footer text now
+    explains why each number matters.
     """
     ref_name = _html.escape(metrics.get("ref_name") or "")
-    date_str = _html.escape(swing_date or "your most recent swing")
     today_pct = int(metrics.get("today_pct") or 0)
     edge = metrics.get("edge_score", "—")
     mlb  = metrics.get("match_pct", "—")
     streak = int(metrics.get("streak_days") or 0)
     total_drills = int(metrics.get("total_drills") or 0)
     total_completed = int(metrics.get("total_completed") or 0)
-    swing_days_old = int(metrics.get("swing_days_old") or 0)
+    remaining = max(0, total_drills - total_completed)
     primary_issue = _html.escape(metrics.get("primary_issue") or "")
+    primary_category = (metrics.get("primary_category_raw") or "").strip()
 
-    headline, deck = _hero_copy_variant(
-        today_pct=today_pct,
-        total_drills=total_drills,
-        total_completed=total_completed,
-        streak_days=streak,
-        swing_days_old=swing_days_old,
-    )
+    # ---- Outcome-named headline ----
+    headline = _category_headline_for(primary_category)
 
-    # The deck always references the source-of-truth — swing date +
-    # optional reference name — even when the headline is state-driven.
-    if ref_name:
-        deck_postscript = (
-            f' Drawn from your <span class="em">{date_str}</span> swing '
-            f'— measured against <span class="gold">{ref_name}</span>.'
+    # ---- Diagnostic deck ----
+    # Names the specific swing fault + the improvement to expect.
+    # Uses HTML <em> tags from the diagnostic library, so we DON'T
+    # html-escape it — it's curated copy, not user input.
+    deck = _category_diagnostic_for(primary_category)
+
+    # Optional secondary line: short "from your <date> swing — measured
+    # against <ref>" attribution. Smaller font, less prominent.
+    attribution = ""
+    date_str = _html.escape(swing_date or "")
+    if date_str and ref_name:
+        attribution = (
+            f'<div class="tp-hero-attribution">'
+            f'From your <span class="em">{date_str}</span> swing — '
+            f'measured against <span class="gold">{ref_name}</span>'
+            f'</div>'
         )
-    else:
-        deck_postscript = (
-            f' Drawn from your <span class="em">{date_str}</span> swing.'
+    elif date_str:
+        attribution = (
+            f'<div class="tp-hero-attribution">'
+            f'From your <span class="em">{date_str}</span> analysis'
+            f'</div>'
         )
-    deck = deck + deck_postscript
 
-    # If we have a primary issue identified, list it as a small
-    # "focus tag" below the headline so the analyzer's diagnosis is
-    # never invisible — just no longer awkwardly hard-coded into the
-    # sentence shape.
+    # Focus chip — outcome-named ("Build Quicker Hands"), kept as a
+    # signal of *what's being trained*, distinct from the headline.
     focus_html = (
         f'<div class="tp-focus-tag">'
         f'<span class="dot"></span>'
@@ -4166,6 +4311,38 @@ def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
         f'</div>'
         if primary_issue and primary_issue != "your swing" else ""
     )
+
+    # ---- KPI microcopy ----
+    # Each card's foot line now explains WHY this number matters and
+    # what action it implies. Was: decorative source labels. Now:
+    # motivational coaching microcopy.
+    if total_drills > 0 and remaining > 0:
+        today_foot = f"Finish all {total_drills} today"
+    elif total_drills > 0 and remaining == 0:
+        today_foot = "Plan complete — well done"
+    else:
+        today_foot = "No drills assigned"
+
+    edge_foot = (
+        f"Beat {edge} on your next upload"
+        if isinstance(edge, int) and edge > 0
+        else "Earn your first Edge Score"
+    )
+
+    if isinstance(mlb, int):
+        if ref_name:
+            mlb_foot = f"Compared to {ref_name}"
+        else:
+            mlb_foot = "MLB reference comparison"
+    else:
+        mlb_foot = "Run analysis to compare"
+
+    if streak >= 7:
+        streak_foot = "Keep it alive"
+    elif streak >= 1:
+        streak_foot = f"Day {streak} — build on it"
+    else:
+        streak_foot = "Start your streak today"
 
     edge_num_html = (
         f'<span class="tp-bento-num is-gold">{edge}</span>'
@@ -4182,8 +4359,6 @@ def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
 
     return (
         '<section class="tp-hero">'
-        # The signature red eyebrow — the only red eyebrow on the page,
-        # so it reads as deliberate rather than noise.
         '<div class="tp-eyebrow is-signature">'
         '<span class="stitch"></span>Training Plan · Today\'s Focus'
         '<span class="stitch"></span>'
@@ -4191,36 +4366,32 @@ def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
         f'<h1 class="tp-display">{headline}</h1>'
         f'{focus_html}'
         f'<p class="tp-deck">{deck}</p>'
+        f'{attribution}'
         '<div class="tp-bento">'
         '<div class="tp-bento-card">'
         f'<div class="tp-bento-num {today_cls}">{today_pct}<span class="unit">%</span></div>'
         '<div class="tp-bento-label">Today</div>'
-        '<div class="tp-bento-foot">Completed</div>'
+        f'<div class="tp-bento-foot">{_html.escape(today_foot)}</div>'
         '</div>'
         '<div class="tp-bento-card is-gold">'
         f'{edge_num_html}'
         '<div class="tp-bento-label">Edge Score</div>'
-        '<div class="tp-bento-foot">Latest Swing</div>'
+        f'<div class="tp-bento-foot">{_html.escape(edge_foot)}</div>'
         '</div>'
         '<div class="tp-bento-card">'
         f'{mlb_num_html}'
         '<div class="tp-bento-label">MLB Match</div>'
-        f'<div class="tp-bento-foot">{ref_name or "Reference"}</div>'
+        f'<div class="tp-bento-foot">{_html.escape(mlb_foot)}</div>'
         '</div>'
         '<div class="tp-bento-card">'
         f'<div class="tp-bento-num {streak_cls}">{streak}<span class="unit">d</span></div>'
         '<div class="tp-bento-label">Streak</div>'
-        '<div class="tp-bento-foot">Current</div>'
+        f'<div class="tp-bento-foot">{_html.escape(streak_foot)}</div>'
         '</div>'
         '</div>'
-        # KPI tail line — single supportive microcopy beat under the bento
-        # that ties the four numbers back to today's action.
         '<div class="tp-bento-tail">'
         'Finish today\'s plan to protect your streak and earn XP.'
         '</div>'
-        # ---- Today's Mission card ----
-        # Concise prose under the hero answering: what's the goal, why
-        # was this plan created, what performance problem is being solved.
         f'{_build_mission_html(metrics)}'
         '</section>'
     )
