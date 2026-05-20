@@ -289,6 +289,126 @@ def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
     return card + actions
 
 
+def _achievements_html() -> str:
+    """Static render of the achievements grid — matches the live
+    `_render_achievements` DOM exactly, with category + unlocked
+    classes wired so the v8 per-cat CSS lights up.
+    """
+    items = [
+        # (category, title, desc, icon, unlocked, progress_pct)
+        ("swing",       "First Cut",            "Upload your first swing.",         "◎", True,  100),
+        ("swing",       "Quick Study",          "Analyze 5 swings.",                "◎", True,  100),
+        ("swing",       "Working Class Hitter", "Analyze 10 swings.",               "◎", False, 70),
+        ("swing",       "Filmstudy",            "Analyze 25 swings.",               "◎", False, 28),
+        ("swing",       "Cage Rat",             "Analyze 50 swings.",               "◎", False, 14),
+        ("drill",       "Lab Rat",              "Analyze 100 swings.",              "◇", False, 7),
+        ("drill",       "First Reps",           "Complete your first drill.",       "◇", False, 0),
+        ("drill",       "Practice Pays",        "Complete 10 drills.",              "◇", False, 0),
+        ("drill",       "Drill Sergeant",       "Complete 50 drills.",              "◇", False, 0),
+        ("drill",       "Workhorse",            "Complete 100 drills.",             "◇", False, 0),
+        ("improvement", "Big Jump",             "Improve a swing score by 10+ over a previous swing.", "▲", True, 100),
+        ("score",       "Got Plus Tools",       "Hit a swing score of 70 or higher.","★", True,  100),
+        ("score",       "Pro Material",         "Hit a swing score of 80 or higher.","★", True,  100),
+        ("score",       "Elite Hitter",         "Hit a swing score of 90 or higher.","★", False, 90),
+        ("streak",      "Spark",                "3-day training streak.",            "♢", False, 33),
+        ("streak",      "On Fire",              "7-day training streak.",            "♢", False, 14),
+        ("streak",      "Locked In",            "30-day training streak.",           "♢", False, 3),
+        ("streak",      "Quarter Master",       "90-day training streak.",           "♢", False, 1),
+        ("streak",      "Year One",             "365-day training streak.",          "♢", False, 0),
+    ]
+    parts = ['<div class="dt-ach-grid">']
+    for cat, title, desc, icon, unlocked, pct in items:
+        cls = f"dt-ach is-cat-{cat} " + ("is-unlocked" if unlocked else "is-locked")
+        if unlocked:
+            foot = "UNLOCKED · 2026-05-14"
+            progress = ""
+        else:
+            foot = f"LOCKED · {pct}% PROGRESS"
+            progress = (
+                f'<div class="dt-ach-progress">'
+                f'<div class="dt-ach-progress-fill" style="width:{pct}%;"></div>'
+                f'</div>'
+            )
+        parts.append(
+            f'<div class="{cls}">'
+            f'<div class="dt-ach-badge">{icon}</div>'
+            f'<div class="dt-ach-title">{title}</div>'
+            f'<div class="dt-ach-desc">{desc}</div>'
+            f'<div class="dt-ach-foot">{foot}</div>'
+            f'{progress}'
+            f'</div>'
+        )
+    parts.append('</div>')
+    return (
+        '<div class="dt-gm-section-header">'
+        '<span class="dt-gm-section-eyebrow">Milestones</span>'
+        '<span class="dt-gm-section-title">Achievements</span>'
+        '<span class="dt-gm-section-count">5 / 19 EARNED</span>'
+        '</div>'
+        + "".join(parts)
+    )
+
+
+def _rewards_html() -> str:
+    """Static render of the rewards roadmap — matches the live
+    `_render_rewards` DOM exactly, with per-tier classes wired.
+    """
+    # (id, day, title, desc, kind, tier, unlocked, days_left, hoodie?, hof?)
+    rewards = [
+        ("r_silver_badge",    7,   "Silver Streak Badge",          "A 7-day badge on your profile and reports.", "status",      "bronze",    True,  0,  False, False),
+        ("r_milestone_patch", 14,  "Milestone Patch",              "A digital patch to display on your locker.", "collectible", "silver",    False, 6,  False, False),
+        ("r_player_card",     30,  "Personalized Player Card",     "Your own MLB-style player card.",            "graphic",     "silver",    False, 23, False, False),
+        ("r_progress_report", 60,  "Elite Progress Report",        "A printable PDF summary of your gains.",     "report",      "gold",      False, 56, False, False),
+        ("r_locker_title",    90,  "Locker Room Title",            "A custom title displayed on your profile.",  "title",       "gold",      False, 86, False, False),
+        ("r_hoodie",          180, "Limited Edition BarrelLabs Hoodie", "Real merch shipped to your door.",    "physical",    "diamond",   False, 176, True,  False),
+        ("r_merch_discount",  270, "Lifetime 25% Merch Discount",  "Forever discount on BarrelLabs merch.",      "perk",        "diamond",   False, 266, False, False),
+        ("r_hall_of_fame",    365, "Hall of Fame Status",          "Permanent recognition on the leaderboard.",  "legacy",      "legendary", False, 361, False, True),
+    ]
+    parts = ['<div class="dt-reward-grid">']
+    for rid, day, title, desc, kind, tier, unlocked, days_left, hoodie, hof in rewards:
+        classes = ["dt-reward", f"is-tier-{tier}"]
+        if unlocked:
+            classes.append("is-unlocked")
+        if hoodie:
+            classes.append("is-hoodie")
+        if hof:
+            classes.append("is-hof")
+        card_cls = " ".join(classes)
+        if unlocked:
+            status_html = '<div class="dt-reward-status">UNLOCKED · 2026-05-14</div>'
+        else:
+            plural = "S" if days_left != 1 else ""
+            status_html = f'<div class="dt-reward-status">{days_left} DAY{plural} TO GO</div>'
+        kind_label = kind.upper()
+        tier_tag = f'<div class="tp-tier-tag is-tier-{tier}">{tier.upper()}</div>'
+        parts.append(
+            f'<div class="{card_cls}">'
+            f'{tier_tag}'
+            f'<div class="dt-reward-day">'
+            f'<div class="dt-reward-day-num">{day}</div>'
+            f'<div class="dt-reward-day-lbl">DAYS</div>'
+            f'</div>'
+            f'<div class="dt-reward-body">'
+            f'<div class="dt-reward-title">{title}</div>'
+            f'<div class="dt-reward-desc">{desc}</div>'
+            f'<div class="dt-reward-meta-row">'
+            f'<span class="dt-reward-kind is-{kind}">{kind_label}</span>'
+            f'</div>'
+            f'</div>'
+            f'{status_html}'
+            f'</div>'
+        )
+    parts.append('</div>')
+    return (
+        '<div class="dt-gm-section-header">'
+        '<span class="dt-gm-section-eyebrow">Rewards Roadmap</span>'
+        '<span class="dt-gm-section-title">Earned through consistency</span>'
+        '<span class="dt-gm-section-count">1 / 8 UNLOCKED</span>'
+        '</div>'
+        + "".join(parts)
+    )
+
+
 def _retest_html() -> str:
     return """
 <div class="dt-retest">
@@ -465,6 +585,8 @@ def main() -> None:
             cat_title="Quiet the Head",
         )
         + _retest_html()
+        + _achievements_html()
+        + _rewards_html()
     )
 
     html = f"""<!doctype html>
