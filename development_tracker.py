@@ -4407,6 +4407,241 @@ _DT_LOCAL_CSS = """
         font-size: 1.5rem !important;
     }
 }
+
+/* ============================================================
+   v8.2 — COMPACT REWARDS TIMELINE + ACHIEVEMENT SHRINK
+   v8 painted the right colors but the cards were enormous:
+     · 96px day-pillar column + 1.7rem padding = ~180px tall per card
+     · "LEGENDARY" tier tag wrapping on the Hall of Fame card
+     · Title sat outside the day-pillar visually — two boxes
+   v8.2 rebuilds rewards as a vertical ladder: tier-colored LEFT
+   STRIPE acts as the timeline rail, day number is inline (no box),
+   each card collapses to ~80px. Achievements shrink ~15%.
+   ============================================================ */
+
+/* ---- FIX: kill the LEGENDARY wrap bug + tier-tag dropping back
+   into the grid flow on .is-hoodie and .is-hof cards.
+
+   Root cause: the legacy `.dt-reward.is-hoodie > *` (line ~1028) and
+   `.dt-reward.is-hof > *` (line ~1070) set `position: relative` on
+   ALL children — more specific than the base `.tp-tier-tag
+   { position: absolute }` at line ~1918. That forced the tier tag
+   into the grid as a real cell, pushing the day-pillar / body /
+   status columns sideways and making the card ~145px tall. Force
+   `position: absolute` on the tier tag itself + bigger specificity
+   on the `> .tp-tier-tag` selector wins back the original behavior. */
+.tp-tier-tag,
+.dt-reward.is-hoodie > .tp-tier-tag,
+.dt-reward.is-hof > .tp-tier-tag {
+    position: absolute !important;
+    white-space: nowrap !important;
+    top: 12px !important;
+    right: 12px !important;
+    padding: 3px 9px !important;
+    font-size: 8.5px !important;
+    letter-spacing: 0.22em !important;
+}
+
+/* ---- COMPACT REWARDS CARD ---- */
+.dt-reward {
+    padding: 14px 22px 14px 22px !important;
+    grid-template-columns: 64px 1fr auto !important;
+    gap: 1.1rem !important;
+    align-items: center !important;
+    border-radius: 14px !important;
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
+    border-left-color: var(--bl-line) !important;
+    transition:
+        border-color 0.28s cubic-bezier(.32,.72,0,1),
+        background 0.28s cubic-bezier(.32,.72,0,1),
+        transform 0.22s cubic-bezier(.32,.72,0,1),
+        box-shadow 0.28s cubic-bezier(.32,.72,0,1) !important;
+}
+
+/* Strip the legacy "day pillar" box treatment so the number reads
+   as part of the card flow, not a separate widget. */
+.dt-reward-day {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+}
+.dt-reward-day-num {
+    font-size: 1.7rem !important;
+    line-height: 1 !important;
+}
+.dt-reward-day-lbl {
+    font-size: 0.5rem !important;
+    letter-spacing: 0.24em !important;
+    margin-top: 0.25rem !important;
+    color: var(--bl-ink-40) !important;
+}
+
+/* Tighter content. */
+.dt-reward-title {
+    font-size: 1.05rem !important;
+    margin-bottom: 0.25rem !important;
+}
+.dt-reward-desc {
+    font-size: 0.86rem !important;
+    line-height: 1.45 !important;
+    margin-bottom: 0.45rem !important;
+    /* Truncate to one line so cards stay short. */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+.dt-reward-meta-row {
+    margin-top: 4px !important;
+}
+.dt-reward-kind {
+    font-size: 0.52rem !important;
+    padding: 0.30rem 0.65rem !important;
+}
+
+.dt-reward-status {
+    padding: 7px 12px !important;
+    font-size: 0.58rem !important;
+    letter-spacing: 0.22em !important;
+    white-space: nowrap !important;
+}
+
+/* ---- PER-TIER LEFT STRIPE (timeline rail) ---- */
+/* Locked: faint tier hint */
+.dt-reward.is-tier-bronze    { border-left-color: rgba(205,127,50,0.45) !important; }
+.dt-reward.is-tier-silver    { border-left-color: rgba(220,220,220,0.42) !important; }
+.dt-reward.is-tier-gold      { border-left-color: rgba(232,193,112,0.50) !important; }
+.dt-reward.is-tier-diamond   { border-left-color: rgba(173,216,255,0.48) !important; }
+.dt-reward.is-tier-legendary { border-left-color: rgba(232,193,112,0.65) !important; }
+/* Unlocked: solid tier color */
+.dt-reward.is-tier-bronze.is-unlocked    { border-left-color: #CD7F32 !important; }
+.dt-reward.is-tier-silver.is-unlocked    { border-left-color: #DCDCDC !important; }
+.dt-reward.is-tier-gold.is-unlocked      { border-left-color: #E8C170 !important; }
+.dt-reward.is-tier-diamond.is-unlocked   { border-left-color: #ADD8FF !important; }
+.dt-reward.is-tier-legendary.is-unlocked { border-left-color: #E8C170 !important; }
+
+/* Dim the day number on LOCKED cards so unlocked cards pop. */
+.dt-reward:not(.is-unlocked) .dt-reward-day-num {
+    color: var(--bl-ink-60) !important;
+}
+
+/* Per-tier day number tint on UNLOCKED — keeps the v8 personality
+   but on a much smaller scale. */
+.dt-reward.is-tier-bronze.is-unlocked    .dt-reward-day-num { color: #E8A05A !important; }
+.dt-reward.is-tier-silver.is-unlocked    .dt-reward-day-num { color: #E8E8E8 !important; }
+.dt-reward.is-tier-gold.is-unlocked      .dt-reward-day-num { color: #F0CC7E !important; }
+.dt-reward.is-tier-diamond.is-unlocked   .dt-reward-day-num { color: #BFDFFF !important; }
+.dt-reward.is-tier-legendary.is-unlocked .dt-reward-day-num { color: #F4D58A !important; }
+
+/* Dim locked tier tags */
+.dt-reward:not(.is-unlocked) .tp-tier-tag {
+    opacity: 0.55;
+}
+
+/* Soft glow on UNLOCKED cards only (no glow on locked). */
+.dt-reward.is-tier-bronze.is-unlocked {
+    box-shadow:
+        0 8px 18px -12px rgba(205,127,50,0.40),
+        inset 0 1px 0 rgba(205,127,50,0.16) !important;
+}
+.dt-reward.is-tier-silver.is-unlocked {
+    box-shadow:
+        0 8px 18px -12px rgba(220,220,220,0.32),
+        inset 0 1px 0 rgba(220,220,220,0.22) !important;
+}
+.dt-reward.is-tier-gold.is-unlocked {
+    box-shadow:
+        0 8px 18px -12px rgba(232,193,112,0.45),
+        inset 0 1px 0 rgba(232,193,112,0.22) !important;
+}
+.dt-reward.is-tier-diamond.is-unlocked {
+    box-shadow:
+        0 8px 18px -12px rgba(173,216,255,0.45),
+        inset 0 1px 0 rgba(173,216,255,0.20) !important;
+}
+.dt-reward.is-tier-legendary.is-unlocked {
+    box-shadow:
+        0 10px 22px -12px rgba(232,193,112,0.50),
+        0 10px 22px -12px rgba(230,69,48,0.30),
+        inset 0 1px 0 rgba(232,193,112,0.22) !important;
+}
+
+/* Hover lift bumped down to 1px (was 2px) for the compact size. */
+.dt-reward:hover {
+    transform: translateY(-1px) !important;
+}
+
+/* Tighter grid */
+.dt-reward-grid {
+    gap: 8px !important;
+}
+
+/* ---- ACHIEVEMENT CARD SHRINK ~15% ---- */
+.dt-ach-grid {
+    grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)) !important;
+    gap: 12px !important;
+    margin: 0.8rem 0 1.6rem !important;
+}
+.dt-ach {
+    padding: 14px 14px 12px !important;
+    border-radius: 14px !important;
+}
+.dt-ach-badge {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.05rem !important;
+    border-radius: 12px !important;
+    margin-bottom: 0.6rem !important;
+}
+.dt-ach-title {
+    font-size: 1.02rem !important;
+    margin-bottom: 0.32rem !important;
+}
+.dt-ach-desc {
+    font-size: 0.78rem !important;
+    line-height: 1.45 !important;
+    margin-bottom: 0.55rem !important;
+    /* Truncate long descriptions */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+.dt-ach-foot {
+    font-size: 0.5rem !important;
+}
+
+/* Responsive: stack mobile properly with the new compact rewards. */
+@media (max-width: 720px) {
+    .dt-reward {
+        grid-template-columns: 1fr !important;
+        gap: 0.6rem !important;
+        padding: 14px 16px 14px 16px !important;
+    }
+    .dt-reward-day {
+        display: flex !important;
+        align-items: baseline !important;
+        gap: 8px !important;
+    }
+    .dt-reward-day-num {
+        font-size: 1.4rem !important;
+    }
+    .dt-reward-day-lbl {
+        margin-top: 0 !important;
+    }
+    .dt-reward-status {
+        justify-self: start !important;
+    }
+    .tp-tier-tag {
+        top: 10px !important;
+        right: 10px !important;
+        padding: 3px 7px !important;
+        font-size: 8px !important;
+    }
+}
 </style>
 """
 
