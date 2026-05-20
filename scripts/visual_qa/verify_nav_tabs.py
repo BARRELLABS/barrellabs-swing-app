@@ -89,7 +89,8 @@ NAV_LABELS = [
     ("Dashboard", "dashboard"),
     ("Sessions", "saved_reports"),
     ("Compare", "compare_swings"),
-    ("Drills", "development_tracker"),
+    # "Drills" was renamed to "Training Plan" — see bl_edge_chrome._NAV_ENTRIES.
+    ("Training Plan", "development_tracker"),
     ("Library", "historical_charts"),
 ]
 
@@ -468,7 +469,7 @@ if not rest.get("ok"):
 else:
     # CSS text-transform:uppercase makes innerText return uppercase — that's
     # by design (sports-tech editorial typography).
-    if rest["labels"] != ["DASHBOARD", "SESSIONS", "COMPARE", "DRILLS", "LIBRARY"]:
+    if rest["labels"] != ["DASHBOARD", "SESSIONS", "COMPARE", "TRAINING PLAN", "LIBRARY"]:
         problems.append(f"labels wrong: {rest['labels']}")
     if rest["navDisplay"] != "flex":
         problems.append(f"navbar is not flex: {rest['navDisplay']}")

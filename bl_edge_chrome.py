@@ -96,11 +96,15 @@ def _logo_data_uri() -> str:
 # alt_keys lets a page like swing_report stay active while still hilighting
 # Sessions (since reports are accessed *from* the Sessions list).
 _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
-    ("Dashboard", "dashboard",            ()),
-    ("Sessions",  "saved_reports",        ("swing_report",)),  # active for reports too
-    ("Compare",   "compare_swings",       ()),
-    ("Drills",    "development_tracker",  ()),
-    ("Library",   "historical_charts",    ()),
+    ("Dashboard",    "dashboard",            ()),
+    ("Sessions",     "saved_reports",        ("swing_report",)),  # active for reports too
+    ("Compare",      "compare_swings",       ()),
+    # "Training Plan" is the user-facing label; page_key stays
+    # `development_tracker` so the existing routing, drill-completion
+    # storage, gamification (streaks/XP/achievements/rewards), and
+    # paywall code keep working untouched. Rename only — no refactor.
+    ("Training Plan", "development_tracker", ()),
+    ("Library",      "historical_charts",    ()),
 ]
 
 

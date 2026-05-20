@@ -156,12 +156,21 @@ class EdgeChromeImportTest(unittest.TestCase):
         bec = importlib.import_module("bl_edge_chrome")
         labels = [e[0] for e in bec._NAV_ENTRIES]
         keys   = [e[1] for e in bec._NAV_ENTRIES]
+        # "Drills" was renamed to "Training Plan" to reflect what the
+        # page actually is — the daily, latest-swing-driven prescribed
+        # drill plan, not a drill encyclopedia. The page_key stays
+        # `development_tracker` so all routing/storage/gamification is
+        # untouched.
         self.assertEqual(
             labels,
-            ["Dashboard", "Sessions", "Compare", "Drills", "Library"],
+            ["Dashboard", "Sessions", "Compare", "Training Plan", "Library"],
             "Nav labels must match the spec exactly.",
         )
         self.assertIn("saved_reports", keys, "Sessions must map to saved_reports")
+        self.assertIn(
+            "development_tracker", keys,
+            "Training Plan must still route to the development_tracker page_key.",
+        )
 
     def test_swing_report_routes_active_to_saved_reports(self):
         if "bl_edge_chrome" in sys.modules:

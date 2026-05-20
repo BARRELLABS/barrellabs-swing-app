@@ -1097,8 +1097,194 @@ _DT_LOCAL_CSS = """
     .dt-reward.is-hoodie::before,
     .dt-reward.is-hof::before { position: static; display: block; margin-bottom: 0.5rem; }
 }
+
+/* ============================================================
+   TRAINING PLAN ADDITIONS (v4):
+     · .dt-coach   — per-category coach-note panel (why_it_matters)
+     · .dt-role    — small badge on each drill (PRIMARY / SUPPORTING / CHALLENGE)
+     · .dt-retest  — re-test reminder card after the drill list
+   All scoped under the existing .bl-page wrapper so nothing leaks.
+   ============================================================ */
+.dt-coach {
+    position: relative;
+    margin: 0.6rem 0 0.9rem;
+    padding: 1.1rem 1.2rem 1.05rem;
+    border-radius: 14px;
+    border: 1px solid rgba(232,193,112,0.22);
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.06) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008));
+}
+.dt-coach-eyebrow {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--bl-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #E8C170;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.dt-coach-eyebrow::before {
+    content: "";
+    width: 14px; height: 1px;
+    background: #E8C170;
+    display: inline-block;
+}
+.dt-coach-body {
+    color: var(--bl-ink-80);
+    font-size: 0.94rem;
+    line-height: 1.55;
+    max-width: 72ch;
+}
+.dt-coach-body strong { color: var(--bl-ink-100); font-weight: 600; }
+
+.dt-role {
+    display: inline-block;
+    font-family: var(--bl-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+.dt-role.is-primary {
+    color: #E64530;
+    background: rgba(230,69,48,0.10);
+    border: 1px solid rgba(230,69,48,0.32);
+}
+.dt-role.is-supporting {
+    color: #C8C4BB;
+    background: rgba(244,239,230,0.05);
+    border: 1px solid rgba(244,239,230,0.16);
+}
+.dt-role.is-challenge {
+    color: #E8C170;
+    background: rgba(232,193,112,0.10);
+    border: 1px solid rgba(232,193,112,0.32);
+}
+
+.dt-retest {
+    margin: 1.6rem 0 1.2rem;
+    padding: 1.4rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(74,227,140,0.22);
+    background:
+        radial-gradient(120% 100% at 100% 0%, rgba(74,227,140,0.07) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008));
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+}
+.dt-retest-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(74,227,140,0.12);
+    border: 1px solid rgba(74,227,140,0.36);
+    display: grid; place-items: center;
+    color: #4AE38C;
+    font-family: var(--bl-mono);
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+.dt-retest-eyebrow {
+    font-family: var(--bl-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #4AE38C;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+.dt-retest-title {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--bl-ink-100);
+    line-height: 1.25;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+}
+.dt-retest-list {
+    margin: 0; padding: 0; list-style: none;
+    color: var(--bl-ink-80);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+.dt-retest-list li {
+    padding-left: 0.9rem;
+    position: relative;
+}
+.dt-retest-list li + li { margin-top: 0.2rem; }
+.dt-retest-list li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: #4AE38C;
+    font-weight: 700;
+}
+@media (max-width: 720px) {
+    .dt-retest { grid-template-columns: 1fr; gap: 0.7rem; padding: 1.2rem; }
+    .dt-retest-icon { width: 36px; height: 36px; }
+    .dt-coach { padding: 0.95rem 1.05rem; }
+    .dt-role { font-size: 0.5rem; padding: 0.15rem 0.45rem; }
+}
 </style>
 """
+
+
+# ============================================================
+# Training Plan helpers (v4)
+# ============================================================
+def _trim_drills_to_focus(categories: list, max_drills: int = 4) -> list:
+    """Cap the displayed drill set to the spec's 2–4 focus drills.
+
+    Role allocation (matches `_role_for`):
+      • PRIMARY    — priority-1 cat, drill 0     (always shown if present)
+      • SUPPORTING — priority-1 cat, drills 1..2 (up to 2)
+      • CHALLENGE  — priority-2 cat, drill 0     (at most 1)
+
+    So priority-2 contributes at most one drill no matter how many
+    headroom slots are unused — otherwise a thin priority-1 category
+    would silently let three priority-2 drills render with CHALLENGE
+    labels, which is internally inconsistent with the role intent.
+    """
+    if not categories:
+        return []
+    out: list = []
+    remaining = max(1, int(max_drills or 0))
+    cat1 = dict(categories[0])
+    take1 = min(3, remaining, len(cat1.get("drills") or []))
+    cat1["drills"] = list((cat1.get("drills") or [])[:take1])
+    out.append(cat1)
+    remaining -= take1
+    if remaining > 0 and len(categories) > 1:
+        cat2 = dict(categories[1])
+        # Hard cap of 1 drill from priority-2 — the "optional challenge"
+        # slot. Don't backfill it with multiple drills just because
+        # priority-1 had headroom; those wouldn't be challenges.
+        take2 = min(1, remaining, len(cat2.get("drills") or []))
+        cat2["drills"] = list((cat2.get("drills") or [])[:take2])
+        if cat2["drills"]:
+            out.append(cat2)
+    return out
+
+
+def _role_for(category_idx: int, drill_idx: int) -> tuple[str, str]:
+    """Map a (category, drill) index to a role label + CSS class.
+
+    Category 0 drill 0 → PRIMARY (the focus drill of the cycle)
+    Category 0 drills 1,2 → SUPPORTING
+    Category 1 drills → CHALLENGE (everything past the priority-1 set)
+    """
+    if category_idx == 0 and drill_idx == 0:
+        return ("PRIMARY", "is-primary")
+    if category_idx == 0:
+        return ("SUPPORTING", "is-supporting")
+    return ("CHALLENGE", "is-challenge")
 
 
 # ============================================================
@@ -1424,19 +1610,23 @@ def render_development_tracker():
     st.markdown('<div class="bl-page">', unsafe_allow_html=True)
 
     # ---- Hero ----
+    # Branded as "Training Plan" — the daily, latest-swing-driven plan.
+    # The page_key in app.py routing stays "development_tracker" so all
+    # downstream storage, gamification, and paywall code is untouched.
     hero_html = textwrap.dedent("""
     <div class="dt-hero">
       <div class="dt-hero-row">
         <div style="flex:1;min-width:0;">
           <div class="dt-hero-eyebrow">BarrelLabs Performance Lab</div>
-          <div class="dt-hero-title">Development Tracker</div>
+          <div class="dt-hero-title">Training Plan</div>
           <div class="dt-hero-sub">
-            Work through the exact drills BarrelLabs prescribed from your
-            latest swing report. Your progress saves automatically across
-            sessions, so you can pick up where you left off.
+            Your daily swing development plan, updated from your latest
+            analysis. Focus on the highest-impact drills from your most
+            recent swing report — progress saves automatically across
+            sessions.
           </div>
         </div>
-        <div class="dt-mode-pill"><span class="dt-mode-pill-dot"></span> Training Mode</div>
+        <div class="dt-mode-pill"><span class="dt-mode-pill-dot"></span> Today&rsquo;s Focus</div>
       </div>
     </div>
     """).strip()
@@ -1446,7 +1636,7 @@ def render_development_tracker():
     user = st.session_state.get("user")
     if not user:
         _render_empty_state(
-            title="Please sign in to use the Development Tracker.",
+            title="Please sign in to view your Training Plan.",
             sub="Your training plan is tied to your BarrelLabs account so progress can sync across devices.",
             icon="◇",
         )
@@ -1483,7 +1673,7 @@ def render_development_tracker():
       border: 1px solid rgba(255,59,48,0.35);
   ">Pro feature</div>
   <div style="font-size: 1.55rem; font-weight: 800; color: #fafafa; margin-top: 0.6rem; letter-spacing: -0.01em;">
-    The Development Tracker is Pro-only.
+    The Training Plan is Pro-only.
   </div>
   <div style="color: #d4d4d4; line-height: 1.6; margin-top: 0.55rem; max-width: 60ch;">
     Upgrade to <strong style="color:#fafafa;">Solo Pro</strong> to unlock:
@@ -1547,9 +1737,10 @@ def render_development_tracker():
     saved_swing = _latest_swing_with_drill_plan(player_id)
     if not saved_swing:
         _render_empty_state(
-            title="No drill plan yet.",
-            sub="Analyze a swing first — once you have a swing report, your "
-                "personalized drill plan will appear here automatically.",
+            title="Upload your first swing to generate your Training Plan.",
+            sub="Once you have a swing report, your personalized drill "
+                "plan — built from your highest-priority issues — will "
+                "appear here automatically.",
             icon="↗",
         )
         # Even without a drill plan, show the milestones + rewards roadmap so
@@ -1564,7 +1755,15 @@ def render_development_tracker():
         return
 
     drill_plan = saved_swing.get("drill_plan") or {}
-    categories = drill_plan.get("categories", [])
+    # Cap to the spec's 2–4 daily focus drills (1 primary + 2 supporting
+    # + optional 1 challenge). The full per-category drill list is still
+    # available in the swing report itself; here we want the daily plan,
+    # not the encyclopedia.
+    categories = _trim_drills_to_focus(
+        drill_plan.get("categories", []),
+        max_drills=4,
+    )
+    weekly_guide = drill_plan.get("weekly_guide") or []
     swing_date = saved_swing.get("date", "Unknown date")
 
     log = load_training_log(player_id)
@@ -1595,6 +1794,7 @@ def render_development_tracker():
         cat_title = category.get("title", "Drills")
         cat_priority = category.get("priority", cat_idx)
         cat_drills = category.get("drills", [])
+        cat_why = category.get("why_it_matters") or ""
 
         cat_header = textwrap.dedent(f"""
         <div class="dt-cat-header">
@@ -1605,7 +1805,21 @@ def render_development_tracker():
         """).strip()
         st.markdown(cat_header, unsafe_allow_html=True)
 
-        for drill in cat_drills:
+        # ---- Coach notes ----
+        # The build_drill_plan output ships a `why_it_matters` paragraph
+        # per category — the analyzer's plain-language explanation of
+        # why this focus area moves the swing. Surface it here so the
+        # Training Plan has the "why," not just the "what."
+        if cat_why:
+            coach_html = (
+                f'<div class="dt-coach">'
+                f'<div class="dt-coach-eyebrow">Coach Notes</div>'
+                f'<div class="dt-coach-body">{_html.escape(cat_why)}</div>'
+                f'</div>'
+            )
+            st.markdown(coach_html, unsafe_allow_html=True)
+
+        for drill_idx, drill in enumerate(cat_drills):
             drill_counter += 1
             drill_id = f"{cat_title}::{drill.get('name','')}"
             saved = drill_log.get(drill_id, {})
@@ -1622,6 +1836,11 @@ def render_development_tracker():
             how = drill.get("how", "")
             num_label = f"{drill_counter:02d}"
 
+            # Spec roles: priority-1 first drill is PRIMARY, next two
+            # are SUPPORTING, anything in priority-2 is CHALLENGE.
+            role_label, role_cls = _role_for(cat_idx - 1, drill_idx)
+            role_chip = f'<span class="dt-role {role_cls}">{role_label}</span>'
+
             reps_chip = f'<span class="dt-drill-reps">SUGGESTED · {reps}</span>' if reps else ''
             how_html = f'<div class="dt-drill-how">{how}</div>' if how else ''
 
@@ -1630,7 +1849,7 @@ def render_development_tracker():
                 f'<div class="dt-drill-row">'
                 f'<div class="dt-drill-num">{num_label}</div>'
                 f'<div class="dt-drill-meta">'
-                f'<div class="dt-drill-name">{name}</div>'
+                f'<div class="dt-drill-name">{name}{role_chip}</div>'
                 f'{reps_chip}'
                 f'{how_html}'
                 f'</div>'
@@ -1666,6 +1885,29 @@ def render_development_tracker():
                     "last_updated": datetime.now().isoformat(timespec="seconds"),
                 }
                 dirty = True
+
+    # ---- Re-Test Reminder ----
+    # The drill plan's `weekly_guide` is the analyzer's recommended
+    # cadence + the explicit "re-film and re-run the comparison every
+    # 2–3 weeks" line. Surface it here so the Training Plan answers
+    # "when should I upload my next swing?" without the user digging.
+    if weekly_guide:
+        items_html = "".join(
+            f"<li>{_html.escape(item)}</li>" for item in weekly_guide
+        )
+        retest_html = (
+            '<div class="dt-retest">'
+            '<div class="dt-retest-icon">↻</div>'
+            '<div>'
+            '<div class="dt-retest-eyebrow">Re-Test Reminder</div>'
+            '<div class="dt-retest-title">'
+            'When to upload your next swing'
+            '</div>'
+            f'<ul class="dt-retest-list">{items_html}</ul>'
+            '</div>'
+            '</div>'
+        )
+        st.markdown(retest_html, unsafe_allow_html=True)
 
     # ---- Session notes ----
     st.markdown(
