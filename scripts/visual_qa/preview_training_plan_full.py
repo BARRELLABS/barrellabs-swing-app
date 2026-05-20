@@ -177,15 +177,72 @@ def _coach_note_html(body: str) -> str:
 """
 
 
+def _howto_html(instr: dict) -> str:
+    """Static `<details>` block — same DOM as the live page emits."""
+    def _li(items):
+        return "".join(f"<li>{i}</li>" for i in (items or []))
+
+    return f"""
+<details class="tp-howto" open>
+  <summary>
+    <span class="tp-howto-label">How to Perform This Drill</span>
+    <span class="tp-howto-chev">›</span>
+  </summary>
+  <div class="tp-howto-body">
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow">Setup</div>
+      <ul class="tp-howto-list">{_li(instr.get("setup", []))}</ul>
+    </div>
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow">Execution</div>
+      <ol class="tp-howto-list is-ordered">{_li(instr.get("execution", []))}</ol>
+    </div>
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow">Focus Points</div>
+      <ul class="tp-howto-list">{_li(instr.get("focus_points", []))}</ul>
+    </div>
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow is-red">Common Mistakes</div>
+      <ul class="tp-howto-list is-mistakes">{_li(instr.get("common_mistakes", []))}</ul>
+    </div>
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow is-gold">Success Feels Like</div>
+      <div class="tp-howto-success">{instr.get("success_feels_like", "")}</div>
+    </div>
+    <div class="tp-howto-block">
+      <div class="tp-howto-eyebrow">Video</div>
+      <div class="tp-howto-video">
+        <div class="tp-howto-video-thumb">▶</div>
+        <div class="tp-howto-video-caption">Drill demo video — coming soon.</div>
+      </div>
+    </div>
+  </div>
+</details>
+"""
+
+
 def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
-                     reps: str, how: str, done: bool, mastery: int = 0) -> str:
-    status = "✓ COMPLETE" if done else "○ PENDING"
+                     reps: str, how: str, done: bool, mastery: int = 0,
+                     instr: dict | None = None, cat_title: str = "") -> str:
+    status = (f'✓ COMPLETED · 14:23' if done else '○ PENDING')
     done_cls = "is-done" if done else ""
     role_chip = f'<span class="dt-role {role_cls}">{role}</span>'
     mastery_chip = (f'<span class="tp-mastery">Mastered {mastery}×</span>'
                     if mastery >= 3 else '')
     reps_chip = f'<span class="dt-drill-reps">SUGGESTED · {reps}</span>'
-    how_html = f'<div class="dt-drill-how">{how}</div>'
+    instr = instr or {}
+
+    meta_strip = (
+        f'<div class="tp-drill-meta-strip">'
+        f'<span class="tp-meta-item"><span class="ico">◷</span>{instr.get("estimated_time", "")}</span>'
+        f'<span class="tp-meta-item"><span class="ico">⚙</span>{instr.get("equipment", "")}</span>'
+        f'<span class="tp-meta-item"><span class="ico">▲</span>{instr.get("difficulty", "")}</span>'
+        f'<span class="tp-meta-item"><span class="ico">◎</span>{cat_title}</span>'
+        f'</div>'
+    )
+    description_html = f'<div class="dt-drill-how">{how}</div>'
+    howto = _howto_html(instr)
+
     card = f"""
 <div class="dt-drill {done_cls}">
   <div class="dt-drill-row">
@@ -193,35 +250,54 @@ def _drill_card_html(*, num: str, name: str, role: str, role_cls: str,
     <div class="dt-drill-meta">
       <div class="dt-drill-name">{name}{role_chip}{mastery_chip}</div>
       {reps_chip}
-      {how_html}
     </div>
     <div class="dt-drill-status-pill">{status}</div>
   </div>
+  {meta_strip}
+  {description_html}
+  {howto}
 </div>
 """
-    # Static action row mimicking the Streamlit checkbox + text input.
-    # We hand-roll the bare DOM the CSS targets so the preview looks
-    # the same as the live page.
+    # Static action row matching the live `st_key-tp_action_*` DOM.
     reps_value = "3×10" if done else ""
-    check_attr = "checked" if done else ""
-    actions = f"""
-<div class="dt-actions-wrap">
-  <div style="display:grid;grid-template-columns:1fr 2fr;gap:18px;align-items:end;">
-    <div data-testid="stCheckbox">
-      <label>
-        <input type="checkbox" {check_attr} style="display:none;">
-        <div data-baseweb="checkbox" {('aria-checked="true"' if done else '')}>
-          <div style="display:inline-block;vertical-align:middle;"></div>
-        </div>
-        <span style="margin-left:8px;vertical-align:middle;">Mark done</span>
-      </label>
-    </div>
-    <div data-testid="stTextInput">
-      <label>Reps completed</label>
-      <div data-baseweb="input">
-        <input type="text" placeholder="e.g. 4×10" value="{reps_value}">
-      </div>
-    </div>
+    if done:
+        actions = f"""
+<div class="st-key-tp_action_xx" style="margin:-14px 0 1.6rem;padding:16px 18px 14px;border:1px solid rgba(244,239,230,0.08);border-top:0;border-radius:0 0 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008));">
+  <div data-testid="stTextInput" style="margin-bottom:10px;">
+    <label>Reps completed</label>
+    <div data-baseweb="input"><input type="text" value="{reps_value}"></div>
+  </div>
+  <div class="tp-done-stamp">
+    <span class="tick">✓</span>
+    <span>Drill Completed</span>
+    <span class="stamp-time">14:23</span>
+  </div>
+</div>
+"""
+    else:
+        actions = f"""
+<div class="st-key-tp_action_xx" style="margin:-14px 0 1.6rem;padding:16px 18px 14px;border:1px solid rgba(244,239,230,0.08);border-top:0;border-radius:0 0 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008));">
+  <div data-testid="stTextInput" style="margin-bottom:10px;">
+    <label>Reps completed</label>
+    <div data-baseweb="input"><input type="text" placeholder="e.g. 4×10"></div>
+  </div>
+  <div class="stButton" style="margin-top:12px;">
+    <button kind="primary" data-testid="stButton" style="
+      width:100%;
+      background:linear-gradient(180deg,#43d985 0%,#2cb86b 100%);
+      color:#062414;
+      border:1px solid rgba(74,227,140,0.55);
+      border-radius:14px;
+      padding:16px 22px;
+      font-family:'Geist',sans-serif;
+      font-size:1rem;
+      font-weight:700;
+      letter-spacing:0.04em;
+      box-shadow:0 18px 36px -16px rgba(74,227,140,0.55),
+                 inset 0 1px 0 rgba(255,255,255,0.32),
+                 inset 0 -1px 0 rgba(0,0,0,0.10);
+      cursor:pointer;
+    ">⚡  Complete Drill</button>
   </div>
 </div>
 """
@@ -368,6 +444,8 @@ def main() -> None:
             reps="3 sets of 10",
             how="Partner soft-tosses from 8–10 feet away. Focus on the shortest, most direct path from load to contact. No wasted motion.",
             done=True, mastery=4,
+            instr=dt._drill_instructions("Short-Toss Quick Hands"),
+            cat_title="Sharpen Timing & Quickness",
         )
         + _drill_card_html(
             num="02", name="Tennis Ball Reactions",
@@ -375,6 +453,8 @@ def main() -> None:
             reps="3 sets of 10",
             how="Partner randomly tosses tennis balls (different speeds, small intentional pauses). Forces you to read and react rather than time a rhythm.",
             done=False,
+            instr=dt._drill_instructions("Tennis Ball Reactions"),
+            cat_title="Sharpen Timing & Quickness",
         )
         + _drill_card_html(
             num="03", name="One-Hand Top-Hand Tee",
@@ -382,6 +462,8 @@ def main() -> None:
             reps="3 sets of 8",
             how="Take swings off a tee using only your top (back) hand. Forces a compact, quick path — no looping or dragging.",
             done=False,
+            instr=dt._drill_instructions("One-Hand Top-Hand Tee"),
+            cat_title="Sharpen Timing & Quickness",
         )
         + _category_header_html(2, "Quiet the Head", 1)
         + _coach_note_html(
@@ -394,6 +476,8 @@ def main() -> None:
             reps="3 sets of 5",
             how="Keep eyes locked through contact.",
             done=False,
+            instr=dt._drill_instructions("Eye-on-the-Tee"),
+            cat_title="Quiet the Head",
         )
         + _retest_html()
     )

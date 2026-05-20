@@ -2168,6 +2168,442 @@ _DT_LOCAL_CSS = """
     background: transparent !important;
     border: 0 !important;
 }
+
+/* ============================================================
+   TRAINING PLAN v4 — premium drill card.
+     · metadata strip (time · equipment · difficulty · category)
+     · expandable how-to (<details> — pure CSS, no JS)
+     · emerald "Complete Drill" button (replaces the checkbox)
+     · "Drill Completed" stamp + +150 XP burst on transition
+     · richer hover / shadow / glow
+   ============================================================ */
+
+/* ---- Drill card structural lift: bigger, with depth ---- */
+.tp-shell .dt-drill {
+    padding: 1.6rem 1.8rem 1.4rem !important;
+    border-radius: 22px !important;
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(232,193,112,0.04) 0%, transparent 65%),
+        var(--bl-surface-1) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.03) inset,
+        0 20px 50px -30px rgba(0,0,0,0.65) !important;
+}
+.tp-shell .dt-drill:hover {
+    transform: translateY(-2px) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 26px 60px -28px rgba(0,0,0,0.7),
+        0 0 24px -8px rgba(232,193,112,0.18) !important;
+}
+
+/* ---- Metadata strip (under the name) ---- */
+.tp-drill-meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin: 12px 0 14px;
+    padding: 10px 0 12px;
+    border-top: 1px solid var(--bl-line);
+    border-bottom: 1px solid var(--bl-line);
+}
+.tp-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    line-height: 1;
+}
+.tp-meta-item .ico {
+    color: var(--tp-gold);
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* ---- "How to Perform This Drill" expandable ---- */
+.tp-howto {
+    margin: 14px 0 4px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.20);
+    border: 1px solid var(--bl-line);
+    overflow: hidden;
+    transition: border-color 0.22s ease, background 0.22s ease;
+}
+.tp-howto:hover { border-color: var(--bl-line-hi); }
+.tp-howto[open] {
+    border-color: var(--tp-gold-line);
+    background: rgba(0,0,0,0.30);
+}
+.tp-howto summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    font-family: var(--bl-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bl-ink-80);
+    user-select: none;
+    transition: color 0.18s ease;
+}
+.tp-howto summary::-webkit-details-marker { display: none; }
+.tp-howto summary::marker { display: none; }
+.tp-howto summary:hover { color: var(--tp-gold); }
+.tp-howto-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.tp-howto-label::before {
+    content: "▸";
+    color: var(--tp-gold);
+    font-size: 11px;
+    transition: transform 0.22s cubic-bezier(.32,.72,0,1);
+}
+.tp-howto[open] .tp-howto-label::before {
+    transform: rotate(90deg);
+}
+.tp-howto-chev {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--bl-ink-60);
+    transition: transform 0.22s cubic-bezier(.32,.72,0,1), color 0.18s ease;
+}
+.tp-howto[open] .tp-howto-chev {
+    transform: rotate(90deg);
+    color: var(--tp-gold);
+}
+
+.tp-howto-body {
+    padding: 6px 22px 22px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 28px;
+}
+.tp-howto-block {
+    /* Each section is its own subgrid cell so the layout reads as a
+       coaching brief, not a wall of text. */
+}
+.tp-howto-block:first-child,
+.tp-howto-block:nth-child(2) {
+    /* Setup + Execution span both columns each on desktop because they
+       carry the most copy. */
+    grid-column: 1 / -1;
+}
+.tp-howto-block:nth-child(2) {
+    /* Execution back to spanning both. */
+}
+.tp-howto-eyebrow {
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    margin-bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.tp-howto-eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 14px;
+    height: 1px;
+    background: var(--tp-gold);
+}
+.tp-howto-eyebrow.is-red { color: var(--bl-red); }
+.tp-howto-eyebrow.is-red::before { background: var(--bl-red); }
+.tp-howto-eyebrow.is-gold { color: var(--tp-gold); }
+.tp-howto-eyebrow.is-gold::before { background: var(--tp-gold); }
+
+.tp-howto-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: none;
+    color: var(--bl-ink-80);
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+.tp-howto-list li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 6px;
+}
+.tp-howto-list li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: var(--tp-gold);
+    font-weight: 700;
+    line-height: 1.55;
+}
+.tp-howto-list.is-ordered {
+    counter-reset: tp-step;
+}
+.tp-howto-list.is-ordered li {
+    counter-increment: tp-step;
+}
+.tp-howto-list.is-ordered li::before {
+    content: counter(tp-step, decimal-leading-zero);
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--tp-gold);
+    top: 2px;
+}
+.tp-howto-list.is-mistakes li::before {
+    content: "✕";
+    color: var(--bl-red);
+    font-weight: 700;
+}
+.tp-howto-success {
+    color: var(--bl-ink-100);
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-size: 1.02rem;
+    line-height: 1.5;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(232,193,112,0.06);
+    border: 1px solid rgba(232,193,112,0.22);
+}
+
+/* Reserved video thumbnail slot. */
+.tp-howto-video {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 14px;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.30);
+    border: 1px dashed var(--bl-line-hi);
+}
+.tp-howto-video-thumb {
+    width: 92px;
+    height: 56px;
+    display: grid; place-items: center;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(232,193,112,0.10), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--bl-line);
+    border-radius: 8px;
+    color: var(--tp-gold);
+    font-size: 18px;
+    line-height: 1;
+}
+.tp-howto-video-caption {
+    font-family: var(--bl-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--bl-ink-40);
+    font-weight: 500;
+}
+
+/* ---- Action row container (keyed st.container `tp_action_*`) ---- */
+.tp-shell [class*="st-key-tp_action_"] {
+    margin: 0 0 1.6rem !important;
+    padding: 16px 18px 14px !important;
+    border: 1px solid var(--bl-line) !important;
+    border-top: 0 !important;
+    border-radius: 0 0 22px 22px !important;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.008)) !important;
+    /* Visually attach to the drill card above. */
+    margin-top: -14px !important;
+}
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stTextInput"] label {
+    font-family: var(--bl-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    color: var(--bl-ink-60) !important;
+    margin-bottom: 6px !important;
+}
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stTextInput"] input {
+    background: rgba(0,0,0,0.30) !important;
+    border: 1px solid var(--bl-line) !important;
+    border-radius: 10px !important;
+    color: var(--bl-ink-100) !important;
+    font-family: var(--bl-sans) !important;
+    font-size: 0.95rem !important;
+    padding: 10px 13px !important;
+    caret-color: var(--tp-gold) !important;
+}
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stTextInput"] input:focus {
+    border-color: var(--tp-gold) !important;
+    box-shadow: 0 0 0 3px rgba(232,193,112,0.16) !important;
+    outline: none !important;
+}
+
+/* ---- The premium "Complete Drill" button (the big emerald CTA) ---- */
+@keyframes tp-glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(74,227,140,0.40), 0 18px 36px -16px rgba(74,227,140,0.55); }
+    50%      { box-shadow: 0 0 0 4px rgba(74,227,140,0.10), 0 18px 36px -16px rgba(74,227,140,0.55); }
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stButton"] button[kind="primary"] {
+    /* Override the global red-gradient primary button completely. */
+    background: linear-gradient(180deg, #43d985 0%, #2cb86b 100%) !important;
+    color: #062414 !important;
+    border: 1px solid rgba(74,227,140,0.55) !important;
+    border-radius: 14px !important;
+    padding: 16px 22px !important;
+    font-family: var(--bl-sans) !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+    width: 100% !important;
+    box-shadow:
+        0 18px 36px -16px rgba(74,227,140,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.32),
+        inset 0 -1px 0 rgba(0,0,0,0.10) !important;
+    transition:
+        transform 0.18s cubic-bezier(.34,1.4,.64,1),
+        box-shadow 0.22s var(--au-ease, cubic-bezier(.32,.72,0,1)),
+        background 0.22s ease !important;
+    margin-top: 12px !important;
+    animation: tp-glow-pulse 2.6s ease-in-out infinite;
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover {
+    transform: translateY(-2px) !important;
+    background: linear-gradient(180deg, #58e596 0%, #38c876 100%) !important;
+    box-shadow:
+        0 22px 44px -14px rgba(74,227,140,0.65),
+        inset 0 1px 0 rgba(255,255,255,0.40),
+        inset 0 -1px 0 rgba(0,0,0,0.12) !important;
+    animation: none;
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition-duration: 100ms !important;
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:focus-visible {
+    outline: 2px solid rgba(74,227,140,0.65) !important;
+    outline-offset: 3px !important;
+}
+
+/* The "Mark as not done" undo button (small ghost link). */
+.tp-shell [class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]) {
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--bl-ink-60) !important;
+    font-family: var(--bl-mono) !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.20em !important;
+    text-transform: uppercase !important;
+    padding: 8px 6px !important;
+    box-shadow: none !important;
+    width: auto !important;
+    margin-top: 8px !important;
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]):hover {
+    color: var(--bl-red) !important;
+    background: transparent !important;
+}
+
+/* ---- "Drill Completed" stamp (replaces the button when done) ---- */
+@keyframes tp-stamp-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1.0); }
+}
+.tp-done-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(74,227,140,0.12) 0%, transparent 65%),
+        rgba(74,227,140,0.06);
+    border: 1px solid rgba(74,227,140,0.42);
+    font-family: var(--bl-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--tp-green);
+    margin-top: 8px;
+    animation: tp-stamp-in 0.42s cubic-bezier(.34,1.4,.64,1);
+    box-shadow:
+        0 0 20px -8px rgba(74,227,140,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.tp-done-stamp .tick {
+    display: inline-grid;
+    place-items: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--tp-green);
+    color: #062414;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+}
+.tp-done-stamp .stamp-time {
+    color: var(--bl-ink-60);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    margin-left: auto;
+}
+
+/* ---- The completed drill card visual treatment (emerald + brightened) ---- */
+.tp-shell .dt-drill.is-done {
+    border-color: rgba(74,227,140,0.34) !important;
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(74,227,140,0.10) 0%, transparent 60%),
+        radial-gradient(120% 80% at 0% 100%, rgba(74,227,140,0.05) 0%, transparent 60%),
+        rgba(255,255,255,0.030) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 0 0 1px rgba(74,227,140,0.10),
+        0 22px 50px -28px rgba(74,227,140,0.30) !important;
+}
+.tp-shell .dt-drill.is-done .dt-drill-status-pill {
+    background: rgba(74,227,140,0.12) !important;
+    border-color: rgba(74,227,140,0.45) !important;
+    color: var(--tp-green) !important;
+}
+/* Bump the completed +25 XP chip up to +150 XP and make it bolder. */
+.tp-shell .dt-drill.is-done::after {
+    content: "+150 XP" !important;
+    font-size: 11px !important;
+    padding: 5px 11px !important;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 720px) {
+    .tp-howto-body {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 4px 16px 18px;
+    }
+    .tp-howto-block:first-child,
+    .tp-howto-block:nth-child(2) {
+        grid-column: 1 / -1;
+    }
+    .tp-howto summary { padding: 12px 14px; font-size: 10px; letter-spacing: 0.18em; }
+    .tp-drill-meta-strip { gap: 6px 12px; padding: 8px 0 10px; }
+    .tp-meta-item { font-size: 9.5px; letter-spacing: 0.14em; }
+    .tp-shell .dt-drill { padding: 1.3rem 1.3rem 1.1rem !important; }
+    .tp-howto-video { grid-template-columns: 72px 1fr; }
+    .tp-howto-video-thumb { width: 72px; height: 44px; }
+}
 </style>
 """
 
@@ -2284,6 +2720,542 @@ def _tier_for_day_threshold(day_threshold: int) -> str:
     return "legendary"
 
 
+# ============================================================
+# Drill instruction library (v4 — premium how-to content)
+# ============================================================
+# Every drill name in the bank gets a structured instructional module:
+#   estimated_time   — display string ("5 min", "8 min", "10 min")
+#   equipment        — short list of what's needed
+#   difficulty       — "Beginner" / "Intermediate" / "Advanced"
+#   setup            — list of bullets (where to stand, what to grab)
+#   execution        — numbered steps the player follows
+#   focus_points     — 3–5 coaching cues
+#   common_mistakes  — bullets of what to avoid
+#   success_feels_like — one sentence on the felt sense of doing it right
+#
+# Unknown drill names fall through to `_GENERIC_INSTRUCTIONS` — a clean
+# wrapper around the existing `how` text. So the analyzer can still
+# prescribe new drills without crashing the page; they just lose the
+# premium instructional layer until a content entry is added.
+_DRILL_INSTRUCTIONS: dict[str, dict] = {
+    # --------- HEAD STABILITY ---------
+    "Wall Drill": {
+        "estimated_time": "5 min",
+        "equipment": "Open wall · normal stance",
+        "difficulty": "Beginner",
+        "setup": [
+            "Face a blank wall, ~3 feet away.",
+            "Take your normal stance — no bat needed.",
+            "Pick a single spot on the wall at eye level.",
+        ],
+        "execution": [
+            "Take your normal stride.",
+            "Swing dry, slowly, keeping your eyes locked on the spot.",
+            "Reset fully between every rep — no rushing.",
+            "Build speed only once your head stays still at 50%.",
+        ],
+        "focus_points": [
+            "Eyes glued to one spot on the wall.",
+            "Chin tracks over the front shoulder.",
+            "No vertical drop or bob through contact.",
+        ],
+        "common_mistakes": [
+            "Letting the head dip on acceleration.",
+            "Drifting forward into the wall.",
+            "Looking up to track an imagined ball.",
+        ],
+        "success_feels_like": "Your gaze stays locked. The wall doesn't shift in your field of view through the swing.",
+    },
+    "Towel-on-Head Drill": {
+        "estimated_time": "5 min",
+        "equipment": "Light towel · tee · ball",
+        "difficulty": "Beginner",
+        "setup": [
+            "Place a small towel folded on top of your head.",
+            "Set the tee at your normal contact point.",
+            "Take your stance.",
+        ],
+        "execution": [
+            "Swing at the ball without the towel falling off.",
+            "Slow the swing down if the towel slips.",
+            "Build to game speed once you can hold it through contact.",
+        ],
+        "focus_points": [
+            "Quiet head equals stable towel.",
+            "Trust the legs and hips to drive the swing — not the head.",
+            "Stay tall through finish.",
+        ],
+        "common_mistakes": [
+            "Diving forward and tipping the towel off.",
+            "Rolling shoulders over instead of rotating.",
+        ],
+        "success_feels_like": "The towel stays glued from load to finish, even on hard swings.",
+    },
+    "Eye-on-the-Tee": {
+        "estimated_time": "6 min",
+        "equipment": "Tee · ball",
+        "difficulty": "Beginner",
+        "setup": [
+            "Set the tee at your normal contact point.",
+            "Mark a single point on the ball — a logo, a dot, a seam.",
+        ],
+        "execution": [
+            "Stare at the point through the entire swing.",
+            "Try to read the mark at contact.",
+            "Reset, breathe, repeat.",
+        ],
+        "focus_points": [
+            "Hard focus on one tiny point.",
+            "No head rotation toward the imaginary pitcher.",
+            "See contact happen — don't just hit and look up.",
+        ],
+        "common_mistakes": [
+            "Eyes pulling off the ball early.",
+            "Tracking the bat path instead of the target.",
+        ],
+        "success_feels_like": "You can describe what the mark on the ball looked like at impact.",
+    },
+    "Mirror Feedback": {
+        "estimated_time": "5 min",
+        "equipment": "Full-length mirror",
+        "difficulty": "Beginner",
+        "setup": [
+            "Stand square to a mirror, ~6 feet away.",
+            "Take your stance so you can see your full body.",
+        ],
+        "execution": [
+            "Swing slowly, watching head position frame by frame.",
+            "Hold the finish for 1 second — verify head hasn't moved.",
+            "Add tempo gradually.",
+        ],
+        "focus_points": [
+            "Use your eyes to audit yourself in real time.",
+            "Look for vertical and lateral head drift.",
+            "Note where the chin is at finish.",
+        ],
+        "common_mistakes": [
+            "Watching the bat instead of the head.",
+            "Cheating slow reps to look clean — go honest speed.",
+        ],
+        "success_feels_like": "The head in the mirror is in the same spot at finish as at setup.",
+    },
+    # --------- HIP ROTATION ---------
+    "Hip Turn Step-Throughs": {
+        "estimated_time": "8 min",
+        "equipment": "Bat · open space",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Take your normal stance with the bat.",
+            "Pick a target line in front of you.",
+        ],
+        "execution": [
+            "Initiate the swing with the back hip turning aggressively.",
+            "Let the back foot step through naturally as you rotate.",
+            "Finish balanced with the back foot ahead of the front.",
+        ],
+        "focus_points": [
+            "Rotation starts in the hips — not the arms.",
+            "Step-through is a RESULT of full rotation, not a goal.",
+            "Stay balanced at finish — no falling off.",
+        ],
+        "common_mistakes": [
+            "Stepping through with the back foot too early.",
+            "Arms firing before hips rotate.",
+        ],
+        "success_feels_like": "Your hips outrun your hands — and the bat snaps through almost involuntarily.",
+    },
+    "Belt-Tug Drill": {
+        "estimated_time": "5 min",
+        "equipment": "Resistance band or training partner",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Tie a band around your front belt loop OR have a partner hold it.",
+            "Stand with the resistance pulling AWAY from the pitcher (toward your back side).",
+        ],
+        "execution": [
+            "Initiate the swing by driving the front hip AGAINST the resistance.",
+            "Feel the hip lead the rotation.",
+            "Add bat swings once the lead-hip feel is locked in.",
+        ],
+        "focus_points": [
+            "Front hip pulls the swing through.",
+            "Don't muscle up — let the leverage do the work.",
+            "Stay tall and balanced.",
+        ],
+        "common_mistakes": [
+            "Pulling with the upper body instead of the hip.",
+            "Lunging forward to beat the band.",
+        ],
+        "success_feels_like": "Your hips are doing the heavy lifting — your arms and hands feel light.",
+    },
+    "Resistance Band Rotations": {
+        "estimated_time": "6 min",
+        "equipment": "Resistance band · anchor point",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Anchor a band at chest height to your side.",
+            "Hold the band with both hands like a bat.",
+            "Stand far enough away that there's real tension.",
+        ],
+        "execution": [
+            "Rotate through the swing path against the band's resistance.",
+            "Pause at full rotation — feel the load.",
+            "Return slowly, repeat.",
+        ],
+        "focus_points": [
+            "Lead with hips, follow with shoulders.",
+            "Full range of motion — no shortcuts.",
+            "Slow and controlled on the return.",
+        ],
+        "common_mistakes": [
+            "Yanking with arms.",
+            "Cutting the rotation short.",
+        ],
+        "success_feels_like": "Your rotation is smooth and powerful, like winding and unwinding a spring.",
+    },
+    "Closed-Stance Tee Work": {
+        "estimated_time": "8 min",
+        "equipment": "Tee · ball · bat",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Set up with your stance more closed than normal (front foot 3–4 inches in toward the plate).",
+            "Tee at your normal contact point.",
+        ],
+        "execution": [
+            "Swing normally — the closed stance forces full hip rotation to clear the path.",
+            "Focus on driving the back hip through.",
+            "Hit 8–10 balls, reset, repeat.",
+        ],
+        "focus_points": [
+            "Closed stance is the constraint — let it teach you.",
+            "Hips MUST rotate fully or you can't reach the ball clean.",
+            "Stay balanced through contact.",
+        ],
+        "common_mistakes": [
+            "Trying to muscle the swing instead of rotating.",
+            "Reverting to an open stance mid-rep.",
+        ],
+        "success_feels_like": "Contact is clean and the bat path feels natural despite the closed stance.",
+    },
+    # --------- SEPARATION ---------
+    "Connection Ball Drill": {
+        "estimated_time": "8 min",
+        "equipment": "Small ball or rolled towel · bat",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Place a small ball (or rolled-up towel) between your front forearm and chest.",
+            "Take your normal stance.",
+        ],
+        "execution": [
+            "Swing without dropping the ball.",
+            "If the ball falls, your arms disconnected from your torso early.",
+            "Start slow, then build speed.",
+        ],
+        "focus_points": [
+            "Lead arm stays connected to the torso through the swing.",
+            "Power transfers from hips → torso → arms — in order.",
+            "No early arm extension.",
+        ],
+        "common_mistakes": [
+            "Casting the arms out before hip turn.",
+            "Squeezing the ball too hard (forcing a tight swing).",
+        ],
+        "success_feels_like": "The ball stays put effortlessly — your swing feels connected and powerful.",
+    },
+    "Hips First, Hands Last": {
+        "estimated_time": "6 min",
+        "equipment": "Bat",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Take your normal stance.",
+            "Start with your hands LOW — at your hip level — and exaggerate the load.",
+        ],
+        "execution": [
+            "Start the swing by rotating the back hip aggressively.",
+            "Force the hands to stay back as the hips rotate.",
+            "Let the hands fire LAST, after maximum separation.",
+        ],
+        "focus_points": [
+            "Feel the stretch between hips and shoulders.",
+            "Hands stay loaded as hips clear.",
+            "Whip-like finish — not a push.",
+        ],
+        "common_mistakes": [
+            "Hands and hips firing together (no separation).",
+            "Lunging instead of rotating.",
+        ],
+        "success_feels_like": "The bat whips through contact like it's catching up to your body.",
+    },
+    "Heavy Bat Swings": {
+        "estimated_time": "6 min",
+        "equipment": "Weighted bat (1.5–2× normal)",
+        "difficulty": "Advanced",
+        "setup": [
+            "Grab a heavier-than-normal bat (weighted donut, fungo, or training bat).",
+            "Take your normal stance.",
+        ],
+        "execution": [
+            "Take controlled swings at 60–70% speed.",
+            "Focus on rotating through the swing — let the weight teach the path.",
+            "8–12 swings per set. Switch back to a normal bat after.",
+        ],
+        "focus_points": [
+            "Drive from the hips — the weight punishes upper-body swings.",
+            "Stay tall, balanced.",
+            "Quality over speed.",
+        ],
+        "common_mistakes": [
+            "Going full speed and breaking form.",
+            "Overdoing reps — fatigue trains bad mechanics.",
+        ],
+        "success_feels_like": "The bat feels effortless to rotate through your zone afterward.",
+    },
+    "Cross-Arm Rotation": {
+        "estimated_time": "5 min",
+        "equipment": "Bat · open space",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Cross your arms across your chest, holding the bat against your sternum.",
+            "Take your normal stance.",
+        ],
+        "execution": [
+            "Rotate through the swing using ONLY hips and torso.",
+            "Feel the separation between hip rotation and shoulder rotation.",
+            "Slow reps for feel, then add tempo.",
+        ],
+        "focus_points": [
+            "Hips lead. Shoulders follow.",
+            "No arm involvement — that's the point.",
+            "Sense the stretch and snap.",
+        ],
+        "common_mistakes": [
+            "Rotating shoulders with the hips (no separation).",
+            "Adding arm movement once it gets faster.",
+        ],
+        "success_feels_like": "You feel like a coiled spring releasing in sequence.",
+    },
+    # --------- KNEE ---------
+    "Front Knee Block Drill": {
+        "estimated_time": "7 min",
+        "equipment": "Bat · tee · ball",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Tee at normal contact point.",
+            "Take your normal stance.",
+        ],
+        "execution": [
+            "Take your stride and PLANT the front foot firmly.",
+            "Lock the front knee straight as the swing fires.",
+            "Feel the front leg become a wall — energy transfers UP through it.",
+        ],
+        "focus_points": [
+            "Front leg goes from soft (stride) to firm (block) at contact.",
+            "Don't drift forward — pivot AROUND the front leg.",
+            "Stay tall at finish.",
+        ],
+        "common_mistakes": [
+            "Front knee collapsing inward.",
+            "Continuing to drift after the block.",
+        ],
+        "success_feels_like": "Your front leg locks and your swing fires through it like a hinge.",
+    },
+    "Wall Sit Holds": {
+        "estimated_time": "5 min",
+        "equipment": "Wall",
+        "difficulty": "Beginner",
+        "setup": [
+            "Back against a wall, feet shoulder-width apart.",
+            "Slide down to a 90° squat position.",
+        ],
+        "execution": [
+            "Hold for 30–45 seconds.",
+            "Rest 30 seconds, repeat 3–5 times.",
+            "Squeeze the front quad on each hold.",
+        ],
+        "focus_points": [
+            "Builds the front-leg strength that powers the block.",
+            "Stay tall — chest up, shoulders back.",
+            "Engage the core.",
+        ],
+        "common_mistakes": [
+            "Letting the knees collapse inward.",
+            "Resting weight on the wall instead of the legs.",
+        ],
+        "success_feels_like": "Your front leg feels rock-solid by the end of the set.",
+    },
+    "Step-Back Drill": {
+        "estimated_time": "8 min",
+        "equipment": "Bat · tee · ball",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Start with weight already loaded on the back leg, front foot lifted.",
+            "Tee at normal contact point.",
+        ],
+        "execution": [
+            "Take an exaggerated stride into a FIRM front-leg block.",
+            "Swing.",
+            "Trains the load → block → fire sequence in slow motion.",
+        ],
+        "focus_points": [
+            "Big load. Hard block. Smooth fire.",
+            "Front leg blocks, doesn't bend.",
+            "Reset slowly between reps.",
+        ],
+        "common_mistakes": [
+            "Soft block (front knee collapses).",
+            "Rushing the sequence.",
+        ],
+        "success_feels_like": "Power flows from back leg → front leg → bat in a clear chain.",
+    },
+    # --------- TIMING ---------
+    "Short-Toss Quick Hands": {
+        "estimated_time": "10 min",
+        "equipment": "Partner · soft balls (tennis or baseballs)",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Partner stands 8–10 feet in front of you.",
+            "Use tennis balls for safety, baseballs for game-rep feel.",
+            "Take your normal stance.",
+        ],
+        "execution": [
+            "Start in load position with the bat.",
+            "Partner soft-tosses underhand to the inner third.",
+            "Attack with the shortest possible hand path.",
+            "Focus on immediate acceleration — no buildup.",
+            "Reset fully between reps. Quality over quantity.",
+        ],
+        "focus_points": [
+            "Shortest possible path from load to contact.",
+            "Hands ACCELERATE — they don't drift.",
+            "No wasted motion.",
+            "Feel the barrel get there early.",
+        ],
+        "common_mistakes": [
+            "Casting the barrel out.",
+            "Over-striding.",
+            "Pulling off the ball.",
+        ],
+        "success_feels_like": "Contact happens earlier and more effortlessly than your normal swing.",
+    },
+    "Tennis Ball Reactions": {
+        "estimated_time": "10 min",
+        "equipment": "Partner · 5–8 tennis balls",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Partner stands 8–10 feet away with a bucket of tennis balls.",
+            "Take your normal stance.",
+            "No expectation of rhythm — you DON'T know when the next ball comes.",
+        ],
+        "execution": [
+            "Partner tosses unpredictably — different speeds, small intentional pauses.",
+            "React to each ball. Don't time a rhythm.",
+            "Focus on reading the ball, not timing the toss.",
+            "Reset between reps.",
+        ],
+        "focus_points": [
+            "READ the pitch — don't time the pattern.",
+            "Stay loaded and ready.",
+            "Quick recognition, quick decision.",
+        ],
+        "common_mistakes": [
+            "Locking into a rhythm with the partner.",
+            "Pre-loading too early and getting beat.",
+        ],
+        "success_feels_like": "You stop guessing — you react instead.",
+    },
+    "One-Hand Top-Hand Tee": {
+        "estimated_time": "8 min",
+        "equipment": "Tee · ball · bat",
+        "difficulty": "Intermediate",
+        "setup": [
+            "Take your normal stance with the bat in your TOP (back) hand only.",
+            "Drop the bottom hand off the bat.",
+            "Tee at normal contact point.",
+        ],
+        "execution": [
+            "Swing one-handed through the ball.",
+            "Focus on a compact, quick path — there's no leverage to muscle it.",
+            "Stay short to the ball, long through it.",
+        ],
+        "focus_points": [
+            "Force a tight path — no looping.",
+            "Top hand drives through contact.",
+            "Quick acceleration, not a long backswing.",
+        ],
+        "common_mistakes": [
+            "Looping the bat to generate force (impossible one-handed).",
+            "Dragging the bat through the zone.",
+        ],
+        "success_feels_like": "The bat fires through the ball in a tight, direct line — even with just one hand.",
+    },
+}
+
+# Generic fallback for any drill name not in `_DRILL_INSTRUCTIONS`.
+# The analyzer can ship new drills before the content library catches
+# up; this keeps those drills renderable instead of crashing the page.
+_GENERIC_INSTRUCTIONS = {
+    "estimated_time": "5–10 min",
+    "equipment": "Standard hitting gear",
+    "difficulty": "Intermediate",
+    "setup": [
+        "Set up in your normal stance with the equipment listed above.",
+        "Use the suggested reps as a guideline — adjust to your level.",
+    ],
+    "execution": [
+        "Follow the drill description in the coach's notes above.",
+        "Move with intent on every rep.",
+        "Reset fully between reps — quality over speed.",
+    ],
+    "focus_points": [
+        "Stay athletic and balanced.",
+        "Move with intent.",
+        "Quality of movement beats quantity of reps.",
+    ],
+    "common_mistakes": [
+        "Rushing reps without resetting.",
+        "Losing posture between swings.",
+        "Skipping the slow / feel-building phase.",
+    ],
+    "success_feels_like": "The movement starts to feel automatic and repeatable.",
+}
+
+
+def _drill_instructions(drill_name: str) -> dict:
+    """Look up the instructional module for this drill name."""
+    return _DRILL_INSTRUCTIONS.get(
+        (drill_name or "").strip(),
+        _GENERIC_INSTRUCTIONS,
+    )
+
+
+# ============================================================
+# Hero category → coaching-language mapping
+# ============================================================
+# The analyzer's category titles ("Sharpen Timing & Quickness") are
+# accurate but read as feature names. v4 promotes a more athletic
+# verb phrase for the hero focus chip + deck — closer to "Build
+# Quicker Hands" — without changing the underlying category title
+# (which is used as a drill_id key for completion tracking).
+_CATEGORY_COACHING_PHRASE = {
+    "Sharpen Timing & Quickness":    "Build Quicker Hands",
+    "Drive Hip-Shoulder Separation": "Build Hip-to-Hand Sequencing",
+    "Open the Hips Sooner":          "Fire the Back Hip Earlier",
+    "Block With the Front Knee":     "Stabilize the Contact Point",
+    "Quiet the Head":                "Steady Your Eye-Line",
+}
+
+
+def _coaching_phrase_for(category_title: str) -> str:
+    """Return the athletic verb-phrase version of a category title.
+
+    Falls through to the original title for unknown categories so
+    nothing breaks when the analyzer ships a new focus area before
+    the mapping catches up.
+    """
+    raw = (category_title or "").strip()
+    return _CATEGORY_COACHING_PHRASE.get(raw, raw)
+
+
 def _role_for(category_idx: int, drill_idx: int) -> tuple[str, str]:
     """Map a (category, drill) index to a role label + CSS class.
 
@@ -2356,14 +3328,15 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
 
     # ---- Display headline ----
     # The primary issue title is the priority-1 category's display name
-    # from the analyzer-built drill_plan. v3 uses it as a small "focus
-    # tag" under the headline rather than awkwardly forcing it into the
-    # sentence ("Master your Sharpen Timing & Quickness" → out).
+    # from the analyzer-built drill_plan. v4: we promote the raw
+    # category name ("Sharpen Timing & Quickness") through the
+    # coaching-phrase mapping so the focus chip reads as an athletic
+    # outcome ("Build Quicker Hands") instead of a feature name.
     plan = (saved_swing or {}).get("drill_plan") or {}
     cats = plan.get("categories") or []
     primary_issue = ""
     if cats:
-        primary_issue = (cats[0].get("title") or "").strip()
+        primary_issue = _coaching_phrase_for(cats[0].get("title") or "")
     if not primary_issue:
         primary_issue = "your swing"
 
@@ -3236,93 +4209,207 @@ def render_development_tracker():
             drill_id = f"{cat_title}::{drill.get('name','')}"
             saved = drill_log.get(drill_id, {})
             done_key = f"done__{player_id}__{drill_id}"
+            undo_key = f"undo__{player_id}__{drill_id}"
             reps_key = f"reps__{player_id}__{drill_id}"
+            complete_btn_key = f"complete_btn__{player_id}__{drill_id}"
 
             is_done = drill_states.get(drill_id, False)
             done_cls = "is-done" if is_done else ""
-            status_text = "✓ COMPLETE" if is_done else "○ PENDING"
 
-            # Drill card header (HTML only, no interactive widgets here)
             name = drill.get("name", "Drill")
             reps = drill.get("reps", "")
             how = drill.get("how", "")
             num_label = f"{drill_counter:02d}"
-
-            # Spec roles: priority-1 first drill is PRIMARY, next two
-            # are SUPPORTING, anything in priority-2 is CHALLENGE.
             role_label, role_cls = _role_for(cat_idx - 1, drill_idx)
-            role_chip = f'<span class="dt-role {role_cls}">{role_label}</span>'
 
-            # v3 mastery chip: reward earned reps. Threshold ≥ 3 keeps
-            # the chip out of the way until the player has actually
-            # built a relationship with the drill (no "0× mastered"
-            # noise on first encounter).
+            # Mastery chip threshold ≥ 3 → no "0× mastered" noise on first encounter.
             lifetime = _lifetime_completions(log, name)
             mastery_chip = (
                 f'<span class="tp-mastery">Mastered {lifetime}×</span>'
                 if lifetime >= 3 else ""
             )
 
-            reps_chip = f'<span class="dt-drill-reps">SUGGESTED · {reps}</span>' if reps else ''
-            how_html = f'<div class="dt-drill-how">{how}</div>' if how else ''
+            # v4 instructional module — pulled from the drill library.
+            instr = _drill_instructions(name)
+            status_text = (
+                f'✓ COMPLETED · {(saved.get("last_updated") or "")[11:16]}'
+                if is_done else "○ PENDING"
+            )
 
+            # ---- Premium drill card (header + metadata + body) ----
+            role_chip = f'<span class="dt-role {role_cls}">{role_label}</span>'
+            reps_chip = (
+                f'<span class="dt-drill-reps">SUGGESTED · '
+                f'{_html.escape(str(reps))}</span>'
+                if reps else ""
+            )
+            description_html = (
+                f'<div class="dt-drill-how">{_html.escape(how)}</div>'
+                if how else ""
+            )
+
+            # Metadata strip — time · equipment · difficulty · category.
+            meta_strip = (
+                f'<div class="tp-drill-meta-strip">'
+                f'<span class="tp-meta-item"><span class="ico">◷</span>{_html.escape(instr["estimated_time"])}</span>'
+                f'<span class="tp-meta-item"><span class="ico">⚙</span>{_html.escape(instr["equipment"])}</span>'
+                f'<span class="tp-meta-item"><span class="ico">▲</span>{_html.escape(instr["difficulty"])}</span>'
+                f'<span class="tp-meta-item"><span class="ico">◎</span>{_html.escape(cat_title)}</span>'
+                f'</div>'
+            )
+
+            # How-to expandable — pure HTML <details>, CSS-only animation.
+            def _li(items: list[str]) -> str:
+                return "".join(
+                    f"<li>{_html.escape(i)}</li>" for i in (items or [])
+                )
+
+            def _ol(items: list[str]) -> str:
+                return "".join(
+                    f"<li>{_html.escape(i)}</li>" for i in (items or [])
+                )
+
+            howto_html = (
+                f'<details class="tp-howto">'
+                f'<summary>'
+                f'<span class="tp-howto-label">How to Perform This Drill</span>'
+                f'<span class="tp-howto-chev">›</span>'
+                f'</summary>'
+                f'<div class="tp-howto-body">'
+                # SETUP
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow">Setup</div>'
+                f'<ul class="tp-howto-list">{_li(instr.get("setup", []))}</ul>'
+                f'</div>'
+                # EXECUTION
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow">Execution</div>'
+                f'<ol class="tp-howto-list is-ordered">{_ol(instr.get("execution", []))}</ol>'
+                f'</div>'
+                # FOCUS POINTS
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow">Focus Points</div>'
+                f'<ul class="tp-howto-list">{_li(instr.get("focus_points", []))}</ul>'
+                f'</div>'
+                # COMMON MISTAKES
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow is-red">Common Mistakes</div>'
+                f'<ul class="tp-howto-list is-mistakes">{_li(instr.get("common_mistakes", []))}</ul>'
+                f'</div>'
+                # SUCCESS FEELS LIKE
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow is-gold">Success Feels Like</div>'
+                f'<div class="tp-howto-success">{_html.escape(instr.get("success_feels_like", ""))}</div>'
+                f'</div>'
+                # VIDEO PLACEHOLDER — reserved space for a future drill clip.
+                f'<div class="tp-howto-block">'
+                f'<div class="tp-howto-eyebrow">Video</div>'
+                f'<div class="tp-howto-video">'
+                f'<div class="tp-howto-video-thumb">▶</div>'
+                f'<div class="tp-howto-video-caption">'
+                f'Drill demo video — coming soon.'
+                f'</div>'
+                f'</div>'
+                f'</div>'
+                f'</div>'  # /tp-howto-body
+                f'</details>'
+            )
+
+            # Drill card body — header row + meta strip + description + howto.
+            # The action row (real Streamlit button) comes AFTER the markdown
+            # block so it can persist completion state.
             drill_html = (
                 f'<div class="dt-drill {done_cls}">'
                 f'<div class="dt-drill-row">'
                 f'<div class="dt-drill-num">{num_label}</div>'
                 f'<div class="dt-drill-meta">'
-                f'<div class="dt-drill-name">{name}{role_chip}{mastery_chip}</div>'
+                f'<div class="dt-drill-name">{_html.escape(name)}{role_chip}{mastery_chip}</div>'
                 f'{reps_chip}'
-                f'{how_html}'
                 f'</div>'
                 f'<div class="dt-drill-status-pill">{status_text}</div>'
                 f'</div>'
+                f'{meta_strip}'
+                f'{description_html}'
+                f'{howto_html}'
                 f'</div>'
             )
             st.markdown(drill_html, unsafe_allow_html=True)
 
-            # Action row (Streamlit widgets, wrapped for styling)
-            st.markdown('<div class="dt-actions-wrap">', unsafe_allow_html=True)
-            act_col1, act_col2 = st.columns([1, 2])
-            with act_col1:
-                completed = st.checkbox(
-                    "Mark done",
-                    value=bool(saved.get("completed")),
-                    key=done_key,
-                )
-            with act_col2:
+            # ---- Action row: real Streamlit widgets, scoped to a keyed
+            # container so the v4 CSS can give the premium button +
+            # reps input their custom shell. ----
+            with st.container(key=f"tp_action_{drill_id}"):
+                # Reps tracker first (always visible).
                 reps_done = st.text_input(
                     "Reps completed",
                     value=saved.get("reps_done", ""),
                     key=reps_key,
-                    placeholder="e.g. 4x10",
+                    placeholder="e.g. 4×10",
                     label_visibility="visible",
                 )
-            st.markdown('</div>', unsafe_allow_html=True)
 
-            prev_completed = bool(saved.get("completed"))
-            if completed != prev_completed or reps_done != saved.get("reps_done", ""):
+                if is_done:
+                    # Completed: emerald confirmation badge + undo link.
+                    last_updated = saved.get("last_updated") or ""
+                    stamp = last_updated[11:16] if last_updated else ""
+                    st.markdown(
+                        f'<div class="tp-done-stamp">'
+                        f'<span class="tick">✓</span>'
+                        f'<span>Drill Completed</span>'
+                        f'<span class="stamp-time">{stamp}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Mark as not done",
+                        key=undo_key,
+                        help="Reverts this drill back to pending.",
+                    ):
+                        drill_log[drill_id] = {
+                            "completed": False,
+                            "reps_done": reps_done,
+                            "last_updated": datetime.now().isoformat(timespec="seconds"),
+                        }
+                        log["drills"] = drill_log
+                        save_training_log(player_id, log)
+                        st.rerun()
+                else:
+                    # Pending: premium emerald "Complete Drill" button.
+                    if st.button(
+                        "⚡  Complete Drill",
+                        key=complete_btn_key,
+                        type="primary",
+                        use_container_width=True,
+                        help="Mark this drill complete and earn +150 XP.",
+                    ):
+                        drill_log[drill_id] = {
+                            "completed": True,
+                            "reps_done": reps_done,
+                            "last_updated": datetime.now().isoformat(timespec="seconds"),
+                        }
+                        # Append a mastery event (same pattern as before).
+                        drill_log.setdefault("_completion_events", []).append({
+                            "drill_id": drill_id,
+                            "drill_name": name,
+                            "completed_at": datetime.now().isoformat(timespec="seconds"),
+                            "source_swing_date": swing_date,
+                            "reps_done": reps_done,
+                        })
+                        log["drills"] = drill_log
+                        save_training_log(player_id, log)
+                        # XP burst flag — picked up on the next render to
+                        # play the +150 XP floating chip via CSS.
+                        st.session_state[f"_xp_burst_{drill_id}"] = True
+                        st.rerun()
+
+            # Reps-only edits (no completion change) still need to be
+            # saved to the log on the same render they happen.
+            if (not is_done) and reps_done != saved.get("reps_done", ""):
                 drill_log[drill_id] = {
-                    "completed": bool(completed),
+                    "completed": False,
                     "reps_done": reps_done,
                     "last_updated": datetime.now().isoformat(timespec="seconds"),
                 }
-                # v3 mastery archive: append a permanent event on the
-                # pending → done transition (NOT on the reverse, and NOT
-                # on a reps-only edit). The event is stashed INSIDE
-                # drill_log under the sentinel `_completion_events` key
-                # — the same piggyback pattern player_storage uses for
-                # `_swing_meta`. That way it persists through
-                # `save_training_log`'s existing JSON `drill_state`
-                # column with zero schema migration.
-                if completed and not prev_completed:
-                    drill_log.setdefault("_completion_events", []).append({
-                        "drill_id": drill_id,
-                        "drill_name": drill.get("name", ""),
-                        "completed_at": datetime.now().isoformat(timespec="seconds"),
-                        "source_swing_date": swing_date,
-                        "reps_done": reps_done,
-                    })
                 dirty = True
 
     # ---- Re-Test Reminder ----
