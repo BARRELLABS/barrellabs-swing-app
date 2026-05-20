@@ -1938,6 +1938,236 @@ _DT_LOCAL_CSS = """
     background: var(--tp-gold) !important;
     box-shadow: 0 0 8px rgba(232,193,112,0.55) !important;
 }
+
+/* ============================================================
+   TRAINING PLAN v3.1 — gamification restraint.
+   The legacy bl_theme level card uses a red gradient + red glow +
+   red border + red eyebrow + red XP num + red XP fill. That stacks
+   to "screaming red" the moment the page loads. We dial every one
+   of those reds back to subtle bone/gold treatments here.
+   ============================================================ */
+
+/* Level card: replace the red gradient with a calm neutral surface +
+   a single thin gold hairline at the top. */
+.tp-shell .dt-level-card {
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.008)) !important;
+    border: 1px solid var(--bl-line) !important;
+    border-radius: 20px !important;
+    margin-top: 1.4rem !important;
+}
+.tp-shell .dt-level-card::before {
+    /* Kill the red radial glow behind the card. */
+    display: none !important;
+}
+.tp-shell .dt-level-card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 16%; right: 16%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--tp-gold) 50%, transparent);
+    opacity: 0.45;
+}
+.tp-shell .dt-level-eyebrow {
+    color: var(--bl-ink-60) !important;
+}
+.tp-shell .dt-level-name {
+    /* Promote to serif italic so the level name reads as the same
+       editorial family as the hero, not a SaaS-y sans-bold. */
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.015em !important;
+}
+.tp-shell .dt-xp-pill {
+    background: rgba(232,193,112,0.06) !important;
+    border-color: var(--tp-gold-line) !important;
+}
+.tp-shell .dt-xp-pill .dt-xp-num {
+    color: var(--tp-gold) !important;
+}
+.tp-shell .dt-xp-bar-fill {
+    background: linear-gradient(90deg, var(--tp-gold-deep), var(--tp-gold)) !important;
+    box-shadow: 0 0 14px rgba(232,193,112,0.50) !important;
+}
+
+/* Stat strip: pods stay neutral. The "is-red" emphasis on
+   numbers (used for things like today's completed drills) is
+   already gold via the v3 rule at the top of this file. Make
+   sure the labels read clean and the pod surface matches the
+   rest of the bento. */
+.tp-shell .dt-stat-pod {
+    background: rgba(255,255,255,0.022) !important;
+    border-color: var(--bl-line) !important;
+    border-radius: 14px !important;
+}
+.tp-shell .dt-stat-pod-num {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+}
+.tp-shell .dt-stat-pod-num.is-red {
+    /* `is-red` on the legacy class was meant to call attention to
+       a stat — make it gold-italic instead so red stays rare. */
+    color: var(--tp-gold) !important;
+}
+.tp-shell .dt-stat-pod-label {
+    color: var(--bl-ink-60) !important;
+}
+
+/* Motivation chips: the "is-red" variant is the only acceptable
+   red-tinted chip on the page (it carries a real urgency signal —
+   "1 drill away from unlocking First Reps"). Soften the saturation
+   so it doesn't shout. Non-red chips already read clean. */
+.tp-shell .dt-motivate-strip {
+    margin-top: 1.0rem !important;
+    margin-bottom: 1.4rem !important;
+}
+.tp-shell .dt-motivate-chip {
+    background: rgba(255,255,255,0.022) !important;
+    border-color: var(--bl-line) !important;
+    color: var(--bl-ink-80) !important;
+    font-family: var(--bl-sans) !important;
+    font-size: 0.85rem !important;
+}
+.tp-shell .dt-motivate-chip.is-red {
+    /* Was: bright red text on bright red background. Now: a quiet
+       bone chip with a single gold accent dot. */
+    color: var(--bl-ink-100) !important;
+    background: rgba(232,193,112,0.06) !important;
+    border-color: var(--tp-gold-line) !important;
+}
+.tp-shell .dt-motivate-chip.is-red::before {
+    content: "★ ";
+    color: var(--tp-gold);
+    font-weight: 700;
+    margin-right: 3px;
+}
+
+/* Gamification section headers (Achievements / Rewards) — promote
+   the title to serif italic to match the rest of v3. */
+.tp-shell .dt-gm-section-header {
+    border-bottom-color: var(--bl-line) !important;
+    position: relative !important;
+}
+.tp-shell .dt-gm-section-header::after {
+    content: "";
+    position: absolute; left: 0; bottom: -1px;
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg, var(--tp-gold) 0%, transparent 100%);
+}
+.tp-shell .dt-gm-section-eyebrow {
+    color: var(--bl-ink-60) !important;
+}
+.tp-shell .dt-gm-section-title {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* ============================================================
+   TRAINING PLAN v3.1 — premium drill action row.
+   The "Mark done" checkbox + "Reps completed" input still look
+   like raw Streamlit. Make them feel like a real card footer:
+   bone-on-dark surface, gold focus, clear tap target.
+   ============================================================ */
+
+/* The action row container becomes a soft card footer attached to
+   the drill card visually (negative margin pulls it under). */
+.tp-shell .dt-actions-wrap {
+    background: rgba(0,0,0,0.18) !important;
+    border: 1px solid var(--bl-line) !important;
+    border-top: 0 !important;
+    border-radius: 0 0 18px 18px !important;
+    padding: 14px 18px !important;
+    margin: -10px 0 1rem !important;
+    /* Slot it under the drill card so the two read as one shape. */
+    position: relative;
+    z-index: 0;
+}
+
+/* Mark-done checkbox styling — bone label, larger tap area, gold
+   accent on hover/check. */
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] {
+    margin: 0 !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] label {
+    font-family: var(--bl-mono) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    color: var(--bl-ink-80) !important;
+    padding: 6px 4px !important;
+    cursor: pointer;
+}
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] label:hover {
+    color: var(--tp-gold) !important;
+}
+/* The native checkbox box itself. Streamlit wraps it in a span
+   with role="checkbox" — style the inner span so we don't fight
+   the underlying input directly. */
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] span[role="checkbox"],
+.tp-shell .dt-actions-wrap [data-baseweb="checkbox"] {
+    /* Slight enlargement for better touch + the gold accent on check. */
+}
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] [data-baseweb="checkbox"] div:first-child {
+    border: 1px solid var(--bl-line-hi) !important;
+    border-radius: 6px !important;
+    background: rgba(0,0,0,0.30) !important;
+    width: 18px !important; height: 18px !important;
+    transition: border-color 0.18s ease, background 0.18s ease !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"]:hover [data-baseweb="checkbox"] div:first-child {
+    border-color: var(--tp-gold-line) !important;
+}
+/* Checked state — gold fill, dark check inside. */
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] [data-baseweb="checkbox"][aria-checked="true"] div:first-child,
+.tp-shell .dt-actions-wrap [data-testid="stCheckbox"] input:checked + div div:first-child {
+    background: var(--tp-gold) !important;
+    border-color: var(--tp-gold) !important;
+}
+
+/* Reps-completed input — editorial style, gold focus, bone text. */
+.tp-shell .dt-actions-wrap [data-testid="stTextInput"] {
+    margin: 0 !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stTextInput"] label {
+    font-family: var(--bl-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    color: var(--bl-ink-60) !important;
+    margin-bottom: 4px !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stTextInput"] input {
+    background: rgba(0,0,0,0.30) !important;
+    border: 1px solid var(--bl-line) !important;
+    border-radius: 10px !important;
+    color: var(--bl-ink-100) !important;
+    font-family: var(--bl-sans) !important;
+    font-size: 0.92rem !important;
+    padding: 9px 12px !important;
+    caret-color: var(--tp-gold) !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stTextInput"] input::placeholder {
+    color: var(--bl-ink-40) !important;
+}
+.tp-shell .dt-actions-wrap [data-testid="stTextInput"] input:focus {
+    border-color: var(--tp-gold) !important;
+    box-shadow: 0 0 0 3px rgba(232,193,112,0.16) !important;
+    outline: none !important;
+}
+.tp-shell .dt-actions-wrap [data-baseweb="input"],
+.tp-shell .dt-actions-wrap [data-baseweb="base-input"] {
+    background: transparent !important;
+    border: 0 !important;
+}
 </style>
 """
 
@@ -2764,17 +2994,17 @@ def render_development_tracker():
         '<div class="tp-shell bl-page">',
         unsafe_allow_html=True,
     )
-    # The new editorial brand hero — eyebrow + serif italic display +
-    # deck. Always shown at the top, regardless of branch (unauth, no
-    # Pro, no swing, full). The data-driven version with bento numbers
-    # is rendered for the has-data branch FURTHER DOWN, replacing the
-    # generic deck text. The v1 .dt-hero block is hidden by CSS so the
-    # two never double up.
-    st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
+    # NOTE: the editorial brand hero is rendered ONLY inside the
+    # early-return branches (unauth / no-Pro / no-swing). In the
+    # has-data branch the data-driven hero (with bento + state-aware
+    # headline) is the single hero — see below. v3 fix: previously the
+    # brand hero rendered unconditionally at the top AND the data hero
+    # rendered again later, so the page showed two heroes.
 
     # ---- Auth check ----
     user = st.session_state.get("user")
     if not user:
+        st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
         _render_empty_state(
             title="Please sign in to view your Training Plan.",
             sub="Your training plan is tied to your BarrelLabs account so progress can sync across devices.",
@@ -2790,6 +3020,7 @@ def render_development_tracker():
     _plan_snapshot = load_my_plan()
     _dt_check = can_access_development_tracker(_plan_snapshot)
     if not _dt_check.allowed:
+        st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
         st.markdown("""
 <div style="
     margin: 1rem 0 0.5rem 0;
@@ -2867,15 +3098,18 @@ def render_development_tracker():
             save_player_progress(player_id, new_persisted)
             gm_persisted = new_persisted
 
-        _render_level_card(gm_state)
-        _render_stat_strip(gm_state)
-        _render_motivation_strip(gm_state)
     except Exception:
         gm_state = None
         gm_persisted = None
+    # v3 ordering: defer rendering the gamification cards (level / stat
+    # strip / motivation chips) until AFTER the data hero so the page's
+    # first impression is the editorial hero + bento, not the legacy
+    # red-heavy level card. We still compute gm_state above so the
+    # data hero can read the streak.
 
     saved_swing = _latest_swing_with_drill_plan(player_id)
     if not saved_swing:
+        st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
         _render_empty_state(
             title="Upload your first swing to generate your Training Plan.",
             sub="Once you have a swing report, your personalized drill "
@@ -2926,10 +3160,10 @@ def render_development_tracker():
                 total_completed += 1
 
     # ---- Editorial hero (data-driven) + 7-day consistency strip ----
-    # These come AFTER drill totals are computed (so the bento can show
-    # the live today_pct) and BEFORE the existing progress ring + drill
-    # cards, so the page reads top-down as: identity → today's numbers
-    # → consistency → ring → coach notes → drill cards → re-test → notes.
+    # These come FIRST in the has-data path so the page's identity is
+    # the editorial hero + bento, not the legacy red-heavy level card.
+    # Order: data hero → consistency → gamification (level/stat/motiv)
+    # → progress ring → coach notes → drill cards → re-test → notes.
     try:
         hero_metrics = _hero_metrics(
             saved_swing=saved_swing,
@@ -2949,6 +3183,19 @@ def render_development_tracker():
         # Hero is decorative — never let a fallback failure block the
         # drills the user actually came here to do.
         pass
+
+    # ---- Gamification (level / stat strip / motivation chips) ----
+    # Rendered AFTER the data hero so the page reads top-down as:
+    # identity → today's numbers → consistency → level + stats →
+    # progress ring → drills. Wrapped in try/except so a gamification
+    # render failure can never block the drills below.
+    if gm_state is not None:
+        try:
+            _render_level_card(gm_state)
+            _render_stat_strip(gm_state)
+            _render_motivation_strip(gm_state)
+        except Exception:
+            pass
 
     _render_progress_card(total_completed, total_drills, swing_date, player_name)
 
