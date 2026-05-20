@@ -2604,6 +2604,344 @@ _DT_LOCAL_CSS = """
     .tp-howto-video { grid-template-columns: 72px 1fr; }
     .tp-howto-video-thumb { width: 72px; height: 44px; }
 }
+
+/* ============================================================
+   TRAINING PLAN v5 — luxury polish pass.
+     · Today's Mission card under the hero
+     · KPI tail microcopy
+     · Completed-drill compact summary card (with "View Details")
+     · Softer, gold-rimmed CTA (less Bootstrap-y emerald)
+     · Reps preset chips (radio styled as horizontal pills)
+     · Re-Test Plan prose
+     · More vertical breathing room throughout
+   ============================================================ */
+
+/* ---- KPI tail line under the bento ---- */
+.tp-bento-tail {
+    margin: 14px auto 0;
+    max-width: 940px;
+    text-align: center;
+    font-family: var(--bl-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    font-weight: 500;
+}
+
+/* ---- Today's Mission card ---- */
+.tp-mission {
+    margin: 32px auto 4px;
+    max-width: 760px;
+    padding: 20px 24px 18px;
+    border-radius: 18px;
+    border: 1px solid var(--tp-gold-line);
+    background:
+        radial-gradient(120% 90% at 0% 0%, rgba(232,193,112,0.10) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010));
+    position: relative;
+}
+.tp-mission::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: 16%; right: 16%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--tp-gold) 50%, transparent);
+    opacity: 0.7;
+}
+.tp-mission-eyebrow {
+    font-family: var(--bl-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--tp-gold);
+    margin-bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.tp-mission-eyebrow::before {
+    content: "◆";
+    color: var(--tp-gold);
+    font-size: 10px;
+    line-height: 1;
+}
+.tp-mission-headline {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.45rem;
+    color: var(--bl-ink-100);
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+    margin-bottom: 8px;
+}
+.tp-mission-body {
+    color: var(--bl-ink-80);
+    font-family: var(--bl-sans);
+    font-weight: 300;
+    font-size: 1.0rem;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 60ch;
+}
+
+/* ---- Completed-drill compact summary card ---- */
+.tp-done-card {
+    position: relative;
+    margin: 0 0 6px;
+    padding: 18px 22px 16px;
+    border-radius: 22px;
+    border: 1px solid rgba(74,227,140,0.34);
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(74,227,140,0.10) 0%, transparent 60%),
+        rgba(255,255,255,0.030);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 0 0 1px rgba(74,227,140,0.10),
+        0 22px 50px -28px rgba(74,227,140,0.28);
+    animation: tp-stamp-in 0.4s cubic-bezier(.34,1.4,.64,1);
+}
+.tp-done-card-head {
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    gap: 16px;
+    align-items: center;
+}
+.tp-done-card-tick {
+    display: grid; place-items: center;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--tp-green);
+    color: #062414;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 6px 18px -8px rgba(74,227,140,0.6);
+}
+.tp-done-card-name {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.25rem;
+    color: var(--bl-ink-100);
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+}
+.tp-done-card-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+}
+.tp-done-stat {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.tp-done-stat .lbl {
+    font-family: var(--bl-mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+}
+.tp-done-stat .val {
+    font-family: var(--bl-sans);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--bl-ink-100);
+    letter-spacing: 0;
+}
+.tp-done-stat .val.gold { color: var(--tp-gold); }
+.tp-done-card-stamp {
+    font-family: var(--bl-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--tp-green);
+    background: rgba(74,227,140,0.10);
+    border: 1px solid rgba(74,227,140,0.42);
+    border-radius: 999px;
+    padding: 6px 12px;
+    white-space: nowrap;
+}
+
+/* "View Details" expandable on the completed card. */
+.tp-done-details {
+    margin: 12px 0 0;
+    border-top: 1px solid rgba(74,227,140,0.18);
+    padding-top: 12px;
+}
+.tp-done-details summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    padding: 4px 0;
+    user-select: none;
+    transition: color 0.18s ease;
+}
+.tp-done-details summary::-webkit-details-marker { display: none; }
+.tp-done-details summary::marker { display: none; }
+.tp-done-details summary:hover { color: var(--tp-gold); }
+.tp-done-details-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.tp-done-details-label::before {
+    content: "▸";
+    color: var(--tp-gold);
+    font-size: 10px;
+    transition: transform 0.22s cubic-bezier(.32,.72,0,1);
+}
+.tp-done-details[open] .tp-done-details-label::before {
+    transform: rotate(90deg);
+}
+.tp-done-details[open] .tp-howto-chev { transform: rotate(90deg); color: var(--tp-gold); }
+.tp-done-details-body {
+    margin-top: 10px;
+    padding-top: 8px;
+}
+
+/* ---- Softer, gold-rimmed Complete Drill button (less neon) ---- */
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"],
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stButton"] button[kind="primary"] {
+    /* v5: dial the green back from saturated 43d985→2cb86b to a more
+       muted seafoam, then add a thin gold inner edge so it reads as
+       BarrelLabs gold-on-emerald instead of generic SaaS green. */
+    background: linear-gradient(180deg, #2fbf73 0%, #1f9659 100%) !important;
+    color: #f4f7f5 !important;
+    border: 1px solid rgba(232,193,112,0.45) !important;
+    border-radius: 16px !important;
+    padding: 18px 24px !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.045em !important;
+    box-shadow:
+        0 22px 44px -18px rgba(31,150,89,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -1px 0 rgba(0,0,0,0.12),
+        inset 0 0 0 1px rgba(232,193,112,0.18) !important;
+    animation: none !important;  /* drop the pulse — too needy */
+    margin-top: 14px !important;
+    text-transform: none !important;
+}
+.tp-shell [class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover {
+    background: linear-gradient(180deg, #38cc7c 0%, #25a262 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(232,193,112,0.65) !important;
+    box-shadow:
+        0 26px 52px -16px rgba(31,150,89,0.65),
+        inset 0 1px 0 rgba(255,255,255,0.28),
+        inset 0 -1px 0 rgba(0,0,0,0.14),
+        inset 0 0 0 1px rgba(232,193,112,0.30) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ---- Reps preset chips (radio styled as horizontal pills) ---- */
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin: 4px 0 6px !important;
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label {
+    background: rgba(0,0,0,0.30) !important;
+    border: 1px solid var(--bl-line) !important;
+    border-radius: 999px !important;
+    padding: 9px 16px !important;
+    margin: 0 !important;
+    cursor: pointer;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        color 0.18s ease;
+    flex: 0 0 auto !important;
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label > div:first-child {
+    display: none !important;  /* hide the native radio dot */
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label p,
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label > div:last-child {
+    font-family: var(--bl-mono) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
+    color: var(--bl-ink-80) !important;
+    text-transform: none !important;
+    margin: 0 !important;
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label:hover {
+    border-color: var(--bl-line-hi) !important;
+    background: rgba(255,255,255,0.030) !important;
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) {
+    border-color: var(--tp-gold-line) !important;
+    background: var(--tp-gold-soft) !important;
+}
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) p,
+.tp-shell [class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) > div:last-child {
+    color: var(--tp-gold) !important;
+}
+/* "Reps logged" label above the chip row */
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stRadio"] label,
+.tp-shell [class*="st-key-tp_action_"] [data-testid="stRadio"] > label > div:first-child p {
+    font-family: var(--bl-mono) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    color: var(--bl-ink-60) !important;
+    margin-bottom: 8px !important;
+}
+
+/* ---- Re-Test Plan prose (added in v5) ---- */
+.dt-retest-prose {
+    color: var(--bl-ink-80);
+    font-family: var(--bl-sans);
+    font-weight: 300;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 8px 0 12px;
+    max-width: 60ch;
+}
+
+/* ---- Mastery chip tooltip — native title= styling can't be themed
+   directly. We make sure the cursor + visual cue makes it obvious
+   the chip is hover-explorable. */
+.tp-shell .tp-mastery[title] {
+    cursor: help;
+}
+
+/* ---- More breathing room: bump section spacing throughout ---- */
+.tp-shell .dt-cat-header { margin-top: 2.6rem !important; }
+.tp-shell .dt-drill + .dt-drill,
+.tp-shell .tp-done-card + .dt-drill,
+.tp-shell .dt-drill + .tp-done-card,
+.tp-shell .tp-done-card + .tp-done-card {
+    margin-top: 18px !important;
+}
+
+@media (max-width: 720px) {
+    .tp-mission { padding: 16px 18px 14px; }
+    .tp-mission-headline { font-size: 1.22rem; }
+    .tp-mission-body { font-size: 0.94rem; }
+    .tp-done-card { padding: 14px 16px 12px; }
+    .tp-done-card-head { grid-template-columns: 32px 1fr; gap: 12px; }
+    .tp-done-card-stamp { grid-column: 1 / -1; margin-top: 8px; justify-self: start; }
+    .tp-done-card-tick { width: 32px; height: 32px; font-size: 16px; }
+}
 </style>
 """
 
@@ -3556,7 +3894,65 @@ def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
         '<div class="tp-bento-foot">Current</div>'
         '</div>'
         '</div>'
+        # KPI tail line — single supportive microcopy beat under the bento
+        # that ties the four numbers back to today's action.
+        '<div class="tp-bento-tail">'
+        'Finish today\'s plan to protect your streak and earn XP.'
+        '</div>'
+        # ---- Today's Mission card ----
+        # Concise prose under the hero answering: what's the goal, why
+        # was this plan created, what performance problem is being solved.
+        f'{_build_mission_html(metrics)}'
         '</section>'
+    )
+
+
+def _build_mission_html(metrics: dict) -> str:
+    """The "Today's Mission" prose card under the hero bento.
+
+    Names the analyzer's primary focus area as a coaching outcome
+    ("Build Quicker Hands") and the user's WHY in one sentence. The
+    body line is generated from a small mapping keyed by the same
+    coaching-phrase output `_coaching_phrase_for` produces, so the
+    page reads as one connected narrative: chip → headline → mission.
+    """
+    primary = (metrics.get("primary_issue") or "").strip()
+    # WHY copy per coaching phrase. Keeps the mission specific without
+    # turning into a wall of analyzer text.
+    mission_lines = {
+        "Build Quicker Hands": (
+            "Shorten the path from load to contact so the barrel arrives "
+            "on time and your timing stops feeling like a guess."
+        ),
+        "Build Hip-to-Hand Sequencing": (
+            "Let the hips lead, the hands follow. Bigger separation = "
+            "more bat-speed at the same effort."
+        ),
+        "Fire the Back Hip Earlier": (
+            "Start rotation from the back hip — not the upper body — "
+            "so the swing clears faster and stays on plane."
+        ),
+        "Stabilize the Contact Point": (
+            "Block with the front knee and the swing fires AROUND a "
+            "stable contact point — better consistency, more solid contact."
+        ),
+        "Steady Your Eye-Line": (
+            "Quiet the head, sharpen the eyes. Stable vision is the "
+            "foundation of everything downstream."
+        ),
+    }
+    body = mission_lines.get(
+        primary,
+        "Lock in today's prescribed work — the drills below are the "
+        "highest-leverage changes available to you right now."
+    )
+    primary_safe = _html.escape(primary or "today's focus")
+    return (
+        '<div class="tp-mission">'
+        '<div class="tp-mission-eyebrow">Today\'s Mission</div>'
+        f'<div class="tp-mission-headline">{primary_safe}</div>'
+        f'<p class="tp-mission-body">{body}</p>'
+        '</div>'
     )
 
 
@@ -4172,6 +4568,25 @@ def render_development_tracker():
 
     _render_progress_card(total_completed, total_drills, swing_date, player_name)
 
+    # ---- Active drill (first pending in display order) ----
+    # The user complaint was "every drill expanded by default, page
+    # feels like a list." We single out the FIRST pending drill as the
+    # "active" one — its how-to opens by default and its body renders
+    # in full. All other pending drills render with the how-to
+    # closed. Completed drills collapse into a compact summary row.
+    active_drill_id: str | None = None
+    _seen_pending = 0
+    for _cat in categories:
+        for _drill in _cat.get("drills", []):
+            _did = f"{_cat.get('title','')}::{_drill.get('name','')}"
+            if not drill_states.get(_did, False):
+                _seen_pending += 1
+                if active_drill_id is None:
+                    active_drill_id = _did
+                    break
+        if active_drill_id is not None:
+            break
+
     # ---- Categories + drills ----
     dirty = False
     drill_counter = 0
@@ -4269,8 +4684,13 @@ def render_development_tracker():
                     f"<li>{_html.escape(i)}</li>" for i in (items or [])
                 )
 
+            # v5: only the ACTIVE drill (first pending) opens its how-to
+            # by default. Other pending drills keep the same accordion
+            # closed so the page reads as "do this one next."
+            is_active = (drill_id == active_drill_id)
+            howto_open = " open" if is_active else ""
             howto_html = (
-                f'<details class="tp-howto">'
+                f'<details class="tp-howto"{howto_open}>'
                 f'<summary>'
                 f'<span class="tp-howto-label">How to Perform This Drill</span>'
                 f'<span class="tp-howto-chev">›</span>'
@@ -4315,66 +4735,137 @@ def render_development_tracker():
                 f'</details>'
             )
 
-            # Drill card body — header row + meta strip + description + howto.
-            # The action row (real Streamlit button) comes AFTER the markdown
-            # block so it can persist completion state.
-            drill_html = (
-                f'<div class="dt-drill {done_cls}">'
-                f'<div class="dt-drill-row">'
-                f'<div class="dt-drill-num">{num_label}</div>'
-                f'<div class="dt-drill-meta">'
-                f'<div class="dt-drill-name">{_html.escape(name)}{role_chip}{mastery_chip}</div>'
-                f'{reps_chip}'
-                f'</div>'
-                f'<div class="dt-drill-status-pill">{status_text}</div>'
-                f'</div>'
-                f'{meta_strip}'
-                f'{description_html}'
-                f'{howto_html}'
-                f'</div>'
-            )
-            st.markdown(drill_html, unsafe_allow_html=True)
-
-            # ---- Action row: real Streamlit widgets, scoped to a keyed
-            # container so the v4 CSS can give the premium button +
-            # reps input their custom shell. ----
-            with st.container(key=f"tp_action_{drill_id}"):
-                # Reps tracker first (always visible).
-                reps_done = st.text_input(
-                    "Reps completed",
-                    value=saved.get("reps_done", ""),
-                    key=reps_key,
-                    placeholder="e.g. 4×10",
-                    label_visibility="visible",
+            if is_done:
+                # ---- v5: Completed drill = compact summary card ----
+                # Drops the full how-to + reps + button block in favor
+                # of a single condensed receipt. Massively cuts page
+                # length once drills start landing.
+                last_updated = saved.get("last_updated") or ""
+                stamp = last_updated[11:16] if last_updated else ""
+                reps_logged = saved.get("reps_done") or ""
+                # Tooltip on the mastery chip so the player can't be
+                # confused about what "Mastered 4×" means.
+                mastery_tooltip = (
+                    f'<span class="tp-mastery" title="Completed in {lifetime} '
+                    f'separate training sessions">Mastered {lifetime}×</span>'
+                    if lifetime >= 3 else ""
                 )
-
-                if is_done:
-                    # Completed: emerald confirmation badge + undo link.
-                    last_updated = saved.get("last_updated") or ""
-                    stamp = last_updated[11:16] if last_updated else ""
-                    st.markdown(
-                        f'<div class="tp-done-stamp">'
-                        f'<span class="tick">✓</span>'
-                        f'<span>Drill Completed</span>'
-                        f'<span class="stamp-time">{stamp}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
+                summary_html = (
+                    f'<div class="tp-done-card">'
+                    f'<div class="tp-done-card-head">'
+                    f'<div class="tp-done-card-tick">✓</div>'
+                    f'<div class="tp-done-card-meta">'
+                    f'<div class="tp-done-card-name">'
+                    f'{_html.escape(name)}'
+                    f'{role_chip}'
+                    f'{mastery_tooltip}'
+                    f'</div>'
+                    f'<div class="tp-done-card-row">'
+                    f'<span class="tp-done-stat"><span class="lbl">Completed</span>'
+                    f'<span class="val">{stamp or "—"}</span></span>'
+                    f'<span class="tp-done-stat"><span class="lbl">Reps</span>'
+                    f'<span class="val">{_html.escape(reps_logged or "—")}</span></span>'
+                    f'<span class="tp-done-stat"><span class="lbl">Earned</span>'
+                    f'<span class="val gold">+150 XP</span></span>'
+                    f'<span class="tp-done-stat"><span class="lbl">Mastery</span>'
+                    f'<span class="val">{lifetime + 1}×</span></span>'
+                    f'</div>'
+                    f'</div>'
+                    f'<div class="tp-done-card-stamp">DRILL COMPLETED</div>'
+                    f'</div>'
+                    # Retrospective: collapsed "View Details" for the
+                    # full module if the player wants to revisit it.
+                    f'<details class="tp-done-details">'
+                    f'<summary>'
+                    f'<span class="tp-done-details-label">View Details</span>'
+                    f'<span class="tp-howto-chev">›</span>'
+                    f'</summary>'
+                    f'<div class="tp-done-details-body">'
+                    f'{description_html}'
+                    f'{howto_html}'
+                    f'</div>'
+                    f'</details>'
+                    f'</div>'
+                )
+                st.markdown(summary_html, unsafe_allow_html=True)
+                # Small undo affordance — wrapped in a keyed container so
+                # the v4 CSS reaches it.
+                with st.container(key=f"tp_action_{drill_id}"):
                     if st.button(
                         "Mark as not done",
                         key=undo_key,
-                        help="Reverts this drill back to pending.",
+                        help="Reverts this drill back to pending so you can re-log it.",
                     ):
                         drill_log[drill_id] = {
                             "completed": False,
-                            "reps_done": reps_done,
+                            "reps_done": reps_logged,
                             "last_updated": datetime.now().isoformat(timespec="seconds"),
                         }
                         log["drills"] = drill_log
                         save_training_log(player_id, log)
                         st.rerun()
-                else:
-                    # Pending: premium emerald "Complete Drill" button.
+            else:
+                # ---- Pending drill: full module + action row ----
+                # Mastery chip with tooltip — same as on the completed
+                # card so the meaning carries across states.
+                mastery_chip_tooltip = (
+                    f'<span class="tp-mastery" title="Completed in {lifetime} '
+                    f'separate training sessions">Mastered {lifetime}×</span>'
+                    if lifetime >= 3 else ""
+                )
+                drill_html = (
+                    f'<div class="dt-drill {done_cls}">'
+                    f'<div class="dt-drill-row">'
+                    f'<div class="dt-drill-num">{num_label}</div>'
+                    f'<div class="dt-drill-meta">'
+                    f'<div class="dt-drill-name">{_html.escape(name)}{role_chip}{mastery_chip_tooltip}</div>'
+                    f'{reps_chip}'
+                    f'</div>'
+                    f'<div class="dt-drill-status-pill">{status_text}</div>'
+                    f'</div>'
+                    f'{meta_strip}'
+                    f'{description_html}'
+                    f'{howto_html}'
+                    f'</div>'
+                )
+                st.markdown(drill_html, unsafe_allow_html=True)
+
+                # Action row — reps presets (radio styled as chips) +
+                # Custom branch that reveals the text field, then the
+                # premium "Complete Drill" CTA.
+                with st.container(key=f"tp_action_{drill_id}"):
+                    # Initial reps value — restore from saved log if
+                    # this is a returning render, otherwise default to
+                    # the drill's "suggested" reps.
+                    saved_reps = saved.get("reps_done") or ""
+                    presets = ["3×10", "4×8", "5×5", "Custom"]
+                    # Pre-pick a preset if the saved value matches.
+                    if saved_reps in presets[:3]:
+                        default_idx = presets.index(saved_reps)
+                    elif saved_reps:
+                        default_idx = 3  # Custom
+                    else:
+                        default_idx = 0  # 3×10 default
+
+                    preset_choice = st.radio(
+                        "Reps logged",
+                        options=presets,
+                        index=default_idx,
+                        key=f"preset__{player_id}__{drill_id}",
+                        horizontal=True,
+                        label_visibility="visible",
+                    )
+                    if preset_choice == "Custom":
+                        reps_done = st.text_input(
+                            "Custom reps",
+                            value=saved_reps if saved_reps not in presets[:3] else "",
+                            key=reps_key,
+                            placeholder="e.g. 6 × 5  or  20 reps",
+                            label_visibility="visible",
+                        )
+                    else:
+                        reps_done = preset_choice
+
                     if st.button(
                         "⚡  Complete Drill",
                         key=complete_btn_key,
@@ -4387,7 +4878,6 @@ def render_development_tracker():
                             "reps_done": reps_done,
                             "last_updated": datetime.now().isoformat(timespec="seconds"),
                         }
-                        # Append a mastery event (same pattern as before).
                         drill_log.setdefault("_completion_events", []).append({
                             "drill_id": drill_id,
                             "drill_name": name,
@@ -4397,20 +4887,27 @@ def render_development_tracker():
                         })
                         log["drills"] = drill_log
                         save_training_log(player_id, log)
-                        # XP burst flag — picked up on the next render to
-                        # play the +150 XP floating chip via CSS.
                         st.session_state[f"_xp_burst_{drill_id}"] = True
+                        # Streamlit's native toast — small, fleeting, but
+                        # better than nothing for the immediate reward signal.
+                        try:
+                            st.toast(
+                                f"+150 XP · {name} complete",
+                                icon="⚡",
+                            )
+                        except Exception:
+                            pass
                         st.rerun()
 
-            # Reps-only edits (no completion change) still need to be
-            # saved to the log on the same render they happen.
-            if (not is_done) and reps_done != saved.get("reps_done", ""):
-                drill_log[drill_id] = {
-                    "completed": False,
-                    "reps_done": reps_done,
-                    "last_updated": datetime.now().isoformat(timespec="seconds"),
-                }
-                dirty = True
+                # Reps-only edits (no completion change) still need to be
+                # saved to the log on the same render they happen.
+                if reps_done != saved.get("reps_done", ""):
+                    drill_log[drill_id] = {
+                        "completed": False,
+                        "reps_done": reps_done,
+                        "last_updated": datetime.now().isoformat(timespec="seconds"),
+                    }
+                    dirty = True
 
     # ---- Re-Test Reminder ----
     # The drill plan's `weekly_guide` is the analyzer's recommended
@@ -4425,10 +4922,16 @@ def render_development_tracker():
             '<div class="dt-retest">'
             '<div class="dt-retest-icon">↻</div>'
             '<div>'
-            '<div class="dt-retest-eyebrow">Re-Test Reminder</div>'
+            '<div class="dt-retest-eyebrow">Your Re-Test Plan</div>'
             '<div class="dt-retest-title">'
-            'When to upload your next swing'
+            'Follow this routine, then upload a new swing.'
             '</div>'
+            '<p class="dt-retest-prose">'
+            'Run this plan for the next 2–3 weeks, then upload a fresh '
+            'swing. The new analysis is measured against today\'s '
+            'baseline — that\'s how you see the improvements you\'re '
+            'actually banking.'
+            '</p>'
             f'<ul class="dt-retest-list">{items_html}</ul>'
             '</div>'
             '</div>'
