@@ -1232,6 +1232,461 @@ _DT_LOCAL_CSS = """
     .dt-coach { padding: 0.95rem 1.05rem; }
     .dt-role { font-size: 0.5rem; padding: 0.15rem 0.45rem; }
 }
+
+/* ============================================================
+   TRAINING PLAN v2 — Edge editorial overlay.
+   Wrapping the page in `.tp-shell` re-declares the bl_theme tokens
+   used by every .dt-* rule above, so the existing CSS automatically
+   picks up the editorial palette without any class-by-class rewrite:
+     · ink  #0A0B0E (dashboard_v3 black, not bl_theme's #050505)
+     · bone #F4EFE6 / #C8C4BB / #8B8E94 / #565A62 (warm, not pure white)
+     · red  #E64530 (dashboard_v3 red, not bl_theme's #FF3B30)
+     · gold #E8C170 accent (additive — bl_theme has no gold)
+     · serif Instrument Serif italic for display
+     · sans Geist + Geist Mono labels
+   Then a small set of new .tp-* classes adds the editorial hero,
+   bento stat strip, and consistency bar that bl_theme can't express.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+.tp-shell {
+    /* Re-declare the cascading tokens used by .dt-* — every selector
+       above resolves these from the .tp-shell wrapper instead of
+       :root, so the whole tracker repaints in the editorial language
+       with one cascade hop. */
+    --bl-bg:          #0A0B0E;
+    --bl-surface-1:   rgba(255,255,255,0.025);
+    --bl-surface-2:   rgba(255,255,255,0.045);
+    --bl-line:        rgba(244,239,230,0.08);
+    --bl-line-hi:     rgba(244,239,230,0.16);
+    --bl-ink-100:     #F4EFE6;
+    --bl-ink-80:      #C8C4BB;
+    --bl-ink-60:      #8B8E94;
+    --bl-ink-40:      #565A62;
+    --bl-red:         #E64530;
+    --bl-red-hover:   #ef5f4a;
+    --bl-red-glow:    rgba(230,69,48,0.28);
+    --bl-red-soft:    rgba(230,69,48,0.12);
+
+    /* Editorial-only additions (no bl_theme equivalents). */
+    --tp-gold:        #E8C170;
+    --tp-gold-deep:   #C9A350;
+    --tp-gold-soft:   rgba(232,193,112,0.10);
+    --tp-gold-line:   rgba(232,193,112,0.32);
+    --tp-green:       #4AE38C;
+    --tp-serif:       'Instrument Serif', 'Fraunces', Georgia, serif;
+
+    /* Override bl_theme font stacks via the same names so any
+       .dt-* selector using var(--bl-sans/mono) re-skins for free. */
+    --bl-sans:        'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --bl-mono:        'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Editorial-paper film grain over the surface for depth. */
+    position: relative;
+    color: var(--bl-ink-100);
+    font-family: var(--bl-sans);
+}
+.tp-shell::before {
+    content: ""; position: absolute; inset: 0;
+    pointer-events: none; z-index: 0;
+    opacity: 0.025; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+/* All real content sits above the grain. */
+.tp-shell > * { position: relative; z-index: 1; }
+
+/* ---- HERO ---- */
+/* Replaces the bl_theme .dt-hero. The old hero is hidden when its
+   parent gets `.tp-shell` so the two never double up. */
+.tp-shell .dt-hero { display: none !important; }
+
+.tp-hero {
+    text-align: center;
+    padding: 1.6rem 0 0.4rem;
+    margin-bottom: 1.4rem;
+    position: relative;
+}
+.tp-hero::before {
+    content: ""; position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    width: 720px; height: 240px;
+    background: radial-gradient(ellipse at center, rgba(232,193,112,0.10) 0%, transparent 70%);
+    pointer-events: none; z-index: -1; filter: blur(20px);
+}
+.tp-eyebrow {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 14px;
+    font-family: var(--bl-mono);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--bl-red);
+    font-weight: 600;
+    margin-bottom: 22px;
+}
+.tp-eyebrow .stitch {
+    display: inline-block; width: 30px; height: 1px;
+    background: var(--bl-red); opacity: 0.85;
+}
+.tp-display {
+    font-family: var(--tp-serif);
+    font-weight: 400;
+    font-size: clamp(2.6rem, 6vw, 5.4rem);
+    line-height: 0.99;
+    letter-spacing: -0.025em;
+    color: var(--bl-ink-100);
+    margin: 0 0 20px;
+}
+.tp-display .ital {
+    font-style: italic;
+    color: var(--tp-gold);
+    padding: 0 0.04em;
+}
+.tp-display .red { color: var(--bl-red); }
+.tp-deck {
+    font-family: var(--bl-sans);
+    font-weight: 300;
+    font-size: clamp(0.98rem, 1.1vw, 1.15rem);
+    line-height: 1.55;
+    color: var(--bl-ink-80);
+    max-width: 620px;
+    margin: 0 auto 8px;
+}
+.tp-deck .em { color: var(--bl-ink-100); font-weight: 500; }
+.tp-deck .gold { color: var(--tp-gold); font-weight: 500; }
+
+/* ---- BENTO STATS (Today / Edge / MLB Match / Streak) ---- */
+.tp-bento {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 28px auto 0;
+    max-width: 940px;
+}
+.tp-bento-card {
+    padding: 18px 16px 14px;
+    border-radius: 16px;
+    border: 1px solid var(--bl-line);
+    background:
+        radial-gradient(80% 60% at 50% 0%, rgba(232,193,112,0.05) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.008));
+    text-align: center;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: border-color 0.22s ease, transform 0.22s ease;
+}
+.tp-bento-card:hover {
+    border-color: var(--bl-line-hi);
+    transform: translateY(-1px);
+}
+.tp-bento-card.is-gold {
+    border-color: var(--tp-gold-line);
+    background:
+        radial-gradient(80% 60% at 50% 0%, rgba(232,193,112,0.14) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010));
+}
+.tp-bento-num {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+    letter-spacing: -0.025em;
+    color: var(--bl-ink-100);
+    line-height: 1;
+}
+.tp-bento-num.is-gold { color: var(--tp-gold); }
+.tp-bento-num .unit {
+    font-style: normal;
+    font-family: var(--bl-sans);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--bl-ink-60);
+    margin-left: 4px;
+    letter-spacing: 0;
+}
+.tp-bento-label {
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    margin-top: 10px;
+    font-weight: 500;
+}
+.tp-bento-foot {
+    font-family: var(--bl-mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-40);
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+/* ---- SECTION HEADER (replaces the .dt-cat-header look) ---- */
+.tp-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem;
+    margin: 2.4rem 0 1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--bl-line);
+    position: relative;
+}
+.tp-section-head::after {
+    content: ""; position: absolute; left: 0; bottom: -1px;
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg, var(--tp-gold) 0%, transparent 100%);
+}
+.tp-section-eyebrow {
+    font-family: var(--bl-mono);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--bl-red);
+    font-weight: 600;
+}
+.tp-section-title {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.6rem;
+    color: var(--bl-ink-100);
+    letter-spacing: -0.01em;
+}
+.tp-section-meta {
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-40);
+    font-weight: 500;
+}
+
+/* ---- DRILL CARD POLISH ---- */
+/* The bl_theme .dt-drill already inherits the new bone/red/ink
+   palette via the variable cascade. We add the editorial touches
+   it can't express on its own. */
+.tp-shell .dt-drill {
+    border-radius: 18px !important;
+    transition:
+        border-color 0.22s cubic-bezier(.32,.72,0,1),
+        transform 0.22s cubic-bezier(.32,.72,0,1),
+        box-shadow 0.22s cubic-bezier(.32,.72,0,1) !important;
+}
+.tp-shell .dt-drill:hover {
+    border-color: var(--tp-gold-line) !important;
+    transform: translateY(-1.5px) !important;
+    box-shadow: 0 20px 40px -22px rgba(232,193,112,0.25) !important;
+}
+.tp-shell .dt-drill-num {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    color: var(--tp-gold) !important;
+    font-size: 1.65rem !important;
+    letter-spacing: -0.02em !important;
+}
+.tp-shell .dt-drill-name {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: -0.015em !important;
+    color: var(--bl-ink-100) !important;
+}
+.tp-shell .dt-drill-reps {
+    background: rgba(232,193,112,0.08) !important;
+    border-color: var(--tp-gold-line) !important;
+    color: var(--tp-gold) !important;
+}
+.tp-shell .dt-drill.is-done {
+    border-color: rgba(74,227,140,0.22) !important;
+    background:
+        radial-gradient(120% 100% at 100% 0%, rgba(74,227,140,0.06) 0%, transparent 60%),
+        var(--bl-surface-1) !important;
+}
+.tp-shell .dt-drill.is-done::before {
+    background: var(--tp-green) !important;
+    box-shadow: 0 0 20px rgba(74,227,140,0.5) !important;
+}
+.tp-shell .dt-drill.is-done .dt-drill-status-pill {
+    color: var(--tp-green) !important;
+    background: rgba(74,227,140,0.10) !important;
+    border-color: rgba(74,227,140,0.32) !important;
+    box-shadow: 0 0 16px -4px rgba(74,227,140,0.25) !important;
+}
+/* Role chip — keep PRIMARY red, SUPPORTING bone, CHALLENGE gold. */
+.tp-shell .dt-role.is-primary {
+    background: rgba(230,69,48,0.10) !important;
+    border-color: rgba(230,69,48,0.32) !important;
+    color: var(--bl-red) !important;
+}
+
+/* ---- COACH NOTES — make it the page's signature panel ---- */
+.tp-shell .dt-coach {
+    border-radius: 18px !important;
+    border: 1px solid var(--tp-gold-line) !important;
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010)) !important;
+    padding: 1.3rem 1.4rem 1.2rem !important;
+    position: relative !important;
+}
+.tp-shell .dt-coach::before {
+    content: "";
+    position: absolute; top: 0; left: 18%; right: 18%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--tp-gold) 50%, transparent);
+    opacity: 0.6;
+}
+.tp-shell .dt-coach-body {
+    font-family: var(--tp-serif);
+    font-size: 1.06rem !important;
+    line-height: 1.6 !important;
+    color: var(--bl-ink-80) !important;
+}
+
+/* ---- RE-TEST READINESS CARD ---- */
+.tp-shell .dt-retest {
+    border-radius: 18px !important;
+}
+.tp-shell .dt-retest-title {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.3rem !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* ---- PROGRESS RING / OVERVIEW (existing .dt-progress-card) ---- */
+.tp-shell .dt-progress-card {
+    border-radius: 20px !important;
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 65%),
+        var(--bl-surface-1) !important;
+}
+.tp-shell .dt-ring-fill {
+    stroke: var(--tp-gold) !important;
+    filter: drop-shadow(0 0 14px rgba(232,193,112,0.55)) !important;
+}
+.tp-shell .dt-ring-pct {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+}
+.tp-shell .dt-progress-meta-title {
+    font-family: var(--tp-serif) !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.6rem !important;
+}
+.tp-shell .dt-stat-num.is-red { color: var(--tp-gold) !important; }
+
+/* ---- CONSISTENCY BAR (new — 7-day completion strip) ---- */
+.tp-consistency {
+    margin: 1.4rem 0 1.6rem;
+    padding: 1.3rem 1.4rem;
+    border-radius: 18px;
+    border: 1px solid var(--bl-line);
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008));
+}
+.tp-consistency-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; margin-bottom: 14px;
+}
+.tp-consistency-eyebrow {
+    font-family: var(--bl-mono);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--bl-red);
+    font-weight: 600;
+}
+.tp-consistency-title {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.18rem;
+    color: var(--bl-ink-100);
+    margin-top: 4px;
+    letter-spacing: -0.01em;
+}
+.tp-consistency-score {
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-size: 2rem;
+    color: var(--tp-gold);
+    letter-spacing: -0.025em;
+    line-height: 1;
+}
+.tp-consistency-score .unit {
+    font-style: normal;
+    font-family: var(--bl-sans);
+    font-size: 0.92rem;
+    color: var(--bl-ink-60);
+    font-weight: 500;
+    margin-left: 3px;
+}
+.tp-consistency-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 6px;
+}
+.tp-day {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 4px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--bl-line);
+    background: rgba(255,255,255,0.012);
+    transition: border-color 0.2s ease;
+}
+.tp-day.is-complete {
+    border-color: var(--tp-gold-line);
+    background: var(--tp-gold-soft);
+}
+.tp-day.is-today {
+    border-color: var(--bl-red);
+    box-shadow: 0 0 0 1px var(--bl-red);
+}
+.tp-day-dow {
+    font-family: var(--bl-mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    font-weight: 500;
+}
+.tp-day-mark {
+    margin-top: 8px;
+    font-family: var(--tp-serif);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--bl-ink-40);
+    line-height: 1;
+}
+.tp-day.is-complete .tp-day-mark { color: var(--tp-gold); }
+.tp-day.is-today .tp-day-mark { color: var(--bl-red); }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 900px) {
+    .tp-bento { grid-template-columns: repeat(2, 1fr); }
+    .tp-section-head { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    .tp-consistency-head { flex-direction: column; gap: 0.4rem; }
+}
+@media (max-width: 640px) {
+    .tp-display { font-size: clamp(2.1rem, 9vw, 3rem); }
+    .tp-deck { font-size: 0.98rem; padding: 0 8px; }
+    .tp-eyebrow { font-size: 10px; letter-spacing: 0.22em; }
+    .tp-bento { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .tp-bento-card { padding: 14px 10px 10px; }
+    .tp-bento-num { font-size: 1.7rem; }
+    .tp-shell .dt-drill-name { font-size: 1.2rem !important; }
+    .tp-shell .dt-drill-num { font-size: 1.35rem !important; }
+    .tp-consistency-grid { gap: 5px; }
+    .tp-day { padding: 8px 2px 6px; }
+}
 </style>
 """
 
@@ -1285,6 +1740,254 @@ def _role_for(category_idx: int, drill_idx: int) -> tuple[str, str]:
     if category_idx == 0:
         return ("SUPPORTING", "is-supporting")
     return ("CHALLENGE", "is-challenge")
+
+
+# ============================================================
+# Training Plan v2 — editorial hero + consistency strip
+# ============================================================
+def _safe_pct(num: int, den: int) -> int:
+    """Return an integer percent, clamped 0..100, safe for zero divisors."""
+    if not den:
+        return 0
+    return max(0, min(100, int(round(num / den * 100))))
+
+
+def _hero_metrics(saved_swing: dict, gm_state: dict | None,
+                  total_completed: int, total_drills: int) -> dict:
+    """Compute the four bento numbers + the dynamic display headline.
+
+    Falls back safely for any field that isn't computable (new account,
+    missing reference comp, etc.) — the bento always renders four
+    cards, just with a `—` placeholder where there's no real value.
+    """
+    # ---- Edge Score (dashboard_v3 composition) ----
+    edge_score: str | int = "—"
+    try:
+        from dashboard_v3 import _compose_edge_score
+        v = _compose_edge_score(saved_swing or {})
+        if isinstance(v, (int, float)) and v > 0:
+            edge_score = int(round(v))
+    except Exception:
+        pass
+
+    # ---- MLB match % (the underlying similarity calc lives in dashboard) ----
+    match_pct: str | int = "—"
+    ref_name = ""
+    try:
+        from dashboard import _similarity_pct, _pretty_player_name
+        sim = _similarity_pct(saved_swing or {}) or 0
+        if sim:
+            match_pct = int(round(float(sim)))
+        ref_slug = (saved_swing or {}).get("picked_slug") or \
+                   (saved_swing or {}).get("reference_name") or ""
+        if ref_slug:
+            try:
+                ref_name = _pretty_player_name(ref_slug) or ""
+            except Exception:
+                ref_name = ""
+    except Exception:
+        pass
+
+    # ---- Streak (from gamification state) ----
+    streak_days: int = 0
+    if isinstance(gm_state, dict):
+        try:
+            streak_days = int(gm_state.get("current_streak_days") or 0)
+        except Exception:
+            streak_days = 0
+
+    today_pct = _safe_pct(total_completed, total_drills)
+
+    # ---- Display headline ----
+    # The primary issue title is the priority-1 category's display name
+    # from the analyzer-built drill_plan. The serif italic + gold treat-
+    # ment lands on this word/phrase so the page's emotional beat is
+    # exactly what the swing is asking the player to fix.
+    plan = (saved_swing or {}).get("drill_plan") or {}
+    cats = plan.get("categories") or []
+    primary_issue = ""
+    if cats:
+        primary_issue = (cats[0].get("title") or "").strip()
+    if not primary_issue:
+        primary_issue = "your swing"
+
+    return {
+        "today_pct": today_pct,
+        "edge_score": edge_score,
+        "match_pct": match_pct,
+        "streak_days": streak_days,
+        "primary_issue": primary_issue,
+        "ref_name": ref_name,
+    }
+
+
+def _build_hero_brand_html(
+    *,
+    headline: str = "Your daily swing <span class=\"ital\">development</span> plan.",
+    eyebrow: str = "Training Plan · Today's Focus",
+    deck: str = ("Updated from your most recent swing analysis. Focus on the "
+                 "highest-impact drills, then upload again to measure improvement."),
+) -> str:
+    """Render the always-on editorial brand hero — eyebrow + serif italic
+    display + deck. No bento; pure identity. Branch-agnostic (renders
+    the same for unauth / no-Pro / no-swing).
+
+    The data-driven bento + consistency strip are rendered SEPARATELY
+    by `_build_bento_html` only when we have a real swing record.
+    """
+    return (
+        '<section class="tp-hero">'
+        '<div class="tp-eyebrow">'
+        f'<span class="stitch"></span>{eyebrow}'
+        '<span class="stitch"></span>'
+        '</div>'
+        f'<h1 class="tp-display">{headline}</h1>'
+        f'<p class="tp-deck">{deck}</p>'
+        '</section>'
+    )
+
+
+def _build_data_hero_html(metrics: dict, swing_date: str) -> str:
+    """Editorial hero with the dynamic primary-issue headline + bento.
+
+    Only called when we have a real `saved_swing` — so the display
+    headline can name the actual focus area (e.g., "Master your
+    hip-shoulder separation") and the four bento cards have real
+    numbers instead of dashes.
+    """
+    primary = _html.escape(metrics.get("primary_issue") or "your swing")
+    ref_name = _html.escape(metrics.get("ref_name") or "")
+    date_str = _html.escape(swing_date or "your most recent swing")
+    today_pct = int(metrics.get("today_pct") or 0)
+    edge = metrics.get("edge_score", "—")
+    mlb  = metrics.get("match_pct", "—")
+    streak = int(metrics.get("streak_days") or 0)
+
+    if ref_name:
+        deck = (
+            f'Today\'s focus, drawn from your <span class="em">{date_str}</span> '
+            f'swing — measured against <span class="gold">{ref_name}</span>.'
+        )
+    else:
+        deck = (
+            f'Today\'s focus, drawn from your <span class="em">{date_str}</span> '
+            f'swing analysis.'
+        )
+
+    edge_num_html = (
+        f'<span class="tp-bento-num is-gold">{edge}</span>'
+        if isinstance(edge, int) else
+        f'<span class="tp-bento-num">{edge}</span>'
+    )
+    mlb_num_html = (
+        f'<span class="tp-bento-num">{mlb}<span class="unit">%</span></span>'
+        if isinstance(mlb, int) else
+        f'<span class="tp-bento-num">{mlb}</span>'
+    )
+    today_cls = "is-gold" if today_pct >= 67 else ""
+    streak_cls = "is-gold" if streak >= 3 else ""
+
+    return (
+        '<section class="tp-hero">'
+        '<div class="tp-eyebrow">'
+        '<span class="stitch"></span>Training Plan · Today\'s Focus'
+        '<span class="stitch"></span>'
+        '</div>'
+        f'<h1 class="tp-display">'
+        f'Master your <span class="ital">{primary}</span>.'
+        f'</h1>'
+        f'<p class="tp-deck">{deck}</p>'
+        '<div class="tp-bento">'
+        '<div class="tp-bento-card">'
+        f'<div class="tp-bento-num {today_cls}">{today_pct}<span class="unit">%</span></div>'
+        '<div class="tp-bento-label">Today</div>'
+        '<div class="tp-bento-foot">Completed</div>'
+        '</div>'
+        '<div class="tp-bento-card is-gold">'
+        f'{edge_num_html}'
+        '<div class="tp-bento-label">Edge Score</div>'
+        '<div class="tp-bento-foot">Latest Swing</div>'
+        '</div>'
+        '<div class="tp-bento-card">'
+        f'{mlb_num_html}'
+        '<div class="tp-bento-label">MLB Match</div>'
+        f'<div class="tp-bento-foot">{ref_name or "Reference"}</div>'
+        '</div>'
+        '<div class="tp-bento-card">'
+        f'<div class="tp-bento-num {streak_cls}">{streak}<span class="unit">d</span></div>'
+        '<div class="tp-bento-label">Streak</div>'
+        '<div class="tp-bento-foot">Current</div>'
+        '</div>'
+        '</div>'
+        '</section>'
+    )
+
+
+def _build_consistency_html(history: list, today_pct: int) -> str:
+    """Render the 7-day consistency strip + a single 'consistency score'.
+
+    history is the player's swing_history list. The score is the number
+    of unique days in the past 7 with a swing analyzed (capped 0..100%).
+    Each day is a small card: marked complete if a swing was uploaded
+    that day, marked today if it's, well, today.
+    """
+    try:
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        days = [today - timedelta(days=i) for i in range(6, -1, -1)]  # oldest → newest
+        # Parse swing dates to a set of date objects.
+        swing_days: set = set()
+        for rec in (history or []):
+            iso = (rec.get("timestamp") or rec.get("date") or "").strip()
+            if not iso:
+                continue
+            try:
+                # Handle both ISO timestamps and YYYY-MM-DD-only forms.
+                from datetime import datetime as _dt
+                if "T" in iso:
+                    swing_days.add(_dt.fromisoformat(iso.replace("Z", "")).date())
+                else:
+                    swing_days.add(_dt.fromisoformat(iso[:10]).date())
+            except Exception:
+                continue
+        completed_count = sum(1 for d in days if d in swing_days)
+        consistency_pct = _safe_pct(completed_count, 7)
+
+        dow_labels = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+        cells = []
+        for d in days:
+            is_done = d in swing_days
+            is_today = (d == today)
+            cls = "tp-day"
+            if is_done:
+                cls += " is-complete"
+            if is_today:
+                cls += " is-today"
+            mark = "●" if is_done else "○"
+            cells.append(
+                f'<div class="{cls}">'
+                f'<div class="tp-day-dow">{dow_labels[d.weekday()]}</div>'
+                f'<div class="tp-day-mark">{mark}</div>'
+                f'</div>'
+            )
+        grid_html = "".join(cells)
+    except Exception:
+        # Empty/broken history → render an "—" state instead of crashing.
+        grid_html = ""
+        consistency_pct = 0
+
+    return (
+        '<div class="tp-consistency">'
+        '<div class="tp-consistency-head">'
+        '<div>'
+        '<div class="tp-consistency-eyebrow">Consistency · 7 days</div>'
+        '<div class="tp-consistency-title">Showing up is the work.</div>'
+        '</div>'
+        f'<div class="tp-consistency-score">{consistency_pct}<span class="unit">%</span></div>'
+        '</div>'
+        f'<div class="tp-consistency-grid">{grid_html}</div>'
+        '</div>'
+    )
 
 
 # ============================================================
@@ -1607,30 +2310,23 @@ def render_development_tracker():
         st.session_state.get("user") or {}, active_page="development_tracker"
     )
     st.markdown(_DT_LOCAL_CSS, unsafe_allow_html=True)
-    st.markdown('<div class="bl-page">', unsafe_allow_html=True)
-
-    # ---- Hero ----
-    # Branded as "Training Plan" — the daily, latest-swing-driven plan.
-    # The page_key in app.py routing stays "development_tracker" so all
-    # downstream storage, gamification, and paywall code is untouched.
-    hero_html = textwrap.dedent("""
-    <div class="dt-hero">
-      <div class="dt-hero-row">
-        <div style="flex:1;min-width:0;">
-          <div class="dt-hero-eyebrow">BarrelLabs Performance Lab</div>
-          <div class="dt-hero-title">Training Plan</div>
-          <div class="dt-hero-sub">
-            Your daily swing development plan, updated from your latest
-            analysis. Focus on the highest-impact drills from your most
-            recent swing report — progress saves automatically across
-            sessions.
-          </div>
-        </div>
-        <div class="dt-mode-pill"><span class="dt-mode-pill-dot"></span> Today&rsquo;s Focus</div>
-      </div>
-    </div>
-    """).strip()
-    st.markdown(hero_html, unsafe_allow_html=True)
+    # `.tp-shell` is the editorial overlay wrapper — re-declares the
+    # bl_theme tokens on .dt-* selectors so the whole page repaints in
+    # the dashboard_v3 editorial language (bone/gold/red + Instrument
+    # Serif italic) with one cascade hop. We co-class with `.bl-page`
+    # on the SAME div so the existing single `</div>` closes in every
+    # return branch close both rules — no double-nesting bookkeeping.
+    st.markdown(
+        '<div class="tp-shell bl-page">',
+        unsafe_allow_html=True,
+    )
+    # The new editorial brand hero — eyebrow + serif italic display +
+    # deck. Always shown at the top, regardless of branch (unauth, no
+    # Pro, no swing, full). The data-driven version with bento numbers
+    # is rendered for the has-data branch FURTHER DOWN, replacing the
+    # generic deck text. The v1 .dt-hero block is hidden by CSS so the
+    # two never double up.
+    st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
 
     # ---- Auth check ----
     user = st.session_state.get("user")
@@ -1784,6 +2480,31 @@ def render_development_tracker():
             drill_states[drill_id] = current_done
             if current_done:
                 total_completed += 1
+
+    # ---- Editorial hero (data-driven) + 7-day consistency strip ----
+    # These come AFTER drill totals are computed (so the bento can show
+    # the live today_pct) and BEFORE the existing progress ring + drill
+    # cards, so the page reads top-down as: identity → today's numbers
+    # → consistency → ring → coach notes → drill cards → re-test → notes.
+    try:
+        hero_metrics = _hero_metrics(
+            saved_swing=saved_swing,
+            gm_state=gm_state,
+            total_completed=total_completed,
+            total_drills=total_drills,
+        )
+        st.markdown(
+            _build_data_hero_html(hero_metrics, swing_date),
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            _build_consistency_html(gm_history or [], hero_metrics["today_pct"]),
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        # Hero is decorative — never let a fallback failure block the
+        # drills the user actually came here to do.
+        pass
 
     _render_progress_card(total_completed, total_drills, swing_date, player_name)
 
