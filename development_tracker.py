@@ -2942,6 +2942,325 @@ _DT_LOCAL_CSS = """
     .tp-done-card-stamp { grid-column: 1 / -1; margin-top: 8px; justify-self: start; }
     .tp-done-card-tick { width: 32px; height: 32px; font-size: 16px; }
 }
+
+/* ============================================================
+   TRAINING PLAN v5.1 — UNSCOPED OVERRIDES.
+   Critical fix: `.tp-shell` (rendered via `st.markdown('<div...>')`)
+   is auto-closed by Streamlit immediately, so it never actually wraps
+   the subsequent widgets at the DOM level. Selectors like
+   `.tp-shell .dt-level-card` therefore NEVER match on the live page.
+   The `.dt-*` and `[class*="st-key-tp_action_"]` classes below are
+   dev_tracker-only — used on no other page — so dropping the prefix
+   is safe. The dev_tracker stylesheet loads AFTER bl_theme + app.py
+   on this page, so equal-specificity + !important resolves in our
+   favor by cascade order.
+   ============================================================ */
+
+/* ---- Level card: kill the red gradient. ---- */
+.dt-level-card {
+    background:
+        radial-gradient(120% 80% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.008)) !important;
+    border: 1px solid rgba(244,239,230,0.08) !important;
+    border-radius: 20px !important;
+    margin-top: 1.4rem !important;
+}
+.dt-level-card::before { display: none !important; }
+.dt-level-card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 16%; right: 16%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #E8C170 50%, transparent);
+    opacity: 0.45;
+}
+.dt-level-eyebrow { color: rgba(244,239,230,0.58) !important; }
+.dt-level-name {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.015em !important;
+}
+.dt-xp-pill {
+    background: rgba(232,193,112,0.06) !important;
+    border-color: rgba(232,193,112,0.32) !important;
+}
+.dt-xp-pill .dt-xp-num { color: #E8C170 !important; }
+.dt-xp-bar-fill {
+    background: linear-gradient(90deg, #C9A350, #E8C170) !important;
+    box-shadow: 0 0 14px rgba(232,193,112,0.50) !important;
+}
+
+/* ---- Stat strip: gold numbers instead of red. ---- */
+.dt-stat-pod {
+    background: rgba(255,255,255,0.022) !important;
+    border-color: rgba(244,239,230,0.08) !important;
+    border-radius: 14px !important;
+}
+.dt-stat-pod-num {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+}
+.dt-stat-pod-num.is-red { color: #E8C170 !important; }
+.dt-stat-pod-label { color: rgba(244,239,230,0.58) !important; }
+
+/* ---- Motivation chips: ditch the red, use gold star. ---- */
+.dt-motivate-chip {
+    background: rgba(255,255,255,0.022) !important;
+    border-color: rgba(244,239,230,0.08) !important;
+    color: rgba(244,239,230,0.82) !important;
+    font-family: 'Geist', -apple-system, system-ui, sans-serif !important;
+    font-size: 0.85rem !important;
+}
+.dt-motivate-chip.is-red {
+    color: #F4EFE6 !important;
+    background: rgba(232,193,112,0.06) !important;
+    border-color: rgba(232,193,112,0.32) !important;
+}
+.dt-motivate-chip.is-red::before {
+    content: "★ ";
+    color: #E8C170;
+    font-weight: 700;
+    margin-right: 3px;
+}
+
+/* ---- Premium "Complete Drill" CTA — unscoped, kills global red. ---- */
+.st-key-tp_action_01 .stButton > button[kind="primary"],
+.st-key-tp_action_02 .stButton > button[kind="primary"],
+.st-key-tp_action_03 .stButton > button[kind="primary"],
+.st-key-tp_action_04 .stButton > button[kind="primary"],
+.st-key-tp_action_05 .stButton > button[kind="primary"],
+.st-key-tp_action_06 .stButton > button[kind="primary"],
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"],
+[class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"],
+[class*="st-key-tp_action_"] button[data-testid="baseButton-primary"] {
+    background: linear-gradient(180deg, #2fbf73 0%, #1f9659 100%) !important;
+    color: #f4f7f5 !important;
+    border: 1px solid rgba(232,193,112,0.45) !important;
+    border-radius: 16px !important;
+    padding: 18px 24px !important;
+    font-family: 'Geist', -apple-system, system-ui, sans-serif !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.045em !important;
+    text-transform: none !important;
+    width: 100% !important;
+    margin-top: 14px !important;
+    box-shadow:
+        0 22px 44px -18px rgba(31,150,89,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        inset 0 -1px 0 rgba(0,0,0,0.12),
+        inset 0 0 0 1px rgba(232,193,112,0.18) !important;
+    animation: none !important;
+    transition:
+        transform 0.18s cubic-bezier(.34,1.4,.64,1),
+        box-shadow 0.22s ease,
+        background 0.22s ease !important;
+}
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]:hover,
+[class*="st-key-tp_action_"] button[data-testid="baseButton-primary"]:hover,
+[class*="st-key-tp_action_"] [data-testid="stBaseButton-primary"]:hover {
+    background: linear-gradient(180deg, #38cc7c 0%, #25a262 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(232,193,112,0.65) !important;
+    transform: translateY(-2px) !important;
+    box-shadow:
+        0 26px 52px -16px rgba(31,150,89,0.65),
+        inset 0 1px 0 rgba(255,255,255,0.28),
+        inset 0 -1px 0 rgba(0,0,0,0.14),
+        inset 0 0 0 1px rgba(232,193,112,0.32) !important;
+}
+[class*="st-key-tp_action_"] .stButton > button[kind="primary"]:active {
+    transform: translateY(0) scale(0.985) !important;
+    transition-duration: 100ms !important;
+}
+
+/* ---- Secondary buttons inside the action row (Mark as not done) ---- */
+[class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]) {
+    background: transparent !important;
+    border: 0 !important;
+    color: rgba(244,239,230,0.58) !important;
+    font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 10.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.20em !important;
+    text-transform: uppercase !important;
+    padding: 8px 6px !important;
+    box-shadow: none !important;
+    width: auto !important;
+    margin-top: 8px !important;
+}
+[class*="st-key-tp_action_"] .stButton > button:not([kind="primary"]):hover {
+    color: #E64530 !important;
+    background: transparent !important;
+}
+
+/* ---- Reps preset chips (radio styled as horizontal pills) ---- */
+[class*="st-key-tp_action_"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin: 4px 0 6px !important;
+}
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label {
+    background: rgba(0,0,0,0.30) !important;
+    border: 1px solid rgba(244,239,230,0.08) !important;
+    border-radius: 999px !important;
+    padding: 9px 16px !important;
+    margin: 0 !important;
+    cursor: pointer;
+    flex: 0 0 auto !important;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        color 0.18s ease;
+}
+/* Hide native radio circle */
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label p,
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label > div:last-child {
+    font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
+    color: rgba(244,239,230,0.82) !important;
+    text-transform: none !important;
+    margin: 0 !important;
+}
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label:hover {
+    border-color: rgba(244,239,230,0.16) !important;
+    background: rgba(255,255,255,0.030) !important;
+}
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) {
+    border-color: rgba(232,193,112,0.32) !important;
+    background: rgba(232,193,112,0.10) !important;
+}
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) p,
+[class*="st-key-tp_action_"] div[role="radiogroup"] > label:has(input:checked) > div:last-child {
+    color: #E8C170 !important;
+}
+/* "Reps logged" label above the chip row */
+[class*="st-key-tp_action_"] [data-testid="stRadio"] > label {
+    font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    color: rgba(244,239,230,0.58) !important;
+    margin-bottom: 8px !important;
+}
+[class*="st-key-tp_action_"] [data-testid="stRadio"] > label p {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    letter-spacing: inherit !important;
+    text-transform: inherit !important;
+    color: inherit !important;
+    margin: 0 !important;
+}
+
+/* ---- Drill card / how-to / coach notes — already use unique classes,
+   but force the unscoped versions in case the same .tp-shell issue
+   prevented v4 styling too. ---- */
+.dt-drill {
+    padding: 1.6rem 1.8rem 1.4rem !important;
+    border-radius: 22px !important;
+}
+.dt-drill.is-done {
+    border-color: rgba(74,227,140,0.34) !important;
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(74,227,140,0.10) 0%, transparent 60%),
+        rgba(255,255,255,0.030) !important;
+}
+.dt-drill-name {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: -0.015em !important;
+}
+.dt-drill-num {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    color: #E8C170 !important;
+    font-size: 1.65rem !important;
+    letter-spacing: -0.02em !important;
+}
+.dt-drill-reps {
+    background: rgba(232,193,112,0.08) !important;
+    border-color: rgba(232,193,112,0.32) !important;
+    color: #E8C170 !important;
+}
+.dt-role.is-primary {
+    background: rgba(230,69,48,0.10) !important;
+    border-color: rgba(230,69,48,0.32) !important;
+    color: #E64530 !important;
+}
+.dt-coach {
+    border-radius: 18px !important;
+    border: 1px solid rgba(232,193,112,0.32) !important;
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.030), rgba(255,255,255,0.010)) !important;
+    padding: 1.3rem 1.4rem 1.2rem !important;
+}
+.dt-coach-eyebrow { color: #E8C170 !important; }
+.dt-coach-body {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-size: 1.06rem !important;
+    line-height: 1.6 !important;
+    color: rgba(244,239,230,0.82) !important;
+}
+
+/* Hero stitch eyebrow goes neutral; signature variant keeps the red. */
+.tp-eyebrow {
+    color: rgba(244,239,230,0.58) !important;
+}
+.tp-eyebrow .stitch {
+    background: rgba(244,239,230,0.34) !important;
+}
+.tp-eyebrow.is-signature {
+    color: #E64530 !important;
+}
+.tp-eyebrow.is-signature .stitch {
+    background: #E64530 !important;
+    opacity: 0.85;
+}
+
+/* Category priority pill goes bone (was red). */
+.dt-cat-priority-pill {
+    color: rgba(244,239,230,0.82) !important;
+    background: rgba(244,239,230,0.04) !important;
+    border-color: rgba(244,239,230,0.16) !important;
+}
+
+/* Progress card: gold ring, calm surface. */
+.dt-progress-card {
+    background:
+        radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.05) 0%, transparent 65%),
+        rgba(255,255,255,0.022) !important;
+    border-radius: 20px !important;
+}
+.dt-ring-fill {
+    stroke: #E8C170 !important;
+    filter: drop-shadow(0 0 14px rgba(232,193,112,0.55)) !important;
+}
+.dt-ring-pct {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+}
+.dt-progress-meta-title {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    font-size: 1.6rem !important;
+}
+.dt-stat-num.is-red { color: #E8C170 !important; }
 </style>
 """
 
@@ -4790,7 +5109,7 @@ def render_development_tracker():
                 st.markdown(summary_html, unsafe_allow_html=True)
                 # Small undo affordance — wrapped in a keyed container so
                 # the v4 CSS reaches it.
-                with st.container(key=f"tp_action_{drill_id}"):
+                with st.container(key=f"tp_action_{drill_counter:02d}"):
                     if st.button(
                         "Mark as not done",
                         key=undo_key,
@@ -4833,7 +5152,7 @@ def render_development_tracker():
                 # Action row — reps presets (radio styled as chips) +
                 # Custom branch that reveals the text field, then the
                 # premium "Complete Drill" CTA.
-                with st.container(key=f"tp_action_{drill_id}"):
+                with st.container(key=f"tp_action_{drill_counter:02d}"):
                     # Initial reps value — restore from saved log if
                     # this is a returning render, otherwise default to
                     # the drill's "suggested" reps.
