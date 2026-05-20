@@ -1,50 +1,51 @@
-"""BarrelLabs · Premium authentication experience.
+"""BarrelLabs · Premium authentication experience (v2 — substantial rework).
 
-Split-screen Ferrari/F1/Driveline/TrackMan/Statcast inspired login and
-signup. Replaces the inline `render_auth_screen()` / `render_recovery_screen()`
-that used to live in `app.py`.
+What changed from v1
+--------------------
+v1 had four structural problems caught in user review:
+1. The .au-card-frame "glass card" was opened/closed via raw
+   st.markdown('<div>') and Streamlit 1.57 auto-closed both into empty
+   sibling nodes — the card chrome rendered around NOTHING; the
+   widgets sat outside it. Now the card is a real
+   st.container(key="auth_card") so the widgets are descendants and
+   .st-key-auth_card actually wraps them.
+2. .st-key-auth_hero + .st-key-auth_panel each used
+   `min-height: 100vh; justify-content: space-between` which slammed
+   content to the top and bottom of each panel, leaving a vast dead
+   band in the middle. Both panels are now `justify-content: center`
+   with the content stack as a single nested column — vertical
+   centering is real, and the auth card is the page's focal point.
+3. A 1-px gradient stroke at the right edge of the hero pseudo'd in a
+   "divider line." Removed entirely. The two panels share a
+   continuous body background so the seam is invisible.
+4. The testimonial author was hard to read at narrow widths — the
+   "TRAVIS K." cite block visually compressed into a vertical strip.
+   The testimonial is now a real horizontal quote card with an
+   initials avatar, a name line, and a "Travel SS · Class of '27"
+   meta line — no thin-strip layout possible.
 
-Design language
----------------
-- Ink (#0A0B0E) + charcoal panels with subtle red (#E64530) and gold
-  (#E8C170) accents.
-- Instrument Serif italic display, Geist sans body, Geist Mono labels.
-- LEFT: cinematic hero panel with the BarrelLabs mark, the primary
-  message "Find Your MLB Swing Twin.", a 5-step feature ladder, and an
-  athlete-style testimonial pull.
-- RIGHT: glass auth card with a premium segmented Sign-In / Create-
-  Account toggle, password show/hide, Remember Me, Forgot-Password,
-  Google placeholder, and a single primary CTA per mode.
+Plus:
+- Page max-width capped at 1480 so on 4K monitors the design stays
+  tight, but the surrounding atmosphere (gradients) covers the full
+  viewport so it never looks confined.
+- Subtle baseball motif: a strike-zone grid + a swept bat-path arc
+  painted as SVG behind the hero content at ~5% opacity.
+- 52/48 desktop proportions with a content stack capped at 580 (hero)
+  and 460 (panel). The card itself caps at 420.
+- 5 feature rows tightened to 4 lines of copy each (denser, less air).
+- Auth card chrome simplified to one glass surface with a single
+  gold→red top edge; all the previous decorative bits (extra border,
+  inner highlight, multiple shadows) collapsed into one.
 
-Auth wiring preserved verbatim
-------------------------------
-- `player_storage.authenticate(email, password)` → profile dict | None
-- `player_storage.create_account(name, email, password, handedness,
-   height_in, weight_lb)` → profile dict
-- `auth.request_password_reset(email)`
-- `auth.consume_recovery_url(access_token, refresh_token)`
-- `auth.consume_recovery_token_hash(token_hash)`
-- `auth.update_password(new_password)`
-- Recovery JS shim + token_hash + access_token URL detection (still
-  lives in `app.py` next to `st.query_params` — this module does NOT
-  touch the URL).
-- All session-state flags untouched:
-  `st.session_state.user`, `auth_mode == "forgot"`,
-  `recovery_mode`, `pasted_reset_url`, `su_pw / su_pw2`, etc.
-
-Streamlit 1.57 layout pattern
------------------------------
-We follow the same `st.container(key=…)` + `display:contents` flattening
-pattern the masthead and player-settings page use:
-
-1. One root keyed container `.st-key-auth_root` — the page surface.
-2. Two keyed siblings inside: `.st-key-auth_hero` and
-   `.st-key-auth_panel`.
-3. The intermediate `stVerticalBlock` is collapsed with
-   `display:contents` so hero and panel sit as direct grid items.
-4. Every widget reskin (text-input, button, checkbox) is scoped under
-   `.st-key-auth_panel` so it never leaks into the masthead or any
-   authenticated page.
+Wiring (unchanged)
+------------------
+- player_storage.authenticate(email, password)
+- player_storage.create_account(name, email, password, handedness,
+                                height_in, weight_lb)
+- auth.request_password_reset / consume_recovery_url /
+  consume_recovery_token_hash / update_password
+- Session flags: st.session_state.user, auth_mode, recovery_mode
+- Recovery JS hash→query shim lives in app.py (untouched)
 """
 
 from __future__ import annotations
@@ -54,28 +55,21 @@ from typing import Optional
 
 import streamlit as st
 
-# Re-use the masthead's logo helper so the auth screen always paints the
-# same official PNG — never a fallback dot when one of the two pages
-# can't find the asset.
 try:
     from bl_edge_chrome import _logo_data_uri as _bl_logo_data_uri
-except Exception:  # pragma: no cover — defensive, bl_edge_chrome is always importable
+except Exception:  # pragma: no cover
     def _bl_logo_data_uri() -> str:
         return ""
 
 
 # =====================================================================
-# CSS — every selector scoped under .st-key-auth_root or
-# .st-key-auth_panel so this module cannot leak into authenticated
-# pages. The reskins use the same `!important` discipline as the
-# masthead because Streamlit 1.57 default chrome wins on specificity
-# without it.
+# CSS
 # =====================================================================
 _AUTH_CSS = r"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
-/* ------- Tokens (re-declared so this page is fully self-contained -- */
+/* ============ Tokens ============ */
 .st-key-auth_root {
   --au-ink:        #0A0B0E;
   --au-ink-2:      #0D0F13;
@@ -84,15 +78,15 @@ _AUTH_CSS = r"""
   --au-bone:       #F4EFE6;
   --au-bone-warm:  #F8F2E0;
   --au-bone-80:    rgba(244,239,230,0.82);
-  --au-bone-60:    rgba(244,239,230,0.60);
-  --au-bone-40:    rgba(244,239,230,0.36);
-  --au-bone-20:    rgba(244,239,230,0.18);
+  --au-bone-60:    rgba(244,239,230,0.58);
+  --au-bone-40:    rgba(244,239,230,0.34);
+  --au-bone-20:    rgba(244,239,230,0.16);
   --au-glass-1:    rgba(255,255,255,0.025);
   --au-glass-2:    rgba(255,255,255,0.045);
-  --au-glass-3:    rgba(255,255,255,0.07);
-  --au-line:       rgba(244,239,230,0.08);
-  --au-line-hi:    rgba(244,239,230,0.16);
-  --au-line-hi-2:  rgba(244,239,230,0.24);
+  --au-glass-3:    rgba(255,255,255,0.08);
+  --au-line:       rgba(244,239,230,0.075);
+  --au-line-hi:    rgba(244,239,230,0.14);
+  --au-line-hi-2:  rgba(244,239,230,0.22);
   --au-red:        #E64530;
   --au-red-deep:   #C53620;
   --au-red-soft:   rgba(230,69,48,0.12);
@@ -112,9 +106,7 @@ _AUTH_CSS = r"""
   --au-ease-snap:  cubic-bezier(.34,1.4,.64,1);
 }
 
-/* ------- Streamlit chrome erasure (no header, no toolbar, no top pad)
-   Scoped via the page-root selector so the moment the auth screen
-   exits these rules detach. */
+/* ============ Streamlit chrome erasure ============ */
 html, body,
 [data-testid="stApp"],
 [data-testid="stAppViewContainer"],
@@ -122,6 +114,17 @@ html, body,
 [data-testid="stMainBlockContainer"],
 .block-container {
   background: #0A0B0E !important;
+}
+[data-testid="stApp"] {
+  /* One continuous background. NO seam, NO divider between panels —
+     the gradients overlap in the middle so the eye reads a single
+     surface with two warm centers. */
+  background:
+    radial-gradient(1200px 800px at 22% 22%, rgba(232,193,112,0.075), transparent 60%),
+    radial-gradient(1100px 800px at 78% 78%, rgba(230,69,48,0.055), transparent 60%),
+    radial-gradient(1400px 900px at 50% 50%, rgba(20,23,28,0.45), transparent 70%),
+    linear-gradient(180deg, #0A0B0E 0%, #0E1116 100%) !important;
+  overflow-x: hidden !important;
 }
 [data-testid="stHeader"],
 [data-testid="stAppHeader"],
@@ -142,95 +145,115 @@ html, body,
 [data-testid="stMain"] [data-testid="stElementContainer"] {
   margin: 0 !important;
 }
-[data-testid="stApp"] {
-  overflow-x: hidden !important;
-}
 
-/* ------- Cinematic ambient background -------------------------------
-   Two radial glows + a thin film-grain SVG noise. Fixed so it stays
-   in place during scroll on smaller windows. */
-.auth-atmos {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(900px 700px at 14% 6%, rgba(232,193,112,0.06), transparent 60%),
-    radial-gradient(800px 600px at 88% 96%, rgba(230,69,48,0.045), transparent 60%),
-    radial-gradient(1400px 900px at 50% 50%, rgba(20,23,28,0.55), transparent 70%);
-}
+/* ============ Cinematic ambient layers (page-wide) ============ */
 .auth-grain {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  opacity: 0.035; mix-blend-mode: overlay;
+  opacity: 0.04; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
 }
+/* Brand mark stamped at the page's top-left so it doesn't take up
+   space in the hero content stack. */
+.au-brand-fixed {
+  position: fixed; top: 28px; left: 32px; z-index: 10;
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--au-sans); font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase; font-size: 12px;
+  color: var(--au-bone);
+}
+.au-brand-fixed img {
+  width: 30px; height: 30px; object-fit: contain; display: block;
+}
+.au-brand-fixed .sl { color: #3A3D44; margin: 0 6px; font-weight: 300; }
+.au-brand-fixed .ed {
+  font-family: var(--au-serif); font-style: italic; font-weight: 400;
+  font-size: 16px; letter-spacing: 0; text-transform: none;
+  color: #8B8E94;
+}
 
-/* ====================================================================
-   ROOT GRID — .st-key-auth_root holds the two-pane split. The inner
-   stVerticalBlock is collapsed with display:contents so hero + panel
-   land as direct grid children. (Same pattern the masthead uses.)
-   ==================================================================== */
+/* ============ Root grid — capped on 4K, dead center the design ============ */
 .st-key-auth_root {
   position: relative; z-index: 2;
   min-height: 100vh;
+  max-width: 1480px;
+  margin: 0 auto;
   display: grid !important;
-  grid-template-columns: minmax(0, 1.05fr) minmax(460px, 0.95fr);
+  grid-template-columns: 52fr 48fr;
   gap: 0;
   color: var(--au-bone);
   font-family: var(--au-sans);
 }
-.st-key-auth_root > div[data-testid="stVerticalBlock"] {
-  display: contents !important;
-}
-.st-key-auth_root > div[data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] {
-  margin: 0 !important;
-}
+/* No vertical divider, no border-right anywhere. */
 
-/* ====================================================================
-   LEFT HERO PANEL — .st-key-auth_hero
-   Cinematic editorial column with brand mark, eyebrow, massive
-   italic display headline, sub copy, feature ladder, testimonial.
-   ==================================================================== */
+/* ============ LEFT HERO PANEL ============ */
 .st-key-auth_hero {
   position: relative;
-  min-height: 100vh;
-  padding: 56px 64px 56px;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: space-between !important;
-  background:
-    radial-gradient(900px 500px at -10% 110%, rgba(230,69,48,0.08), transparent 60%),
-    radial-gradient(700px 700px at 90% -20%, rgba(232,193,112,0.06), transparent 60%),
-    linear-gradient(180deg, #0A0B0E 0%, #0D0F13 100%);
-  border-right: 1px solid var(--au-line);
+  justify-content: center !important;
+  align-items: flex-start !important;
+  padding: 100px 56px 80px !important;
+  min-height: 100vh;
   overflow: hidden;
 }
-.st-key-auth_hero > div[data-testid="stVerticalBlock"] {
-  display: contents !important;
-}
-/* a thin diagonal accent line — telemetry strip vibe */
-.st-key-auth_hero::before {
-  content: ""; position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg,
-    transparent 0%, var(--au-gold-line) 24%,
-    var(--au-red-line) 76%, transparent 100%);
-  opacity: 0.55;
-  pointer-events: none;
+.st-key-auth_hero [data-testid="stLayoutWrapper"] {
+  width: 100% !important;
 }
 
-.au-brand {
-  display: flex; align-items: center; gap: 14px;
-  font-family: var(--au-sans); font-weight: 600;
-  letter-spacing: 0.22em; text-transform: uppercase; font-size: 13px;
-  color: var(--au-bone);
+/* Subtle baseball motifs — strike zone grid in the upper-right, swept
+   bat-path arc rising from bottom-left. Both at ~5% opacity, layered
+   behind the content (z-index:0; content gets z-index:1). */
+.au-motif {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  overflow: hidden;
 }
-.au-brand img {
-  width: 34px; height: 34px; object-fit: contain; display: block;
+.au-motif::before {
+  /* Strike-zone grid — 3 vertical + 3 horizontal lines forming a
+     3×3 strike zone roughly in the upper-right quadrant. */
+  content: ""; position: absolute;
+  top: 14%; right: 8%;
+  width: 280px; height: 360px;
+  background-image:
+    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(90deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%),
+    linear-gradient(0deg, transparent 0%, var(--au-bone-20) 50%, transparent 100%);
+  background-size:
+    100% 1px, 100% 1px, 100% 1px, 100% 1px,
+    1px 100%, 1px 100%, 1px 100%, 1px 100%;
+  background-position:
+    0 0, 0 33.3%, 0 66.6%, 0 100%,
+    0 0, 33.3% 0, 66.6% 0, 100% 0;
+  background-repeat: no-repeat;
+  opacity: 0.55;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
 }
-.au-brand .sl { color: #3A3D44; margin: 0 8px; font-weight: 300; }
-.au-brand .ed {
-  font-family: var(--au-serif); font-style: italic; font-weight: 400;
-  font-size: 18px; letter-spacing: 0; text-transform: none;
-  color: #8B8E94;
+.au-motif::after {
+  /* Swept bat-path arc — a soft curved glow from bottom-left rising
+     to upper-mid, hinting at swing trajectory without being literal. */
+  content: ""; position: absolute;
+  left: -10%; bottom: -20%;
+  width: 90%; height: 90%;
+  background:
+    radial-gradient(60% 80% at 0% 100%, rgba(232,193,112,0.10), transparent 60%),
+    radial-gradient(50% 70% at 30% 70%, rgba(230,69,48,0.06), transparent 60%);
+  filter: blur(8px);
+  opacity: 0.85;
+  transform: rotate(-12deg);
+}
+
+/* Hero content column — caps at 560 so the design stays composed even
+   on ultra-wide screens. Centered horizontally within the panel. */
+.au-content {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 560px;
+  display: flex; flex-direction: column;
+  gap: 22px;
 }
 
 .au-eyebrow {
@@ -238,7 +261,7 @@ html, body,
   letter-spacing: 0.30em; text-transform: uppercase;
   color: var(--au-red);
   display: inline-flex; align-items: center; gap: 9px;
-  margin-top: 64px;
+  margin: 0;
 }
 .au-eyebrow::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%;
@@ -252,9 +275,9 @@ html, body,
 
 .au-title {
   font-family: var(--au-serif); font-style: italic;
-  font-size: clamp(3rem, 5.4vw, 5.4rem); line-height: 0.98;
+  font-size: clamp(2.6rem, 4.6vw, 4.6rem); line-height: 0.98;
   letter-spacing: -0.022em; color: var(--au-bone);
-  margin: 24px 0 22px;
+  margin: 0;
 }
 .au-title .twin {
   background: linear-gradient(90deg, var(--au-gold) 0%, var(--au-red) 100%);
@@ -266,95 +289,126 @@ html, body,
 .au-sub {
   color: var(--au-bone-60);
   font-family: var(--au-sans);
-  font-size: 15.5px; line-height: 1.6;
-  max-width: 540px; margin: 0 0 28px;
+  font-size: 15px; line-height: 1.55;
+  margin: 0;
 }
 
-/* feature ladder — 5 rows with numbered chips */
+/* Feature ladder — compact 4-row grid (instead of 5). Each row is a
+   one-line heading + a one-line body, making the stack visibly
+   denser. The 5th feature (Track progress) folds into the
+   testimonial's meta line below. */
 .au-ladder {
-  display: grid; gap: 14px;
-  margin-top: 8px;
+  display: grid; gap: 10px;
+  margin-top: 4px;
 }
 .au-row {
-  display: grid; grid-template-columns: 36px 1fr; gap: 18px;
-  align-items: start;
-  padding: 12px 14px;
+  display: grid; grid-template-columns: 32px 1fr; gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
   border-radius: var(--au-r-mid);
   background: var(--au-glass-1);
   border: 1px solid var(--au-line);
   transition: border-color .22s var(--au-ease-soft),
-              background .22s var(--au-ease-soft),
-              transform .22s var(--au-ease-soft);
+              background .22s var(--au-ease-soft);
 }
 .au-row:hover {
   border-color: var(--au-line-hi);
   background: var(--au-glass-2);
-  transform: translateX(2px);
 }
 .au-row .au-num {
-  font-family: var(--au-mono); font-size: 10.5px; font-weight: 700;
-  letter-spacing: 0.10em;
-  width: 36px; height: 36px; border-radius: 9px;
+  font-family: var(--au-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em;
+  width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   color: var(--au-gold);
   background: var(--au-gold-soft);
   border: 1px solid var(--au-gold-line);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .au-row strong {
   display: block;
-  font-family: var(--au-sans); font-size: 14.5px; font-weight: 600;
-  color: var(--au-bone-warm); margin-bottom: 3px;
+  font-family: var(--au-sans); font-size: 13.5px; font-weight: 600;
+  color: var(--au-bone-warm);
   letter-spacing: -0.005em;
+  line-height: 1.1;
 }
 .au-row span {
   display: block;
-  color: var(--au-bone-60); font-size: 13px; line-height: 1.5;
+  color: var(--au-bone-60); font-size: 12px; line-height: 1.4;
+  margin-top: 2px;
 }
 
-/* testimonial pull — italic editorial quote with red marker */
-.au-quote {
-  margin-top: 36px; padding-top: 28px;
-  border-top: 1px solid var(--au-line);
-  display: grid; grid-template-columns: 4px 1fr; gap: 18px;
-  align-items: start;
+/* Testimonial — REAL horizontal quote card with an initials avatar
+   (gold-gradient circle), the quote, a name line, and the meta
+   ("Travel SS · Class of '27"). No more thin vertical cite strip. */
+.au-quote-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border-radius: var(--au-r-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border: 1px solid var(--au-line-hi);
+  position: relative;
+  margin-top: 4px;
 }
-.au-quote::before {
-  content: ""; width: 3px; background: linear-gradient(180deg,
-    var(--au-red), var(--au-gold));
-  border-radius: 2px; align-self: stretch;
-}
-.au-quote q {
+.au-quote-card::before {
+  /* faint editorial "open quote" mark glowing in the upper-left */
+  content: "“";
+  position: absolute; top: -12px; left: 18px;
   font-family: var(--au-serif); font-style: italic;
-  font-size: 17.5px; line-height: 1.45;
+  font-size: 4.2rem; line-height: 1; color: var(--au-gold);
+  opacity: 0.35;
+  pointer-events: none;
+}
+.au-quote-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--au-serif); font-style: italic;
+  font-size: 1.4rem; color: var(--au-bone-warm);
+  background: radial-gradient(120% 80% at 30% 20%,
+              rgba(232,193,112,0.34) 0%,
+              rgba(230,69,48,0.18) 60%,
+              #14171C 100%);
+  border: 1px solid var(--au-gold-line);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 -1px 0 rgba(0,0,0,0.35);
+  flex: none;
+}
+.au-quote-body { min-width: 0; }
+.au-quote-text {
+  font-family: var(--au-serif); font-style: italic;
+  font-size: 14.5px; line-height: 1.45;
   color: var(--au-bone-warm);
-  quotes: "“" "”";
-  display: block;
+  margin: 0 0 8px;
 }
-.au-quote q::before { content: open-quote; opacity: 0.5; margin-right: 4px; }
-.au-quote q::after  { content: close-quote; opacity: 0.5; margin-left: 4px; }
-.au-quote cite {
-  display: block;
-  font-family: var(--au-mono); font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--au-bone-40);
-  margin-top: 10px; font-style: normal;
+.au-quote-name {
+  font-family: var(--au-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--au-bone-warm);
+  margin: 0;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
-.au-quote cite em {
-  color: var(--au-gold); font-style: normal;
-  font-weight: 700; margin-right: 6px;
+.au-quote-name .meta {
+  color: var(--au-bone-40); font-weight: 500;
+  letter-spacing: 0.14em;
+}
+.au-quote-name .meta::before {
+  content: "·"; margin-right: 8px; color: var(--au-bone-40);
 }
 
-/* footer telemetry strip — three KPIs with mono labels */
+/* Stats row — three KPIs directly below the testimonial. */
 .au-tele {
   display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 0; margin-top: 36px;
-  border-top: 1px solid var(--au-line);
-  padding-top: 22px;
+  gap: 0;
+  padding-top: 8px;
 }
 .au-tele > div {
   position: relative;
-  padding: 0 18px;
+  padding: 0 16px;
 }
 .au-tele > div + div::before {
   content: ""; position: absolute; left: 0; top: 4px; bottom: 4px;
@@ -363,87 +417,88 @@ html, body,
 .au-tele > div:first-child { padding-left: 0; }
 .au-tele .v {
   font-family: var(--au-serif); font-style: italic;
-  font-size: 1.9rem; line-height: 1; color: var(--au-bone);
+  font-size: 1.7rem; line-height: 1; color: var(--au-bone);
   letter-spacing: -0.012em;
 }
 .au-tele .v .u {
-  font-family: var(--au-mono); font-style: normal; font-size: 11px;
+  font-family: var(--au-mono); font-style: normal; font-size: 10.5px;
   font-weight: 600; letter-spacing: 0.18em;
   color: var(--au-bone-60); text-transform: uppercase;
   margin-left: 6px;
 }
 .au-tele .l {
-  font-family: var(--au-mono); font-size: 10px; font-weight: 600;
+  font-family: var(--au-mono); font-size: 9.5px; font-weight: 600;
   letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--au-bone-40);
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-/* ====================================================================
-   RIGHT AUTH PANEL — .st-key-auth_panel
-   Vertically-centered glass card containing the toggle + form widgets.
-   ==================================================================== */
+/* ============ RIGHT AUTH PANEL ============ */
 .st-key-auth_panel {
   position: relative;
-  min-height: 100vh;
-  padding: 56px 64px;
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
   justify-content: center !important;
-  background:
-    radial-gradient(700px 500px at 100% 0%, rgba(232,193,112,0.05), transparent 65%),
-    radial-gradient(800px 700px at 0% 100%, rgba(230,69,48,0.04), transparent 65%),
-    linear-gradient(180deg, #0B0D11 0%, #0E1116 100%);
+  align-items: center !important;
+  padding: 80px 56px 80px !important;
+  min-height: 100vh;
 }
-/* The panel itself is the stVerticalBlock keyed container (ST 1.57
-   gotcha — see toggle comment above). Layout wrappers around each
-   child get the max-width treatment so the form column is a clean
-   460px stack centered in the panel. */
+/* The single LayoutWrapper holding the auth_card keyed container —
+   constrain it so the card sits at 440px even though the panel is
+   wider. */
 .st-key-auth_panel > [data-testid="stLayoutWrapper"] {
-  width: 100% !important; max-width: 460px !important;
+  width: 100% !important; max-width: 440px !important;
   flex: 0 0 auto !important;
 }
-.st-key-auth_panel [data-testid="stElementContainer"] {
-  margin: 0 !important;
-}
 
-/* Glass card surface — a single conceptual card; the segmented toggle
-   sits inside it, then the form, then footer chips. We don't wrap the
-   widgets in a real container — instead we paint the card on the
-   panel's wrapping flex column via a pseudo-element so widgets can stay
-   plain vertical-block children. */
-.au-card-frame {
+/* ============ AUTH CARD — REAL keyed container wrapping widgets ============
+   Previous bug: I tried `st.markdown('<div class="au-card-frame">')`
+   to open a card wrapper, but Streamlit 1.57 auto-closes it into an
+   empty sibling, so the card chrome rendered around nothing. Now
+   .st-key-auth_card is a real st.container(key=…) — the widgets
+   below it ARE descendants — and the glass-surface CSS lands. */
+.st-key-auth_card {
   position: relative;
-  padding: 36px 36px 30px;
-  border-radius: var(--au-r-card);
+  width: 100% !important;
+  padding: 32px 32px 26px !important;
+  border-radius: var(--au-r-card) !important;
   background:
-    linear-gradient(180deg, rgba(20,23,28,0.78) 0%, rgba(13,15,19,0.88) 100%);
+    linear-gradient(180deg, rgba(20,23,28,0.78) 0%, rgba(13,15,19,0.92) 100%) !important;
   -webkit-backdrop-filter: blur(22px) saturate(1.2);
   backdrop-filter: blur(22px) saturate(1.2);
-  border: 1px solid var(--au-line-hi);
+  border: 1px solid var(--au-line-hi) !important;
   box-shadow:
-    0 32px 60px -20px rgba(0,0,0,0.65),
-    inset 0 1px 0 rgba(255,255,255,0.05);
-  overflow: hidden;
+    0 30px 60px -24px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  overflow: visible !important;
 }
-.au-card-frame::before {
-  /* top edge highlight — gold→red gradient like the savestrip */
+.st-key-auth_card::before {
+  /* gold→red top-edge gradient stroke (the only decorative
+     pseudo-element on the card — everything else is solid) */
   content: ""; position: absolute;
-  left: 24px; right: 24px; top: 0; height: 1.5px;
+  left: 32px; right: 32px; top: 0; height: 1.5px;
   background: linear-gradient(90deg,
     transparent 0%, var(--au-gold) 30%,
     var(--au-red) 70%, transparent 100%);
-  opacity: 0.85;
+  opacity: 0.9;
   border-radius: 1px;
+  pointer-events: none;
+}
+/* Tight gap inside the card */
+.st-key-auth_card > [data-testid="stLayoutWrapper"] {
+  width: 100% !important;
+}
+.st-key-auth_card [data-testid="stElementContainer"] {
+  margin-top: 0 !important; margin-bottom: 0 !important;
 }
 
+/* ============ Card eyebrow / title / sub ============ */
 .au-card-eyebrow {
-  font-family: var(--au-mono); font-size: 10.5px; font-weight: 600;
+  font-family: var(--au-mono); font-size: 10px; font-weight: 600;
   letter-spacing: 0.26em; text-transform: uppercase;
   color: var(--au-gold);
   display: inline-flex; align-items: center; gap: 8px;
-  margin: 0 0 12px;
+  margin: 4px 0 8px;
 }
 .au-card-eyebrow::before {
   content: ""; width: 5px; height: 5px; border-radius: 50%;
@@ -451,33 +506,17 @@ html, body,
 }
 .au-card-title {
   font-family: var(--au-serif); font-style: italic;
-  font-size: 2.2rem; line-height: 1.02;
+  font-size: 1.95rem; line-height: 1.0;
   letter-spacing: -0.015em; color: var(--au-bone);
   margin: 0 0 6px;
 }
 .au-card-sub {
   color: var(--au-bone-60);
-  font-size: 13.5px; line-height: 1.5;
-  margin: 0 0 22px;
+  font-size: 13px; line-height: 1.5;
+  margin: 0 0 16px;
 }
 
-/* segmented Sign In / Create Account toggle — uses two st.button widgets
-   inside a keyed container .st-key-auth_toggle.
-
-   ST 1.57 DOM gotcha (probed live, May 2026):
-     - st.container(key="X") emits a single <div class="stVerticalBlock
-       st-key-X" data-testid="stVerticalBlock">. The keyed container IS
-       the stVerticalBlock — there is NO outer stElementContainer wrap.
-     - Inside, st.columns produces:
-         stLayoutWrapper > stHorizontalBlock > stColumn > stVerticalBlock
-           > stElementContainer > stButton
-     - The default emotion CSS gives stVerticalBlock flex-direction:
-       column, so without an explicit row override every keyed
-       container that wants a horizontal layout inherits column and
-       its buttons stack vertically.
-   Therefore: explicit flex-direction:row + flatten *all* intermediate
-   layout-wrapper / horizontal-block / column / column's inner vblock
-   so the buttons land as direct flex items of the keyed container. */
+/* ============ Segmented toggle ============ */
 .st-key-auth_toggle {
   display: flex !important;
   flex-direction: row !important;
@@ -486,7 +525,7 @@ html, body,
   border-radius: var(--au-r-mid);
   padding: 4px;
   gap: 4px;
-  margin-bottom: 24px !important;
+  margin: 0 0 20px !important;
 }
 .st-key-auth_toggle [data-testid="stLayoutWrapper"],
 .st-key-auth_toggle [data-testid="stHorizontalBlock"],
@@ -508,16 +547,14 @@ html, body,
   font-family: var(--au-mono) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.16em !important;
   text-transform: uppercase !important;
   color: var(--au-bone-60) !important;
-  padding: 0.65rem 0.5rem !important;
+  padding: 0.55rem 0.5rem !important;
   position: relative !important;
-  min-height: 0 !important; height: auto !important;
-  line-height: 1.2 !important;
+  min-height: 0 !important; height: 36px !important; line-height: 1.2 !important;
   box-shadow: none !important;
-  transition: color .18s var(--au-ease-soft),
-              background .18s var(--au-ease-soft);
+  transition: color .18s, background .18s;
 }
 .st-key-auth_toggle [data-testid="stButton"] button:hover {
   color: var(--au-bone) !important;
@@ -534,12 +571,9 @@ html, body,
     inset 0 1px 0 rgba(255,255,255,0.10),
     inset 0 -1px 0 rgba(0,0,0,0.18) !important;
 }
-.st-key-auth_toggle [data-testid="stButton"]
-  button[kind="primary"]::after,
-.st-key-auth_toggle [data-testid="stButton"]
-  button[data-testid="stBaseButton-primary"]::after,
-.st-key-auth_toggle [data-testid="stButton"]
-  button[data-testid="baseButton-primary"]::after {
+.st-key-auth_toggle [data-testid="stButton"] button[kind="primary"]::after,
+.st-key-auth_toggle [data-testid="stButton"] button[data-testid="stBaseButton-primary"]::after,
+.st-key-auth_toggle [data-testid="stButton"] button[data-testid="baseButton-primary"]::after {
   content: ""; position: absolute;
   left: 16px; right: 16px; bottom: 4px;
   height: 1.5px; border-radius: 1px;
@@ -549,97 +583,97 @@ html, body,
   box-shadow: 0 0 10px -1px rgba(232,193,112,0.5);
 }
 
-/* ====================================================================
-   FORM WIDGETS — every reskin scoped to .st-key-auth_panel
-   ==================================================================== */
-.st-key-auth_panel [data-testid="stTextInput"] label,
-.st-key-auth_panel [data-testid="stNumberInput"] label,
-.st-key-auth_panel [data-testid="stSelectbox"] label,
-.st-key-auth_panel [data-testid="stTextArea"] label {
+/* ============ Form widgets ============ */
+.st-key-auth_card [data-testid="stTextInput"] label,
+.st-key-auth_card [data-testid="stNumberInput"] label,
+.st-key-auth_card [data-testid="stSelectbox"] label,
+.st-key-auth_card [data-testid="stTextArea"] label {
   font-family: var(--au-mono) !important;
-  font-size: 10px !important;
+  font-size: 9.5px !important;
   letter-spacing: 0.20em !important;
   text-transform: uppercase !important;
   color: var(--au-bone-60) !important;
   font-weight: 600 !important;
-  padding-bottom: 6px !important;
+  padding-bottom: 5px !important;
 }
-.st-key-auth_panel [data-testid="stTextInput"] input,
-.st-key-auth_panel [data-testid="stNumberInput"] input,
-.st-key-auth_panel [data-testid="stTextArea"] textarea {
+.st-key-auth_card [data-testid="stTextInput"] input,
+.st-key-auth_card [data-testid="stNumberInput"] input,
+.st-key-auth_card [data-testid="stTextArea"] textarea {
   background: var(--au-ink-2) !important;
   border: 1px solid var(--au-line-hi) !important;
   border-radius: var(--au-r-mid) !important;
   color: var(--au-bone) !important;
   font-family: var(--au-sans) !important;
-  font-size: 14.5px !important;
-  padding: 0.7rem 0.95rem !important;
-  transition: border-color .2s var(--au-ease-soft),
-              box-shadow .2s var(--au-ease-soft);
+  font-size: 14px !important;
+  padding: 0.65rem 0.9rem !important;
+  transition: border-color .2s, box-shadow .2s;
   caret-color: var(--au-gold) !important;
+  height: 44px !important;
+  box-sizing: border-box !important;
 }
-.st-key-auth_panel [data-testid="stTextInput"] input:focus,
-.st-key-auth_panel [data-testid="stNumberInput"] input:focus,
-.st-key-auth_panel [data-testid="stTextArea"] textarea:focus {
+.st-key-auth_card [data-testid="stTextInput"] input:focus,
+.st-key-auth_card [data-testid="stNumberInput"] input:focus,
+.st-key-auth_card [data-testid="stTextArea"] textarea:focus {
   border-color: var(--au-gold-line) !important;
   box-shadow: 0 0 0 3px rgba(232,193,112,0.12) !important;
   outline: none !important;
 }
-/* placeholder */
-.st-key-auth_panel input::placeholder,
-.st-key-auth_panel textarea::placeholder {
+.st-key-auth_card input::placeholder,
+.st-key-auth_card textarea::placeholder {
   color: var(--au-bone-40) !important;
   font-family: var(--au-sans) !important;
 }
-
-/* checkbox row — Remember Me + Show Password */
-.st-key-auth_panel [data-testid="stCheckbox"] label,
-.st-key-auth_panel [data-testid="stCheckbox"] p {
+.st-key-auth_card [data-testid="stCheckbox"] label,
+.st-key-auth_card [data-testid="stCheckbox"] p {
   font-family: var(--au-sans) !important;
-  font-size: 12.5px !important;
+  font-size: 12px !important;
   color: var(--au-bone-80) !important;
   font-weight: 500 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
 }
-
-/* hide native number-input spinners (signup height/weight columns) */
-.st-key-auth_panel [data-testid="stNumberInput"] button {
+.st-key-auth_card [data-testid="stNumberInput"] button {
   display: none !important;
 }
 
-/* ============= BUTTONS — base + primary CTA ========================= */
-.st-key-auth_panel [data-testid="stButton"] button,
-.st-key-auth_panel [data-testid="stDownloadButton"] button,
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button {
+/* form internals */
+.st-key-auth_card [data-testid="stForm"] {
+  border: none !important; padding: 0 !important; background: transparent !important;
+}
+.st-key-auth_card [data-testid="stForm"] [data-testid="stVerticalBlock"] {
+  gap: 12px !important;
+}
+.st-key-auth_card [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
+  gap: 10px !important;
+}
+
+/* ============ Buttons ============ */
+.st-key-auth_card [data-testid="stButton"] button,
+.st-key-auth_card [data-testid="stFormSubmitButton"] button {
   font-family: var(--au-sans) !important;
   font-weight: 500 !important;
   font-size: 13px !important;
   border-radius: var(--au-r-pill) !important;
-  padding: 0.7rem 1.2rem !important;
+  padding: 0.6rem 1.1rem !important;
   background: var(--au-glass-1) !important;
   color: var(--au-bone) !important;
   border: 1px solid var(--au-line-hi) !important;
-  transition: transform .18s var(--au-ease-soft),
-              border-color .18s var(--au-ease-soft),
-              background .18s var(--au-ease-soft),
-              color .18s var(--au-ease-soft),
-              box-shadow .18s var(--au-ease-soft);
+  transition: transform .18s, border-color .18s, background .18s,
+              box-shadow .18s;
   min-height: 0 !important; height: auto !important; line-height: 1.2 !important;
 }
-.st-key-auth_panel [data-testid="stButton"] button:hover,
-.st-key-auth_panel [data-testid="stDownloadButton"] button:hover,
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button:hover {
+.st-key-auth_card [data-testid="stButton"] button:hover,
+.st-key-auth_card [data-testid="stFormSubmitButton"] button:hover {
   border-color: var(--au-line-hi-2) !important;
   background: var(--au-glass-2) !important;
 }
-/* Primary CTA — red→deep-red with gold inset highlight + soft red glow */
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button[kind="primary"],
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primary"],
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button[data-testid="baseButton-primary"],
-.st-key-auth_panel [data-testid="stButton"] button[kind="primary"],
-.st-key-auth_panel [data-testid="stButton"] button[data-testid="stBaseButton-primary"],
-.st-key-auth_panel [data-testid="stButton"] button[data-testid="baseButton-primary"] {
+/* Primary CTA — the strongest visual on the page */
+.st-key-auth_card [data-testid="stFormSubmitButton"] button[kind="primary"],
+.st-key-auth_card [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primary"],
+.st-key-auth_card [data-testid="stFormSubmitButton"] button[data-testid="baseButton-primary"],
+.st-key-auth_card [data-testid="stButton"] button[kind="primary"],
+.st-key-auth_card [data-testid="stButton"] button[data-testid="stBaseButton-primary"],
+.st-key-auth_card [data-testid="stButton"] button[data-testid="baseButton-primary"] {
   background: linear-gradient(180deg, var(--au-red) 0%, var(--au-red-deep) 100%) !important;
   color: #FFFAF2 !important;
   font-weight: 600 !important;
@@ -654,10 +688,10 @@ html, body,
     inset 0 0 0 1px rgba(255,255,255,0.06),
     0 10px 24px -8px rgba(230,69,48,0.50),
     0 1px 0 rgba(255,255,255,0.04) !important;
-  margin-top: 6px !important;
+  margin-top: 4px !important;
 }
-.st-key-auth_panel [data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
-.st-key-auth_panel [data-testid="stButton"] button[kind="primary"]:hover {
+.st-key-auth_card [data-testid="stFormSubmitButton"] button[kind="primary"]:hover,
+.st-key-auth_card [data-testid="stButton"] button[kind="primary"]:hover {
   transform: translateY(-1px) !important;
   box-shadow:
     inset 0 1px 0 rgba(232,193,112,0.75),
@@ -666,45 +700,46 @@ html, body,
     0 14px 32px -8px rgba(230,69,48,0.62),
     0 0 28px -8px rgba(232,193,112,0.36) !important;
 }
-.st-key-auth_panel button:focus-visible {
+.st-key-auth_card button:focus-visible {
   outline: none !important;
   box-shadow:
     0 0 0 2px rgba(232,193,112,0.5),
     0 0 0 4px rgba(232,193,112,0.10) !important;
 }
 
-/* ============= Form internals =====================================*/
-.st-key-auth_panel [data-testid="stForm"] {
-  border: none !important; padding: 0 !important; background: transparent !important;
+/* Forgot-password link — quiet "ghost" treatment so it doesn't fight
+   the CTA for attention. Renders centered below the CTA. */
+.st-key-auth_card .st-key-forgot_btn [data-testid="stButton"] button,
+.st-key-auth_card .st-key-forgot_btn button {
+  background: transparent !important;
+  border: none !important;
+  color: var(--au-bone-60) !important;
+  font-family: var(--au-mono) !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  margin-top: 4px !important;
+  width: auto !important;
 }
-.st-key-auth_panel [data-testid="stForm"] [data-testid="stVerticalBlock"] {
-  gap: 14px !important;
+.st-key-forgot_btn {
+  display: flex !important; justify-content: center !important;
 }
-.st-key-auth_panel [data-testid="stForm"] [data-testid="stHorizontalBlock"] {
-  gap: 12px !important;
+.st-key-forgot_btn [data-testid="stButton"] button:hover {
+  color: var(--au-gold) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
-
-/* options row beneath password — Remember Me / Forgot Password */
-.au-opts {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; margin: 4px 0 8px;
-  font-family: var(--au-sans);
-}
-.au-forgot {
-  font-family: var(--au-mono); font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--au-bone-60);
-  cursor: pointer;
-}
-.au-forgot:hover { color: var(--au-gold); }
 
 /* Google placeholder + divider */
 .au-divider {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center; gap: 12px;
   font-family: var(--au-mono); font-size: 10px; font-weight: 600;
   letter-spacing: 0.20em; text-transform: uppercase;
   color: var(--au-bone-40);
-  margin: 20px 0 16px;
+  margin: 16px 0 12px;
 }
 .au-divider::before,
 .au-divider::after {
@@ -714,7 +749,7 @@ html, body,
 .au-google {
   width: 100%;
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  height: 44px;
+  height: 42px;
   padding: 0 18px;
   border-radius: var(--au-r-pill);
   background: var(--au-glass-1);
@@ -723,7 +758,7 @@ html, body,
   font-family: var(--au-sans); font-weight: 500; font-size: 13px;
   cursor: not-allowed;
   letter-spacing: 0.01em;
-  transition: border-color .18s var(--au-ease-soft);
+  transition: border-color .18s;
 }
 .au-google:hover { border-color: var(--au-line-hi-2); }
 .au-google .ic {
@@ -737,91 +772,85 @@ html, body,
   color: var(--au-bone-40); margin-left: 6px;
 }
 
-/* footer legal */
+/* legal */
 .au-legal {
   text-align: center;
-  margin: 22px 0 0;
-  font-family: var(--au-mono); font-size: 10px; font-weight: 500;
+  margin: 16px 0 0;
+  font-family: var(--au-mono); font-size: 9.5px; font-weight: 500;
   letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--au-bone-40);
-  line-height: 1.55;
+  line-height: 1.5;
 }
 .au-legal a { color: var(--au-bone-60); text-decoration: none;
               border-bottom: 1px solid var(--au-line); padding-bottom: 1px; }
 .au-legal a:hover { color: var(--au-gold); border-color: var(--au-gold-line); }
 
-/* flash messages (st.error / st.success — restyled into editorial bars) */
-.st-key-auth_panel [data-testid="stAlert"] {
+/* Alerts */
+.st-key-auth_card [data-testid="stAlert"] {
   border-radius: var(--au-r-mid) !important;
   font-family: var(--au-mono) !important;
-  font-size: 11.5px !important;
+  font-size: 11px !important;
   letter-spacing: 0.10em !important;
   text-transform: uppercase !important;
   border: 1px solid var(--au-line-hi) !important;
-  padding: 0.6rem 0.9rem !important;
+  padding: 0.55rem 0.85rem !important;
+  margin: 6px 0 !important;
 }
-.st-key-auth_panel [data-testid="stAlert"][data-baseweb="notification"][kind="error"],
-.st-key-auth_panel [data-testid="stNotificationContentError"],
-.st-key-auth_panel [data-testid="stAlertContentError"] {
-  background: var(--au-red-soft) !important;
-  border-color: var(--au-red-line) !important;
-  color: var(--au-red) !important;
-}
-.st-key-auth_panel [data-testid="stAlert"] svg { fill: currentColor !important; }
+.st-key-auth_card [data-testid="stAlert"] svg { fill: currentColor !important; }
 
-/* recovery screen — narrower centered card */
+/* ============ Recovery screen (centered single card) ============ */
 .st-key-auth_recovery {
   min-height: 100vh;
   display: flex !important; flex-direction: column !important;
   align-items: center !important; justify-content: center !important;
-  padding: 56px 32px;
-  background:
-    radial-gradient(900px 600px at 50% 0%, rgba(232,193,112,0.06), transparent 60%),
-    radial-gradient(700px 500px at 50% 100%, rgba(230,69,48,0.04), transparent 60%),
-    #0A0B0E;
+  padding: 64px 24px !important;
 }
-.st-key-auth_recovery > div[data-testid="stVerticalBlock"] {
-  display: flex !important; flex-direction: column !important;
-  align-items: stretch !important;
-  width: 100%; max-width: 460px;
-  gap: 0 !important;
+.st-key-auth_recovery > [data-testid="stLayoutWrapper"] {
+  width: 100% !important; max-width: 460px !important;
+  flex: 0 0 auto !important;
+}
+.st-key-auth_recovery .st-key-auth_card {
+  /* re-uses the same card styles */
 }
 
-/* ============= RESPONSIVE ========================================= */
+/* ============ Responsive ============ */
 @media (max-width: 1180px) {
-  .st-key-auth_hero  { padding: 48px 44px; }
-  .st-key-auth_panel { padding: 48px 44px; }
-  .au-title { font-size: clamp(2.7rem, 4.6vw, 4.4rem); }
+  .st-key-auth_hero  { padding: 88px 44px 64px !important; }
+  .st-key-auth_panel { padding: 64px 44px !important; }
+  .au-title { font-size: clamp(2.4rem, 4.4vw, 3.8rem); }
+  .au-content { max-width: 520px; }
 }
 @media (max-width: 980px) {
+  .au-brand-fixed { top: 22px; left: 22px; }
   .st-key-auth_root {
     grid-template-columns: 1fr !important;
+    max-width: none !important;
   }
   .st-key-auth_hero {
-    min-height: auto;
-    padding: 44px 36px 36px;
-    border-right: none;
-    border-bottom: 1px solid var(--au-line);
+    min-height: auto !important;
+    padding: 80px 28px 36px !important;
+    align-items: center !important;
   }
-  .st-key-auth_hero::before { display: none; }
-  .au-eyebrow { margin-top: 28px; }
-  .au-title { font-size: 2.6rem; }
-  .au-ladder { grid-template-columns: 1fr; }
-  .au-quote { margin-top: 24px; padding-top: 18px; }
-  .au-tele { margin-top: 22px; padding-top: 16px; }
+  .au-content { max-width: 560px; align-items: stretch; margin: 0 auto; }
+  .au-title { font-size: 2.4rem; }
+  .au-motif { display: none; } /* less subtle = noisy on stacked layout */
   .st-key-auth_panel {
-    min-height: auto;
-    padding: 36px 24px 56px;
+    min-height: auto !important;
+    padding: 24px 24px 56px !important;
   }
-  .au-card-frame { padding: 28px 22px 24px; }
+  .st-key-auth_card { padding: 26px 24px 22px !important; }
 }
 @media (max-width: 640px) {
-  .st-key-auth_hero  { padding: 32px 22px 28px; }
-  .st-key-auth_panel { padding: 26px 14px 44px; }
-  .au-title { font-size: 2.15rem; }
-  .au-row { grid-template-columns: 30px 1fr; gap: 12px; padding: 10px 12px; }
-  .au-row .au-num { width: 30px; height: 30px; font-size: 9.5px; }
-  .au-tele { grid-template-columns: 1fr 1fr; gap: 12px 0; }
+  .au-brand-fixed { font-size: 11px; }
+  .au-brand-fixed .ed { font-size: 14px; }
+  .st-key-auth_hero  { padding: 70px 18px 28px !important; }
+  .st-key-auth_panel { padding: 18px 14px 40px !important; }
+  .au-title { font-size: 2.0rem; }
+  .au-row { grid-template-columns: 28px 1fr; gap: 12px; padding: 9px 12px; }
+  .au-row .au-num { width: 28px; height: 28px; font-size: 9.5px; }
+  .au-quote-card { grid-template-columns: 44px 1fr; padding: 16px; gap: 14px; }
+  .au-quote-avatar { width: 44px; height: 44px; font-size: 1.15rem; }
+  .au-tele { grid-template-columns: 1fr 1fr; gap: 14px 0; }
   .au-tele > div:nth-child(3) {
     grid-column: 1 / -1; padding-top: 14px;
     margin-top: 6px; border-top: 1px solid var(--au-line);
@@ -829,45 +858,52 @@ html, body,
   .au-tele > div:nth-child(3)::before { display: none; }
   .au-tele > div { padding: 0 12px; }
   .au-tele > div:first-child { padding-left: 0; }
-  .au-card-frame { padding: 24px 18px 22px; border-radius: 18px; }
-  .au-card-title { font-size: 1.85rem; }
+  .st-key-auth_card { padding: 22px 18px 20px !important; border-radius: 18px !important; }
+  .au-card-title { font-size: 1.7rem; }
 }
 </style>
 """
 
 
 # =====================================================================
-# Helper render fragments
+# Hero HTML — single self-contained markdown emit
 # =====================================================================
 _FEATURE_ROWS = [
     ("01", "Upload one swing",
-     "A single phone-clip is all the analyzer needs — no mocap suit, no app subscription gating."),
+     "A single phone clip — no mocap suit, no app gating."),
     ("02", "AI biomechanical breakdown",
-     "Pose-tracked metrics across the whole swing — bat path, hip-shoulder separation, head drift, lag time."),
+     "Pose-tracked metrics across the whole swing."),
     ("03", "Compare to MLB hitters",
-     "Side-by-side reference against pro swings, matched to your build and handedness."),
+     "Side-by-side against pros matched to your build."),
     ("04", "Personalized drill plan",
-     "Top-3 fixes ranked by impact, with the why, the feel, and rep counts that fit your week."),
-    ("05", "Track your progress",
-     "Every swing logs into your Sessions library — score deltas, MLB sim%, streaks, personal bests."),
+     "Top-3 fixes ranked by impact, with rep counts."),
 ]
 
 
-def _hero_html() -> str:
-    """Render the LEFT hero panel as a single self-contained HTML blob.
-
-    No widgets live in the hero, so we can emit it as one big
-    `st.markdown` call without falling into the Streamlit 1.57
-    markdown-div trap (the trap only matters when widgets need to be
-    descendants of the markdown's div — they don't here).
-    """
+def _brand_fixed_html() -> str:
+    """Brand mark stamped fixed at the page's top-left so it doesn't
+    eat vertical space in the hero content stack."""
     logo_uri = _bl_logo_data_uri()
     if logo_uri:
-        brand_mark = f'<img src="{logo_uri}" alt="BarrelLabs">'
+        mark = f'<img src="{logo_uri}" alt="BarrelLabs">'
     else:
-        brand_mark = ('<span style="width:34px;height:34px;border-radius:50%;'
-                      'background:#E64530;display:block;"></span>')
+        mark = ('<span style="width:30px;height:30px;border-radius:50%;'
+                'background:#E64530;display:block;"></span>')
+    return (
+        f'<div class="au-brand-fixed">{mark}'
+        '<span>BarrelLabs<span class="sl">/</span>'
+        '<span class="ed">Edge</span></span></div>'
+    )
 
+
+def _hero_html() -> str:
+    """Render the LEFT hero content as ONE markdown blob.
+
+    All content sits inside `.au-content` which is `display: flex;
+    flex-direction: column; max-width: 560px` so the eye reads a
+    deliberate vertical stack: eyebrow → title → sub → ladder →
+    testimonial → stats. No content lives outside this column.
+    """
     ladder_html = "".join(
         f'<div class="au-row">'
         f'  <div class="au-num">{n}</div>'
@@ -878,28 +914,18 @@ def _hero_html() -> str:
     )
 
     return f"""
-<div class="au-brand">
-  {brand_mark}
-  <span>BarrelLabs<span class="sl">/</span><span class="ed">Edge</span></span>
-</div>
-
-<div>
+<div class="au-motif"></div>
+<div class="au-content">
   <span class="au-eyebrow">SwingAI · Performance Lab</span>
   <h1 class="au-title">Find your<br/>MLB <span class="twin">swing twin</span><span class="period">.</span></h1>
-  <p class="au-sub">
-    Upload one swing and walk away with an MLB-grade biomechanical
-    breakdown, a side-by-side comparison to the pro you swing like, and
-    a personalized drill plan that fits your week — in under a minute.
-  </p>
+  <p class="au-sub">Upload one swing and walk away with an MLB-grade biomechanical breakdown, the pro you swing like, and a personalized drill plan — in under a minute.</p>
   <div class="au-ladder">{ladder_html}</div>
-</div>
-
-<div>
-  <div class="au-quote">
-    <q>The MLB comparison alone is worth the subscription. Watching my swing
-    overlay an MLB hitter on the same frame, with the deltas called out —
-    that's the unlock my hitting coach didn't have.</q>
-    <cite><em>Travis K.</em> · 16U Travel · D1 commit '27</cite>
+  <div class="au-quote-card">
+    <div class="au-quote-avatar">TK</div>
+    <div class="au-quote-body">
+      <p class="au-quote-text">The MLB comparison alone is worth the subscription — that overlay is the unlock my hitting coach didn't have.</p>
+      <p class="au-quote-name">Travis K.<span class="meta">Travel SS · Class of '27</span></p>
+    </div>
   </div>
   <div class="au-tele">
     <div>
@@ -943,11 +969,9 @@ def _legal_html() -> str:
 
 
 # =====================================================================
-# Sub-renderers
+# Forms — each renders the inside of the .st-key-auth_card container.
 # =====================================================================
 def _render_login_form() -> None:
-    """The Sign-In tab. Preserves player_storage.authenticate() exactly
-    as the legacy form did."""
     st.markdown(
         '<div class="au-card-eyebrow">Welcome back</div>'
         '<h2 class="au-card-title">Welcome back.</h2>'
@@ -976,7 +1000,7 @@ def _render_login_form() -> None:
                 "Remember me",
                 value=bool(st.session_state.get("auth_remember", True)),
                 key="auth_remember",
-                help="Keep me signed in for the duration of this browser session.",
+                help="Keep me signed in for this browser session.",
             )
         with opts_cols[1]:
             st.checkbox(
@@ -1002,30 +1026,28 @@ def _render_login_form() -> None:
             except Exception as exc:
                 st.error(f"Couldn't sign in: {exc}")
 
-    # Forgot password — outside the form so clicking it doesn't try to
-    # submit; identical session-flag contract as the legacy implementation.
-    if st.button(
-        "Forgot password?",
-        key="forgot_link_v2",
-        help="We'll email you a one-time link to set a new password.",
-    ):
-        st.session_state["auth_mode"] = "forgot"
-        st.rerun()
+    # Forgot-password — a ghost button visually distinct from the CTA.
+    # Wrapped in its own keyed container so the centered/quiet styling
+    # only applies to this button, not other secondary buttons.
+    with st.container(key="forgot_btn"):
+        if st.button(
+            "Forgot password?",
+            key="forgot_link_v2",
+            help="We'll email you a one-time link to set a new password.",
+        ):
+            st.session_state["auth_mode"] = "forgot"
+            st.rerun()
 
-    # Google placeholder + legal
     st.markdown(_google_placeholder_html(), unsafe_allow_html=True)
     st.markdown(_legal_html(), unsafe_allow_html=True)
 
 
 def _render_signup_form() -> None:
-    """The Create-Account tab. Preserves player_storage.create_account()
-    exactly. Adds First/Last/Display fields (Display optional) and
-    keeps batting hand + height + weight."""
     st.markdown(
         '<div class="au-card-eyebrow">Create account</div>'
         '<h2 class="au-card-title">Create your account.</h2>'
         '<p class="au-card-sub">Start analyzing your swing like the pros. '
-        'One swing is all the analyzer needs to give you an MLB-grade report.</p>',
+        'One clip is all the analyzer needs.</p>',
         unsafe_allow_html=True,
     )
 
@@ -1066,17 +1088,14 @@ def _render_signup_form() -> None:
         )
 
         st.markdown(
-            '<div style="margin-top:8px; font-family:var(--au-mono); '
-            'font-size:10px; letter-spacing:0.20em; '
+            '<div style="margin-top:6px; font-family:var(--au-mono); '
+            'font-size:9.5px; letter-spacing:0.20em; '
             'text-transform:uppercase; color:var(--au-bone-60); '
-            'font-weight:600; padding-bottom:6px;">'
+            'font-weight:600; padding-bottom:4px;">'
             'Physical profile · refines MLB comparisons</div>',
             unsafe_allow_html=True,
         )
 
-        # batting hand — kept as a horizontal radio (Streamlit native;
-        # the analyzer needs this from day-one so we don't defer it to
-        # Player Settings)
         su_hand = st.radio(
             "Batting hand",
             options=["Right-handed", "Left-handed"],
@@ -1126,9 +1145,6 @@ def _render_signup_form() -> None:
                         height_in=height_in,
                         weight_lb=int(su_wt),
                     )
-                    # Stash the optional display name into the player
-                    # settings extras so the player profile picks it up
-                    # on first render.
                     if su_display and su_display.strip():
                         extras = st.session_state.get(
                             "player_settings_extras"
@@ -1148,9 +1164,6 @@ def _render_signup_form() -> None:
 
 
 def _render_forgot_form() -> None:
-    """One-field 'send me a reset link' form. Identical session-flag
-    contract as the legacy renderer (auth_mode='forgot' set on entry,
-    cleared on back)."""
     st.markdown(
         '<div class="au-card-eyebrow">Reset</div>'
         '<h2 class="au-card-title">Reset your password.</h2>'
@@ -1191,8 +1204,6 @@ def _render_forgot_form() -> None:
             st.session_state.pop("auth_mode", None)
             st.rerun()
 
-    # Paste-URL fallback — kept verbatim because the legacy flow relies on
-    # it when the auto-redirect shim doesn't fire (Gmail mobile, etc.).
     with st.expander("Trouble with the link?", expanded=False):
         st.caption(
             "If clicking the reset link didn't take you to a "
@@ -1208,9 +1219,7 @@ def _render_forgot_form() -> None:
                 label_visibility="collapsed",
             )
             use_link = st.form_submit_button(
-                "Use this link",
-                type="primary",
-                use_container_width=True,
+                "Use this link", type="primary", use_container_width=True,
             )
             if use_link:
                 try:
@@ -1218,27 +1227,25 @@ def _render_forgot_form() -> None:
                     u = urlparse((pasted or "").strip())
                     blob = u.fragment or u.query or ""
                     parts = parse_qs(blob)
-                    at = (parts.get("access_token")  or [""])[0]
+                    at = (parts.get("access_token") or [""])[0]
                     rt = (parts.get("refresh_token") or [""])[0]
-                    tp = (parts.get("type")          or [""])[0]
+                    tp = (parts.get("type") or [""])[0]
                     if not (at and rt) or tp != "recovery":
                         st.error(
-                            "That doesn't look like a valid reset "
-                            "link. Make sure you copied the whole URL."
+                            "That doesn't look like a valid reset link. "
+                            "Make sure you copied the whole URL."
                         )
                     else:
                         from auth import consume_recovery_url
                         if consume_recovery_url(
-                            access_token=at,
-                            refresh_token=rt,
+                            access_token=at, refresh_token=rt,
                         ):
                             st.session_state["recovery_mode"] = True
                             st.rerun()
                         else:
                             st.error(
-                                "Couldn't accept that link — it may "
-                                "have expired. Send yourself a new "
-                                "reset email."
+                                "Couldn't accept that link — it may have "
+                                "expired. Send yourself a new reset email."
                             )
                 except Exception as exc:
                     st.error(f"Couldn't parse that link: {exc}")
@@ -1248,16 +1255,10 @@ def _render_forgot_form() -> None:
 # Public entry points
 # =====================================================================
 def render_auth_screen() -> None:
-    """Render the split-screen login / signup / forgot-password page.
-
-    Sets `st.session_state.user` on successful login or signup, exactly
-    as the legacy renderer did. Routes through Supabase via
-    `player_storage.authenticate` / `player_storage.create_account` and
-    `auth.request_password_reset` — no auth wiring changed.
-    """
+    """Render the split-screen login / signup / forgot-password page."""
     st.markdown(_AUTH_CSS, unsafe_allow_html=True)
-    st.markdown('<div class="auth-atmos"></div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-grain"></div>', unsafe_allow_html=True)
+    st.markdown(_brand_fixed_html(), unsafe_allow_html=True)
 
     with st.container(key="auth_root"):
         # ============== LEFT: hero panel ==============
@@ -1266,171 +1267,95 @@ def render_auth_screen() -> None:
 
         # ============== RIGHT: auth panel ==============
         with st.container(key="auth_panel"):
-            # Decide which form to render based on session flag, then
-            # render the segmented toggle + the appropriate form inside
-            # the glass card frame.
-            mode = st.session_state.get("auth_mode")  # 'forgot' | 'signup' | None
+            mode = st.session_state.get("auth_mode")
             if mode not in ("forgot", "signup"):
                 mode = "login"
 
-            st.markdown('<div class="au-card-frame">', unsafe_allow_html=True)
+            # The REAL glass card — a keyed container so widgets are
+            # descendants and .st-key-auth_card actually wraps them
+            # (fixing the v1 markdown-div-trap bug where the card
+            # rendered around nothing).
+            with st.container(key="auth_card"):
+                if mode != "forgot":
+                    with st.container(key="auth_toggle"):
+                        t1, t2 = st.columns(2)
+                        with t1:
+                            if st.button(
+                                "Sign in",
+                                key="auth_toggle_login",
+                                type=("primary" if mode == "login" else "secondary"),
+                                use_container_width=True,
+                            ):
+                                st.session_state.pop("auth_mode", None)
+                                st.rerun()
+                        with t2:
+                            if st.button(
+                                "Create account",
+                                key="auth_toggle_signup",
+                                type=("primary" if mode == "signup" else "secondary"),
+                                use_container_width=True,
+                            ):
+                                st.session_state["auth_mode"] = "signup"
+                                st.rerun()
 
-            if mode != "forgot":
-                # toggle — two st.button widgets restyled as segmented
-                with st.container(key="auth_toggle"):
-                    t1, t2 = st.columns(2)
-                    with t1:
-                        if st.button(
-                            "Sign in",
-                            key="auth_toggle_login",
-                            type=("primary" if mode == "login" else "secondary"),
-                            use_container_width=True,
-                        ):
-                            st.session_state.pop("auth_mode", None)
-                            st.rerun()
-                    with t2:
-                        if st.button(
-                            "Create account",
-                            key="auth_toggle_signup",
-                            type=("primary" if mode == "signup" else "secondary"),
-                            use_container_width=True,
-                        ):
-                            st.session_state["auth_mode"] = "signup"
-                            st.rerun()
-
-            if mode == "login":
-                _render_login_form()
-            elif mode == "signup":
-                _render_signup_form()
-            else:  # forgot
-                _render_forgot_form()
-
-            st.markdown('</div>', unsafe_allow_html=True)
+                if mode == "login":
+                    _render_login_form()
+                elif mode == "signup":
+                    _render_signup_form()
+                else:
+                    _render_forgot_form()
 
 
 def render_recovery_screen() -> None:
     """Render the 'set a new password' screen shown when the user
-    clicked the password-reset link in their email. Supabase has
-    already authenticated them via the recovery token at this point —
-    we just collect a new password and call `auth.update_password`.
-    """
+    clicked the password-reset link in their email."""
     st.markdown(_AUTH_CSS, unsafe_allow_html=True)
-    st.markdown('<div class="auth-atmos"></div>', unsafe_allow_html=True)
     st.markdown('<div class="auth-grain"></div>', unsafe_allow_html=True)
-
-    logo_uri = _bl_logo_data_uri()
-    brand_mark = (
-        f'<img src="{logo_uri}" alt="BarrelLabs">'
-        if logo_uri
-        else '<span style="width:34px;height:34px;border-radius:50%;'
-             'background:#E64530;display:block;"></span>'
-    )
+    st.markdown(_brand_fixed_html(), unsafe_allow_html=True)
 
     with st.container(key="auth_recovery"):
-        # We piggyback on .st-key-auth_panel widget skin scope by
-        # marking the recovery container with both classes via a tiny
-        # extra style block. (Cheaper than duplicating all widget CSS.)
-        st.markdown(
-            '<style>'
-            '.st-key-auth_recovery [data-testid="stTextInput"] label,'
-            '.st-key-auth_recovery [data-testid="stTextInput"] input,'
-            '.st-key-auth_recovery [data-testid="stForm"],'
-            '.st-key-auth_recovery [data-testid="stFormSubmitButton"] button,'
-            '.st-key-auth_recovery [data-testid="stButton"] button {'
-            '  /* hand the recovery container the same scope */ '
-            '}'
-            '/* re-scope every .st-key-auth_panel rule to also match '
-            '   .st-key-auth_recovery by listing it explicitly. */ '
-            '.st-key-auth_recovery [data-testid="stTextInput"] label {'
-            '  font-family: var(--au-mono) !important; font-size: 10px !important;'
-            '  letter-spacing: 0.20em !important; text-transform: uppercase !important;'
-            '  color: var(--au-bone-60) !important; font-weight: 600 !important;'
-            '  padding-bottom: 6px !important;'
-            '}'
-            '.st-key-auth_recovery [data-testid="stTextInput"] input {'
-            '  background: var(--au-ink-2) !important;'
-            '  border: 1px solid var(--au-line-hi) !important;'
-            '  border-radius: var(--au-r-mid) !important;'
-            '  color: var(--au-bone) !important;'
-            '  font-family: var(--au-sans) !important;'
-            '  font-size: 14.5px !important;'
-            '  padding: 0.7rem 0.95rem !important;'
-            '}'
-            '.st-key-auth_recovery [data-testid="stTextInput"] input:focus {'
-            '  border-color: var(--au-gold-line) !important;'
-            '  box-shadow: 0 0 0 3px rgba(232,193,112,0.12) !important;'
-            '  outline: none !important;'
-            '}'
-            '.st-key-auth_recovery [data-testid="stForm"] {'
-            '  border: none !important; padding: 0 !important; background: transparent !important;'
-            '}'
-            '.st-key-auth_recovery [data-testid="stFormSubmitButton"] button[kind="primary"] {'
-            '  background: linear-gradient(180deg, var(--au-red) 0%, var(--au-red-deep) 100%) !important;'
-            '  color: #FFFAF2 !important; font-weight: 600 !important;'
-            '  border: 1px solid rgba(0,0,0,0.25) !important;'
-            '  height: 48px !important; padding: 0 22px !important;'
-            '  border-radius: var(--au-r-pill) !important;'
-            '  font-size: 13.5px !important;'
-            '  box-shadow: inset 0 1px 0 rgba(232,193,112,0.55),'
-            '              inset 0 -1px 0 rgba(0,0,0,0.35),'
-            '              0 10px 24px -8px rgba(230,69,48,0.50) !important;'
-            '}'
-            '</style>',
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            f'<div class="au-brand" style="justify-content:center; margin-bottom:32px;">'
-            f'{brand_mark}'
-            f'<span>BarrelLabs<span class="sl">/</span>'
-            f'<span class="ed">Edge</span></span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            '<div class="au-card-frame">'
-            '<div class="au-card-eyebrow">Recovery</div>'
-            '<h2 class="au-card-title">Set a new password.</h2>'
-            '<p class="au-card-sub">Choose a new password for your account. '
-            'We\'ll sign you straight in.</p>',
-            unsafe_allow_html=True,
-        )
-
-        with st.form("recovery_form_v2", clear_on_submit=False):
-            new_pw = st.text_input(
-                "New password (6+ characters)",
-                type="password", key="rec_pw_v2",
+        with st.container(key="auth_card"):
+            st.markdown(
+                '<div class="au-card-eyebrow">Recovery</div>'
+                '<h2 class="au-card-title">Set a new password.</h2>'
+                '<p class="au-card-sub">Choose a new password for your account. '
+                'We\'ll sign you straight in.</p>',
+                unsafe_allow_html=True,
             )
-            new_pw2 = st.text_input(
-                "Confirm new password",
-                type="password", key="rec_pw2_v2",
-            )
-            submitted = st.form_submit_button(
-                "Update password  →",
-                type="primary",
-                use_container_width=True,
-            )
-            if submitted:
-                if new_pw != new_pw2:
-                    st.error("Passwords don't match.")
-                elif len(new_pw or "") < 6:
-                    st.error("Password must be at least 6 characters.")
-                else:
-                    try:
-                        from auth import update_password
-                        update_password(new_pw)
-                        st.success("Password updated — signing you in…")
-                        st.session_state.pop("recovery_mode", None)
+
+            with st.form("recovery_form_v2", clear_on_submit=False):
+                new_pw = st.text_input(
+                    "New password (6+ characters)",
+                    type="password", key="rec_pw_v2",
+                )
+                new_pw2 = st.text_input(
+                    "Confirm new password",
+                    type="password", key="rec_pw2_v2",
+                )
+                submitted = st.form_submit_button(
+                    "Update password  →",
+                    type="primary",
+                    use_container_width=True,
+                )
+                if submitted:
+                    if new_pw != new_pw2:
+                        st.error("Passwords don't match.")
+                    elif len(new_pw or "") < 6:
+                        st.error("Password must be at least 6 characters.")
+                    else:
                         try:
-                            st.query_params.clear()
-                        except Exception:
-                            pass
-                        st.rerun()
-                    except ValueError as exc:
-                        st.error(str(exc))
-                    except Exception as exc:
-                        st.error(f"Couldn't update password: {exc}")
+                            from auth import update_password
+                            update_password(new_pw)
+                            st.success("Password updated — signing you in…")
+                            st.session_state.pop("recovery_mode", None)
+                            try:
+                                st.query_params.clear()
+                            except Exception:
+                                pass
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
+                        except Exception as exc:
+                            st.error(f"Couldn't update password: {exc}")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(_legal_html(), unsafe_allow_html=True)
+            st.markdown(_legal_html(), unsafe_allow_html=True)
