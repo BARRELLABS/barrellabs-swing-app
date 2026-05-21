@@ -2124,5 +2124,10 @@ def render_dashboard_v3(user: Dict[str, Any],
         html, count=1, flags=re.DOTALL,
     )
 
-    # Render — same height as the mock since structure is preserved.
-    components.html(html, height=5800, scrolling=True)
+    # Render. scrolling=False + the auto-height bridge baked into
+    # DASHBOARD_HTML (see mock_dashboard_template.py) means the iframe
+    # owns NO scrollbar — the Streamlit page is the only scroll
+    # container, so the shared masthead scrolls with the content as one
+    # page. The 5800 here is just a no-clip ceiling for the brief
+    # moment before the in-iframe script reports the true height.
+    components.html(html, height=5800, scrolling=False)

@@ -752,11 +752,48 @@ def build_narratives(gaps_ranked, ref_name, top_n=2):
     return out
 
 
-def build_drill_plan(gaps_ranked, top_n_categories=2):
+# Maps the player's `primary_goal` (set on Player Settings page) to drill
+# categories that move the needle on that goal. The value is a "boost"
+# integer added to the gap-derived weight for that category — small enough
+# that a glaring biomech gap still wins, large enough that, given two
+# roughly-equal candidate categories, the player's stated goal breaks the
+# tie. Tuned on the assumption that gap weights are in the 1-5 range
+# (see build_drill_plan).
+GOAL_CATEGORY_BOOSTS: dict[str, dict[str, int]] = {
+    "More power":            {"hip_rotation": 3, "hip_shoulder_separation": 3,
+                              "knee_extension": 2},
+    "Better contact":        {"head_stability": 3, "timing": 2},
+    "Better timing":         {"timing": 4, "head_stability": 1},
+    "Fix timing":            {"timing": 4, "head_stability": 1},  # legacy label
+    "Better consistency":    {"head_stability": 2, "timing": 2,
+                              "hip_rotation": 1},
+    "Improve bat path":      {"hip_shoulder_separation": 3, "knee_extension": 2},
+    "Reduce strikeouts":     {"timing": 3, "head_stability": 2},
+    "Improve mechanics":     {},          # balanced — no boost
+    "Improve overall swing": {},          # balanced — no boost
+    "Find MLB comparison":   {},          # not a training goal
+}
+
+
+def build_drill_plan(gaps_ranked, top_n_categories=2, *, preferred_goal=None):
     """Return structured drill-plan data WITHOUT printing.
 
     Mirrors the prioritization logic of recommend_drills() — top categories
     weighted by rank, top N taken — but returns data instead of printing.
+
+    Parameters
+    ----------
+    gaps_ranked
+        list of result dicts (sorted by similarity ascending) from compare.py
+    top_n_categories
+        how many drill categories to include in the plan (default 2)
+    preferred_goal
+        OPTIONAL — the player's `primary_goal` from the Player Settings
+        page. When set, drill categories aligned with that goal get a
+        small boost so the plan reflects the player's stated focus. A
+        large gap still beats a small boost, so the analyzer's findings
+        stay authoritative — the goal just breaks ties and re-ranks
+        near-tied categories.
 
     Returns:
         {
@@ -767,14 +804,15 @@ def build_drill_plan(gaps_ranked, top_n_categories=2):
                            "how": "..."}, ...]},
               ...
           ],
-          "weekly_guide": [bullet_str, bullet_str, ...]
+          "weekly_guide": [bullet_str, bullet_str, ...],
+          "goal_applied": "<the goal string, or None if no boost ran>"
         }
     """
-    empty = {"categories": [], "weekly_guide": []}
+    empty = {"categories": [], "weekly_guide": [], "goal_applied": None}
     if not gaps_ranked:
         return empty
 
-    category_weights = {}
+    category_weights: dict[str, int] = {}
     for rank, gap in enumerate(gaps_ranked[:5]):
         cat = classify_gap(gap)
         if cat is None:
@@ -784,6 +822,19 @@ def build_drill_plan(gaps_ranked, top_n_categories=2):
 
     if not category_weights:
         return empty
+
+    # Apply the player's training-goal boost. We only boost categories
+    # that ALREADY appeared in the gap-derived weights — we never invent
+    # a category out of nothing, because the player's biomech needs to
+    # actually need it for that drill to make sense.
+    goal_applied = None
+    if preferred_goal:
+        boosts = GOAL_CATEGORY_BOOSTS.get(preferred_goal.strip(), {})
+        if boosts:
+            for cat, bonus in boosts.items():
+                if cat in category_weights:
+                    category_weights[cat] += bonus
+            goal_applied = preferred_goal.strip()
 
     ordered_cats = sorted(category_weights.items(), key=lambda kv: -kv[1])
     top_cats = [cat for cat, _ in ordered_cats[:top_n_categories]]
@@ -809,8 +860,17 @@ def build_drill_plan(gaps_ranked, top_n_categories=2):
         "Re-film and re-run the comparison every 2–3 weeks. The goal is your "
         "similarity score climbing over time."
     )
+    if goal_applied:
+        weekly.insert(0,
+            f"Tuned for your goal: {goal_applied}. Drills picked here weight "
+            "the categories that move that goal most."
+        )
 
-    return {"categories": categories, "weekly_guide": weekly}
+    return {
+        "categories": categories,
+        "weekly_guide": weekly,
+        "goal_applied": goal_applied,
+    }
 
 
 def classify_gap(result):

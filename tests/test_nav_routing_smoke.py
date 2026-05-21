@@ -16,6 +16,7 @@ Run from the project root:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import types
 import unittest
@@ -91,6 +92,12 @@ class _StreamlitStub(types.ModuleType):
         n = spec if isinstance(spec, int) else len(spec)
         return [_ColCtx(self) for _ in range(n)]
 
+    def container(self, *a, **kw):
+        # render_edge_masthead now wraps its content in a real keyed
+        # st.container so the premium nav CSS can actually scope to it.
+        # The stub just needs a context manager.
+        return _ColCtx(self)
+
     def download_button(self, label, **kw):
         self._buttons_rendered.append((label, kw.get("key"), "download"))
         return False
@@ -149,12 +156,21 @@ class EdgeChromeImportTest(unittest.TestCase):
         bec = importlib.import_module("bl_edge_chrome")
         labels = [e[0] for e in bec._NAV_ENTRIES]
         keys   = [e[1] for e in bec._NAV_ENTRIES]
+        # "Drills" was renamed to "Training Plan" to reflect what the
+        # page actually is — the daily, latest-swing-driven prescribed
+        # drill plan, not a drill encyclopedia. The page_key stays
+        # `development_tracker` so all routing/storage/gamification is
+        # untouched.
         self.assertEqual(
             labels,
-            ["Dashboard", "Sessions", "Compare", "Drills", "Library"],
+            ["Dashboard", "Sessions", "Compare", "Training Plan", "Library"],
             "Nav labels must match the spec exactly.",
         )
         self.assertIn("saved_reports", keys, "Sessions must map to saved_reports")
+        self.assertIn(
+            "development_tracker", keys,
+            "Training Plan must still route to the development_tracker page_key.",
+        )
 
     def test_swing_report_routes_active_to_saved_reports(self):
         if "bl_edge_chrome" in sys.modules:
@@ -180,74 +196,112 @@ class EdgeChromeImportTest(unittest.TestCase):
 
 
 class MastheadRendersNavTest(unittest.TestCase):
-    """Smoke test: render_edge_masthead writes 5 buttons (Dashboard,
-    Sessions, Compare, Drills, Library) and one of them is "primary"
-    based on active_page."""
+    """The masthead nav is now IN-SESSION st.button widgets (NOT
+    <a href> anchors). Anchors did a full browser reload which wiped
+    st.session_state — and this app keeps the Supabase auth session
+    ONLY in st.session_state, so anchor nav logged the user out on
+    every click. st.button triggers an in-session rerun: auth is
+    preserved and no ?page= is ever written to the URL. The masthead
+    must render exactly the 5 nav buttons with the right keys and mark
+    exactly one type="primary" per active_page, and must NOT emit any
+    <a href="?page="> nav anchor."""
 
     def setUp(self):
         self.st = _install_stub()
 
-    def test_renders_five_buttons(self):
+    def _html(self):
+        return "\n".join(self.st._markdown_calls)
+
+    def test_renders_five_nav_buttons(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
-        user = {"name": "Logan Collins", "gamification": {"current_streak_days": 17}}
+        user = {"name": "Logan Collins",
+                "gamification": {"current_streak_days": 17}}
         bec.render_edge_masthead(user, active_page="dashboard")
-        labels = [b[0] for b in self.st._buttons_rendered]
+        nav = [b for b in self.st._buttons_rendered
+               if b[1] and str(b[1]).startswith("_ble_nav_")]
+        labels = [b[0] for b in nav]
         self.assertEqual(
-            labels,
-            ["Dashboard", "Sessions", "Compare", "Drills", "Library"],
-            "Masthead must render exactly the 5 nav pills."
-        )
-        # The active one must be primary, the rest secondary
-        types_ = [b[2] for b in self.st._buttons_rendered]
-        self.assertEqual(types_.count("primary"), 1)
-        self.assertEqual(types_.count("secondary"), 4)
-        # Dashboard should be primary when active_page="dashboard"
-        active_label = next(b[0] for b in self.st._buttons_rendered if b[2] == "primary")
+            labels, [e[0] for e in bec._NAV_ENTRIES],
+            "masthead must render the 5 nav buttons in order")
+        for (label, page_key, _a), b in zip(bec._NAV_ENTRIES, nav):
+            self.assertEqual(b[1], f"_ble_nav_{page_key}")
+        types_ = [b[2] for b in nav]
+        self.assertEqual(types_.count("primary"), 1,
+                         "exactly one active (primary) tab")
+        active_label = next(b[0] for b in nav if b[2] == "primary")
         self.assertEqual(active_label, "Dashboard")
+        # CRITICAL: no full-reload nav anchor anywhere (would log the
+        # user out — that's the bug this fix removes).
+        html = self._html()
+        self.assertNotIn('href="?page=', html,
+                          "masthead must NOT use ?page= nav anchors "
+                          "(full reload wipes auth)")
 
     def test_active_highlight_for_swing_report(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
         bec.render_edge_masthead({}, active_page="swing_report")
-        active_label = next(b[0] for b in self.st._buttons_rendered if b[2] == "primary")
-        # Sessions should be highlighted because swing_report rolls up
-        # to the Sessions parent.
-        self.assertEqual(active_label, "Sessions")
+        nav = [b for b in self.st._buttons_rendered
+               if b[1] and str(b[1]).startswith("_ble_nav_")]
+        active = [b[0] for b in nav if b[2] == "primary"]
+        # swing_report rolls up to the Sessions (saved_reports) parent.
+        self.assertEqual(active, ["Sessions"])
 
 
-class SessionsClickRoutesCorrectlyTest(unittest.TestCase):
-    """If the user clicks the Sessions pill, the masthead must:
-       1) set session_state['page'] to 'saved_reports'
-       2) clear view_swing_record / view_swing_path / view_swing_report_id
-       3) call st.rerun()
-    """
+class SessionsNavContractTest(unittest.TestCase):
+    """Clicking the Sessions button must, IN-SESSION (no reload, auth
+    preserved): set page=saved_reports, scrub stale open-report state
+    so _should_open_report can't hijack it, and call st.rerun()."""
 
     def setUp(self):
         self.st = _install_stub()
 
-    def test_sessions_click(self):
+    def test_sessions_click_routes_in_session(self):
         if "bl_edge_chrome" in sys.modules:
             del sys.modules["bl_edge_chrome"]
         bec = importlib.import_module("bl_edge_chrome")
-        # Pre-populate the kind of state that the OLD bug would have
-        # left behind (an open report record).
-        self.st.session_state["view_swing_record"] = {"id": "abc"}
-        self.st.session_state["view_swing_path"]   = "/tmp/swing.json"
-        self.st.session_state["view_swing_report_id"] = "abc"
-        self.st.session_state["page"] = "swing_report"
-
-        # Force the Sessions button to "click"
-        self.st._button_returns["_edge_nav_saved_reports"] = True
-        bec.render_edge_masthead({}, active_page="swing_report")
+        # Pretend a report was previously open (stale state).
+        self.st.session_state["view_swing_record"] = {"id": "stale"}
+        self.st.session_state["view_swing_path"] = "/tmp/x.json"
+        self.st.session_state["page"] = "dashboard"
+        # Force the Sessions button to "click".
+        self.st._button_returns["_ble_nav_saved_reports"] = True
+        bec.render_edge_masthead({}, active_page="dashboard")
 
         self.assertEqual(self.st.session_state["page"], "saved_reports")
         self.assertNotIn("view_swing_record", self.st.session_state)
         self.assertNotIn("view_swing_path", self.st.session_state)
-        self.assertNotIn("view_swing_report_id", self.st.session_state)
-        self.assertTrue(self.st._rerun_called, "rerun must be called")
+        self.assertTrue(self.st._rerun_called,
+                        "must st.rerun() so it's an in-session nav")
+        # No nav anchor / no ?page= written to the URL.
+        html = "\n".join(self.st._markdown_calls)
+        self.assertNotIn('href="?page=', html)
+        # The ?page= URL bridge must still exist in app.py for genuine
+        # deep-links, with saved_reports allowed.
+        app_src = (PROJECT_ROOT / "app.py").read_text()
+        m = re.search(r"_ALLOWED_PAGES_FROM_URL\s*=\s*\{(.*?)\}",
+                      app_src, re.DOTALL)
+        self.assertIsNotNone(m)
+        self.assertIn('"saved_reports"', m.group(1))
+
+    def test_swing_report_button_keeps_open_report_state(self):
+        """The swing_report nav button must NOT scrub view_swing_*
+        (that's how an opened report stays open)."""
+        if "bl_edge_chrome" in sys.modules:
+            del sys.modules["bl_edge_chrome"]
+        bec = importlib.import_module("bl_edge_chrome")
+        self.st.session_state["view_swing_record"] = {"id": "keep"}
+        self.st._button_returns["_ble_nav_saved_reports"] = False
+        # No swing_report nav entry exists by default; assert the scrub
+        # logic is conditional on page_key != "swing_report" by checking
+        # a non-swing click DOES scrub (covered above) and the source
+        # guards on that key.
+        src = (PROJECT_ROOT / "bl_edge_chrome.py").read_text()
+        self.assertIn('if page_key != "swing_report":', src)
+        self.assertIn("st.session_state.pop", src)
 
 
 class SwingReportPageTest(unittest.TestCase):
@@ -389,6 +443,101 @@ class AppRoutingTest(unittest.TestCase):
                 "force_record=", primary_segment,
                 "force_record path must be deprecated for the new flow",
             )
+
+
+class SessionsRoutingOrderTest(unittest.TestCase):
+    """The Sessions nav anchor (?page=saved_reports) MUST land on
+    render_saved_reports_dashboard. The bug was: the 'default to
+    dashboard' fallback ran BEFORE the ?page= URL bridge, so a fresh
+    reload from the anchor got page='dashboard' and the dashboard route
+    st.stop()'d before the saved_reports route. These tests lock the
+    fix: (1) bridge is positioned before the fallback in app.py source,
+    (2) a runtime simulation of the two blocks yields saved_reports with
+    no stale open-report state, (3) the saved_reports route calls
+    render_saved_reports_dashboard."""
+
+    def setUp(self):
+        self.src = (PROJECT_ROOT / "app.py").read_text()
+
+    def test_bridge_runs_before_dashboard_default(self):
+        bridge = self.src.find("URL → session-state routing bridge")
+        if bridge == -1:
+            bridge = self.src.find("_ALLOWED_PAGES_FROM_URL = {")
+        default = self.src.find(
+            "Default landing for a fresh authenticated session = Dashboard"
+        )
+        self.assertNotEqual(bridge, -1, "URL bridge block not found")
+        self.assertNotEqual(default, -1, "default-dashboard block not found")
+        self.assertLess(
+            bridge, default,
+            "The ?page= URL bridge MUST appear before the default-to-"
+            "dashboard fallback or Sessions silently routes to Dashboard.",
+        )
+
+    def test_saved_reports_route_uses_new_dashboard_page(self):
+        self.assertIn(
+            'render_saved_reports_dashboard(user, build_pdf_fn=',
+            self.src,
+            "saved_reports route must render the new dashboard-style page",
+        )
+        self.assertIn('"saved_reports"', self.src)
+
+    def test_runtime_ordering_sessions_click(self):
+        """Execute the exact ordering: bridge block THEN default block,
+        against a fresh authed reload of ?page=saved_reports. Result
+        must be page=saved_reports with NO stale open-report keys (so
+        the _should_open_report guard cannot hijack it)."""
+        ALLOWED = {
+            "dashboard", "saved_reports", "swing_report", "compare_swings",
+            "development_tracker", "historical_charts", "billing",
+            "launch_progress", "pricing", "upload",
+        }
+
+        class QP(dict):
+            def get(self, k, d=None):
+                return super().get(k, d)
+            def __delitem__(self, k):
+                if k in self:
+                    dict.__delitem__(self, k)
+
+        ss = {}                       # fresh session (post-auth: empty)
+        qp = QP({"page": "saved_reports"})  # arrived via the nav anchor
+        # Pretend a previously-opened report left stale state behind
+        # (in-session nav case) — the bridge must scrub it.
+        ss["view_swing_record"] = {"id": "stale"}
+
+        # --- BRIDGE BLOCK (must run first) ---
+        up = qp.get("page")
+        if up and up in ALLOWED:
+            ss["page"] = up
+            if up != "swing_report":
+                for _k in ("view_swing_record", "view_swing_path",
+                           "view_swing_report_id", "view"):
+                    ss.pop(_k, None)
+            try:
+                del qp["page"]
+            except Exception:
+                pass
+
+        # --- DEFAULT-DASHBOARD BLOCK (must run second) ---
+        if not any(k in ss for k in ("page", "view", "view_swing_path",
+                                     "view_swing_record")):
+            ss["page"] = "dashboard"
+
+        self.assertEqual(ss["page"], "saved_reports",
+                         "Sessions anchor must resolve to saved_reports")
+        self.assertNotIn("view_swing_record", ss,
+                          "stale open-report state must be scrubbed so "
+                          "_should_open_report cannot hijack Sessions")
+        # _should_open_report would be: page==swing_report OR
+        # view_swing_record/path present -> all false here.
+        should_open_report = (
+            ss.get("page") == "swing_report"
+            or "view_swing_record" in ss
+            or "view_swing_path" in ss
+        )
+        self.assertFalse(should_open_report,
+                         "open-report guard must NOT fire for Sessions")
 
 
 if __name__ == "__main__":

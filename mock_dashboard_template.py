@@ -111,7 +111,7 @@ body::before {
   opacity: 0.035; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
-.app { max-width: 1560px; margin: 0 auto; padding: 0 56px 80px; position: relative; z-index: 1; }
+.app { max-width: 1560px; margin: 0 auto; padding: 28px 40px 72px; position: relative; z-index: 1; }
 
 /* =========================================================
    MASTHEAD + NAV PILLS
@@ -3281,7 +3281,50 @@ body::before {
     generated for design review &nbsp;·&nbsp; not connected to production data
   </div>
 </div>
+<script>
+/* Auto-height bridge — removes the nested-iframe scrollbar so the
+   Streamlit page is the ONLY scroll container and the shared masthead
+   scrolls naturally with the content. Measures real rendered height
+   and pushes it up through every channel a Streamlit components.html
+   iframe can honour (setFrameHeight API, the streamlit:setFrameHeight
+   postMessage, and a direct frameElement fallback). All wrapped in
+   try/catch so an opaque-origin sandbox can never throw. */
+(function () {
+  function contentHeight() {
+    var d = document;
+    return Math.ceil(Math.max(
+      d.body ? d.body.scrollHeight : 0,
+      d.body ? d.body.offsetHeight : 0,
+      d.documentElement ? d.documentElement.scrollHeight : 0,
+      d.documentElement ? d.documentElement.offsetHeight : 0
+    ));
+  }
+  var last = 0;
+  function push() {
+    var h = contentHeight();
+    if (!h || Math.abs(h - last) < 2) return;
+    last = h;
+    try { if (window.Streamlit && Streamlit.setFrameHeight) Streamlit.setFrameHeight(h); } catch (e) {}
+    try {
+      window.parent.postMessage(
+        { isStreamlitMessage: true, type: "streamlit:setFrameHeight", height: h }, "*"
+      );
+    } catch (e) {}
+    try {
+      if (window.frameElement) {
+        window.frameElement.style.height = h + "px";
+        window.frameElement.setAttribute("scrolling", "no");
+      }
+    } catch (e) {}
+  }
+  window.addEventListener("load", push);
+  window.addEventListener("resize", push);
+  try { if (window.ResizeObserver) new ResizeObserver(push).observe(document.body); } catch (e) {}
+  [60, 200, 600, 1200, 2500].forEach(function (t) { setTimeout(push, t); });
+  push();
+})();
+</script>
 </body>
 </html>"""
 
-components.html(DASHBOARD_HTML, height=5800, scrolling=True)
+components.html(DASHBOARD_HTML, height=5800, scrolling=False)

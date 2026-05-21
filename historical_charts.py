@@ -29,6 +29,7 @@ import streamlit as st
 import plotly.graph_objects as go
 
 from bl_theme import inject_global_theme
+from bl_edge_chrome import render_edge_masthead
 from player_storage import load_swing_history
 
 
@@ -727,17 +728,14 @@ def _largest_opportunity(df: pd.DataFrame, numeric_metrics: list) -> Optional[tu
 # ============================================================
 def render_historical_charts():
     inject_global_theme()
+    # Unified Edge masthead — the single shared top nav across every
+    # page (Library tab active). Replaces the old bespoke
+    # "← Back to Dashboard" row so the header is identical everywhere.
+    render_edge_masthead(
+        st.session_state.get("user") or {}, active_page="historical_charts"
+    )
     st.markdown(_HC_LOCAL_CSS, unsafe_allow_html=True)
     st.markdown('<div class="bl-page">', unsafe_allow_html=True)
-
-    # ---- Back nav ----
-    st.markdown('<div class="hc-back">', unsafe_allow_html=True)
-    back_l, _ = st.columns([1, 5])
-    with back_l:
-        if st.button("← Back to Dashboard", key="history_back"):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ---- Hero ----
     hero_html = textwrap.dedent("""

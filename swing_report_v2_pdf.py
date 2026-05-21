@@ -64,6 +64,9 @@ def build_swing_report_pdf_v2(
     #                        DESIGN TOKENS
     # ====================================================================
     MARGIN = 42
+    # Vertical rhythm after a section eyebrow — single constant so every
+    # section starts at the same distance from its header.
+    SECTION_GAP = 20
 
     # Dark palette — mirrors the bld2-* CSS variables in swing_report_v2.py
     BG          = colors.HexColor("#0a0a0c")
@@ -196,13 +199,26 @@ def build_swing_report_pdf_v2(
         return tw
 
     def section_eyebrow(num: str, label: str):
-        """Two-digit number + spaced label, dot-prefixed — mirrors v2."""
+        """Two-digit number + spaced label, dot-prefixed — mirrors v2.
+
+        Adds a glowing red dot before the section number to visually match
+        the web report's .bld2-eyebrow::before accent. The number itself is
+        rendered in RED to draw the eye to the section index; the label
+        stays in INK_60 muted gray for hierarchy.
+        """
         nonlocal y
-        c.setFillColor(INK_60)
+        # Red accent dot
+        c.setFillColor(RED)
+        c.circle(MARGIN + 4, y + 2.5, 2, fill=1, stroke=0)
+        # Section number in red, label in muted gray
         c.setFont("Helvetica-Bold", 7.5)
-        text = f"{num}   {label.upper()}"
-        c.drawString(MARGIN + 8, y, text)
-        y -= 18
+        c.setFillColor(RED)
+        num_text = f"{num}"
+        c.drawString(MARGIN + 12, y, num_text)
+        num_w = stringWidth(num_text, "Helvetica-Bold", 7.5)
+        c.setFillColor(INK_60)
+        c.drawString(MARGIN + 12 + num_w + 8, y, label.upper())
+        y -= SECTION_GAP
 
     def band_for_score(score) -> Tuple[str, colors.Color, colors.Color]:
         try:
@@ -599,289 +615,10 @@ def build_swing_report_pdf_v2(
     y -= hero_h + 14
 
     # ====================================================================
-    #                        KEY METRICS STRIP (4 tiles + sparklines)
-    # ====================================================================
-    need_space(120)
-    section_eyebrow("03", "Key Metrics")
-
-    # Pull the 4 most-relevant tiles for the strip (mirrors v2 — first 4
-    # of _V2_TILES which cover rotation, separation, timing, contact).
-    tile_defs = _V2_TILES[:4]
-    curr_rows = _flatten_metric_table(record)
-
-    # Build prev_rows + per-tile series for sparklines
-    prev_rows: List[Dict[str, Any]] = []
-    series_records: List[Dict[str, Any]] = []
-    if history:
-        sorted_hist = sorted(history,
-                             key=lambda r: str(r.get("timestamp") or r.get("date") or ""))
-        curr_id = record.get("id")
-        curr_ts = record.get("timestamp")
-        prior = [r for r in sorted_hist
-                 if not ((curr_id is not None and r.get("id") == curr_id)
-                         or (curr_ts is not None and r.get("timestamp") == curr_ts))]
-        if prior:
-            prev_rows = _flatten_metric_table(prior[-1])
-        series_records = (prior[-7:] if prior else []) + [record]
-    else:
-        series_records = [record]
-
-    tile_gap = 8
-    tile_w = (W - MARGIN * 2 - tile_gap * 3) / 4
-    tile_h = 96
-
-    for i, (label, needle, unit_hint, direction) in enumerate(tile_defs):
-        tx = MARGIN + i * (tile_w + tile_gap)
-        card(tx, y, tile_w, tile_h, fill=SURFACE_0, stroke=LINE, radius=10)
-
-        # Eyebrow
-        c.setFillColor(INK_60)
-        c.setFont("Helvetica-Bold", 6.5)
-        c.drawString(tx + 12, y - 16, label)
-
-        row = _find_metric_row(curr_rows, needle)
-        if row is None:
-            c.setFillColor(INK_40)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(tx + 12, y - 40, "—")
-            c.setFillColor(INK_60)
-            c.setFont("Helvetica", 7.5)
-            c.drawString(tx + 12, y - 56, "metric unavailable")
-            continue
-
-        val_str = str(row.get("player_str", "—")).lstrip("~+").strip()
-        c.setFillColor(INK_100)
-        c.setFont("Helvetica-Bold", 17)
-        c.drawString(tx + 12, y - 40,
-                     fit_text(val_str, "Helvetica-Bold", 17, tile_w - 24))
-
-        # Delta vs previous
-        if prev_rows:
-            prev_row = _find_metric_row(prev_rows, needle)
-            if prev_row is not None:
-                cv = _parse_value_from_str(row.get("player_str", ""))
-                pv = _parse_value_from_str(prev_row.get("player_str", ""))
-                if cv is not None and pv is not None:
-                    raw = cv - pv
-                    if abs(raw) < 0.05:
-                        d_text = "± 0"; d_color = INK_60
-                    else:
-                        sign = "↑" if raw > 0 else "↓"
-                        if direction == "higher":
-                            good = raw > 0
-                        elif direction == "lower":
-                            good = raw < 0
-                        else:
-                            cs = row.get("sim_pct", 0) or 0
-                            ps = prev_row.get("sim_pct", 0) or 0
-                            good = cs >= ps
-                        d_color = GREEN if good else RED
-                        d_text = f"{sign} {abs(raw):.1f}"
-                    c.setFillColor(d_color)
-                    c.setFont("Helvetica-Bold", 8)
-                    c.drawString(tx + 12, y - 56, d_text)
-
-        # Reference subtitle
-        ref_short = str(row.get("ref_str", "")).lstrip("~+").strip()
-        if ref_short:
-            c.setFillColor(INK_60)
-            c.setFont("Helvetica", 7)
-            c.drawString(tx + tile_w - 12
-                         - stringWidth(f"vs {ref_short}", "Helvetica", 7),
-                         y - 56, f"vs {ref_short}")
-
-        # Sparkline at bottom
-        series_vals: List[float] = []
-        for rec in series_records:
-            rec_rows = _flatten_metric_table(rec)
-            rec_row = _find_metric_row(rec_rows, needle)
-            if rec_row is None:
-                continue
-            v = _parse_value_from_str(rec_row.get("player_str", ""))
-            if v is not None:
-                series_vals.append(v)
-        sparkline(series_vals, tx + 12, y - 84, tile_w - 24, 20, RED)
-
-    y -= tile_h + 22
-
-    # ====================================================================
-    #                        PAGE 2 — RADAR + BREAKDOWN
-    # ====================================================================
-    new_page()
-    section_eyebrow("04", "Mechanical Fingerprint")
-
-    # Compute radar axes — mirror v2 web's _sim_avg logic
-    def _sim_avg(needles: List[str]) -> float:
-        vals = []
-        for nd in needles:
-            r = _find_metric_row(curr_rows, nd)
-            if r is not None and r.get("sim_pct") is not None:
-                vals.append(float(r["sim_pct"]))
-        return (sum(vals) / len(vals)) if vals else 0.0
-
-    radar_axes = [
-        ("ROTATION",   _sim_avg(["Hip rotation at foot plant",
-                                 "Hip rotation at contact"])),
-        ("SEPARATION", _sim_avg(["Peak hip-shoulder separation",
-                                 "Separation at foot plant"])),
-        ("TIMING",     _sim_avg(["Total swing duration",
-                                 "Foot plant → launch",
-                                 "Launch → contact"])),
-        ("LOWER BODY", _sim_avg(["Re-extension", "Most bent (load)"])),
-        ("STABILITY",  _sim_avg(["Total head drift",
-                                 "Head drift Δx",
-                                 "Head drift Δy"])),
-    ]
-
-    radar_h = 240
-    need_space(radar_h + 10)
-
-    # Two-column row: radar (left) + summary stats (right)
-    radar_w = (W - MARGIN * 2) * 0.5 - 6
-    summary_w = (W - MARGIN * 2) * 0.5 - 6
-    card(MARGIN, y, radar_w, radar_h, fill=SURFACE_0, stroke=LINE)
-
-    radar_cx = MARGIN + radar_w / 2
-    radar_cy = y - radar_h / 2 + 10
-    radar_chart(radar_axes, radar_cx, radar_cy, 90)
-
-    # Legend below
-    leg_y = y - radar_h + 16
-    c.setStrokeColor(GREEN)
-    c.setLineWidth(0.8)
-    c.setDash(3, 3)
-    c.line(MARGIN + 16, leg_y, MARGIN + 32, leg_y)
-    c.setDash()
-    c.setFillColor(INK_60)
-    c.setFont("Helvetica", 7.5)
-    c.drawString(MARGIN + 36, leg_y - 2, "MLB reference")
-    c.setStrokeColor(RED)
-    c.setLineWidth(1.2)
-    c.line(MARGIN + 120, leg_y, MARGIN + 136, leg_y)
-    c.drawString(MARGIN + 140, leg_y - 2, "Your swing")
-    c.setLineWidth(1)
-
-    # Right summary: axis percentages stacked
-    sum_x = MARGIN + radar_w + 12
-    card(sum_x, y, summary_w, radar_h, fill=SURFACE_0, stroke=LINE)
-    red_dot(sum_x + 16, y - 18, 2.5)
-    eyebrow(sum_x + 24, y - 21, "AXIS BREAKDOWN")
-
-    row_y = y - 50
-    for label, pct in radar_axes:
-        c.setFillColor(INK_80)
-        c.setFont("Helvetica-Bold", 9)
-        c.drawString(sum_x + 16, row_y, label)
-
-        # Bar track
-        bar_x = sum_x + 130
-        bar_w = summary_w - (bar_x - sum_x) - 56
-        c.setFillColor(SURFACE_2)
-        c.roundRect(bar_x, row_y - 1, bar_w, 6, 3, fill=1, stroke=0)
-        # Fill
-        bar_color = band_color_for_pct(pct)
-        fill_w = max(0.0, min(1.0, pct / 100.0)) * bar_w
-        if fill_w > 1:
-            c.setFillColor(bar_color)
-            c.roundRect(bar_x, row_y - 1, fill_w, 6, 3, fill=1, stroke=0)
-        # Pct on right
-        c.setFillColor(INK_100)
-        c.setFont("Helvetica-Bold", 9)
-        c.drawRightString(sum_x + summary_w - 16, row_y,
-                          f"{int(round(pct))}%")
-        row_y -= 22
-
-    # Overall similarity
-    overall_sim = sum(p for _l, p in radar_axes) / max(len(radar_axes), 1)
-    c.setStrokeColor(LINE)
-    c.setLineWidth(0.5)
-    c.line(sum_x + 16, row_y, sum_x + summary_w - 16, row_y)
-    c.setLineWidth(1)
-    c.setFillColor(INK_60)
-    c.setFont("Helvetica-Bold", 7.5)
-    c.drawString(sum_x + 16, row_y - 14, "OVERALL MLB SIMILARITY")
-    c.setFillColor(RED)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawRightString(sum_x + summary_w - 16, row_y - 18,
-                      f"{int(round(overall_sim))}%")
-
-    y -= radar_h + 22
-
-    # ====================================================================
-    #                       DETAILED METRIC BREAKDOWN
-    # ====================================================================
-    metric_table = record.get("metric_table") or {}
-    if metric_table:
-        need_space(70)
-        section_eyebrow("05", "Detailed Breakdown")
-
-        for group, rows in metric_table.items():
-            if not rows:
-                continue
-            grp_h = 32 + len(rows) * 17 + 8
-            need_space(grp_h + 8)
-
-            card(MARGIN, y, W - MARGIN * 2, grp_h,
-                 fill=SURFACE_0, stroke=LINE)
-
-            c.setFillColor(INK_100)
-            c.setFont("Helvetica-Bold", 10)
-            c.drawString(MARGIN + 16, y - 18, str(group))
-            c.setStrokeColor(LINE)
-            c.setLineWidth(0.5)
-            c.line(MARGIN + 16, y - 24, W - MARGIN - 16, y - 24)
-            c.setLineWidth(1)
-
-            cur_y = y - 40
-            label_w = 160
-            bar_x = MARGIN + 16 + label_w + 12
-            bar_w = (W - MARGIN - 16) - bar_x - 78
-            pct_x = W - MARGIN - 16
-
-            for r in rows:
-                lbl = str(r.get("label", "—"))
-                if r.get("flagged"):
-                    lbl = "! " + lbl
-                lbl = fit_text(lbl, "Helvetica", 8.5, label_w)
-
-                pct = r.get("sim_pct")
-                try:
-                    pct_val = float(pct) if pct is not None else 0
-                except Exception:
-                    pct_val = 0
-
-                c.setFillColor(INK_80)
-                c.setFont("Helvetica", 8.5)
-                c.drawString(MARGIN + 16, cur_y, lbl)
-
-                c.setFillColor(SURFACE_2)
-                c.roundRect(bar_x, cur_y - 1, bar_w, 5, 2.5, fill=1, stroke=0)
-                if pct is not None and pct_val > 0:
-                    c.setFillColor(band_color_for_pct(pct_val))
-                    fw = max(2, min(1.0, pct_val / 100.0) * bar_w)
-                    c.roundRect(bar_x, cur_y - 1, fw, 5, 2.5, fill=1, stroke=0)
-
-                # You / Ref values above bar
-                you_str = str(r.get("player_str", "—"))
-                ref_str = str(r.get("ref_str", "—"))
-                c.setFillColor(INK_60)
-                c.setFont("Helvetica", 6.5)
-                c.drawString(bar_x, cur_y + 6,
-                             fit_text(f"You {you_str}  ·  Ref {ref_str}",
-                                      "Helvetica", 6.5, bar_w))
-
-                # Pct
-                c.setFillColor(INK_100)
-                c.setFont("Helvetica-Bold", 9)
-                c.drawRightString(pct_x, cur_y,
-                                  f"{int(round(pct_val))}%" if pct is not None else "—")
-
-                cur_y -= 17
-
-            y -= grp_h + 12
-
-    # ====================================================================
-    #                       PAGE 3 — TOP PRIORITIES
+    #                       TOP PRIORITIES
+    # (Rendered immediately after the hero — actionable insights belong at
+    #  the top so the reader sees WHAT TO FIX before scrolling through the
+    #  diagnostic charts. Mirrors the web report's section order.)
     # ====================================================================
     fixes = top_three_fixes(record)
     if history:
@@ -891,8 +628,8 @@ def build_swing_report_pdf_v2(
             pass
 
     if fixes:
-        new_page()
-        section_eyebrow("06", "Top Priorities")
+        need_space(160)
+        section_eyebrow("03", "Top Priorities")
 
         for fx in fixes:
             body_w = W - MARGIN * 2 - 80
@@ -1007,7 +744,7 @@ def build_swing_report_pdf_v2(
     cats = drill_plan.get("categories", []) if isinstance(drill_plan, dict) else []
     if cats:
         need_space(60)
-        section_eyebrow("07", "Personalized Drill Plan")
+        section_eyebrow("04", "Personalized Drill Plan")
 
         for cat in cats:
             drills = cat.get("drills", []) or []
@@ -1102,6 +839,288 @@ def build_swing_report_pdf_v2(
                 cur_y -= 4
 
             y -= cat_h + 12
+
+    # ====================================================================
+    #                        KEY METRICS STRIP (4 tiles + sparklines)
+    # ====================================================================
+    need_space(120)
+    section_eyebrow("05", "Key Metrics")
+
+    # Pull the 4 most-relevant tiles for the strip (mirrors v2 — first 4
+    # of _V2_TILES which cover rotation, separation, timing, contact).
+    tile_defs = _V2_TILES[:4]
+    curr_rows = _flatten_metric_table(record)
+
+    # Build prev_rows + per-tile series for sparklines
+    prev_rows: List[Dict[str, Any]] = []
+    series_records: List[Dict[str, Any]] = []
+    if history:
+        sorted_hist = sorted(history,
+                             key=lambda r: str(r.get("timestamp") or r.get("date") or ""))
+        curr_id = record.get("id")
+        curr_ts = record.get("timestamp")
+        prior = [r for r in sorted_hist
+                 if not ((curr_id is not None and r.get("id") == curr_id)
+                         or (curr_ts is not None and r.get("timestamp") == curr_ts))]
+        if prior:
+            prev_rows = _flatten_metric_table(prior[-1])
+        series_records = (prior[-7:] if prior else []) + [record]
+    else:
+        series_records = [record]
+
+    tile_gap = 8
+    tile_w = (W - MARGIN * 2 - tile_gap * 3) / 4
+    tile_h = 96
+
+    for i, (label, needle, unit_hint, direction) in enumerate(tile_defs):
+        tx = MARGIN + i * (tile_w + tile_gap)
+        card(tx, y, tile_w, tile_h, fill=SURFACE_0, stroke=LINE, radius=10)
+
+        # Eyebrow
+        c.setFillColor(INK_60)
+        c.setFont("Helvetica-Bold", 6.5)
+        c.drawString(tx + 12, y - 16, label)
+
+        row = _find_metric_row(curr_rows, needle)
+        if row is None:
+            c.setFillColor(INK_40)
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(tx + 12, y - 40, "—")
+            c.setFillColor(INK_60)
+            c.setFont("Helvetica", 7.5)
+            c.drawString(tx + 12, y - 56, "metric unavailable")
+            continue
+
+        val_str = str(row.get("player_str", "—")).lstrip("~+").strip()
+        c.setFillColor(INK_100)
+        c.setFont("Helvetica-Bold", 17)
+        c.drawString(tx + 12, y - 40,
+                     fit_text(val_str, "Helvetica-Bold", 17, tile_w - 24))
+
+        # Delta vs previous
+        if prev_rows:
+            prev_row = _find_metric_row(prev_rows, needle)
+            if prev_row is not None:
+                cv = _parse_value_from_str(row.get("player_str", ""))
+                pv = _parse_value_from_str(prev_row.get("player_str", ""))
+                if cv is not None and pv is not None:
+                    raw = cv - pv
+                    if abs(raw) < 0.05:
+                        d_text = "± 0"; d_color = INK_60
+                    else:
+                        sign = "↑" if raw > 0 else "↓"
+                        if direction == "higher":
+                            good = raw > 0
+                        elif direction == "lower":
+                            good = raw < 0
+                        else:
+                            cs = row.get("sim_pct", 0) or 0
+                            ps = prev_row.get("sim_pct", 0) or 0
+                            good = cs >= ps
+                        d_color = GREEN if good else RED
+                        d_text = f"{sign} {abs(raw):.1f}"
+                    c.setFillColor(d_color)
+                    c.setFont("Helvetica-Bold", 8)
+                    c.drawString(tx + 12, y - 56, d_text)
+
+        # Reference subtitle
+        ref_short = str(row.get("ref_str", "")).lstrip("~+").strip()
+        if ref_short:
+            c.setFillColor(INK_60)
+            c.setFont("Helvetica", 7)
+            c.drawString(tx + tile_w - 12
+                         - stringWidth(f"vs {ref_short}", "Helvetica", 7),
+                         y - 56, f"vs {ref_short}")
+
+        # Sparkline at bottom
+        series_vals: List[float] = []
+        for rec in series_records:
+            rec_rows = _flatten_metric_table(rec)
+            rec_row = _find_metric_row(rec_rows, needle)
+            if rec_row is None:
+                continue
+            v = _parse_value_from_str(rec_row.get("player_str", ""))
+            if v is not None:
+                series_vals.append(v)
+        sparkline(series_vals, tx + 12, y - 84, tile_w - 24, 20, RED)
+
+    y -= tile_h + 22
+
+    # ====================================================================
+    #                        PAGE 2 — RADAR + BREAKDOWN
+    # ====================================================================
+    new_page()
+    section_eyebrow("06", "Mechanical Fingerprint")
+
+    # Compute radar axes — mirror v2 web's _sim_avg logic
+    def _sim_avg(needles: List[str]) -> float:
+        vals = []
+        for nd in needles:
+            r = _find_metric_row(curr_rows, nd)
+            if r is not None and r.get("sim_pct") is not None:
+                vals.append(float(r["sim_pct"]))
+        return (sum(vals) / len(vals)) if vals else 0.0
+
+    radar_axes = [
+        ("ROTATION",   _sim_avg(["Hip rotation at foot plant",
+                                 "Hip rotation at contact"])),
+        ("SEPARATION", _sim_avg(["Peak hip-shoulder separation",
+                                 "Separation at foot plant"])),
+        ("TIMING",     _sim_avg(["Total swing duration",
+                                 "Foot plant → launch",
+                                 "Launch → contact"])),
+        ("LOWER BODY", _sim_avg(["Re-extension", "Most bent (load)"])),
+        ("STABILITY",  _sim_avg(["Total head drift",
+                                 "Head drift Δx",
+                                 "Head drift Δy"])),
+    ]
+
+    radar_h = 240
+    need_space(radar_h + 10)
+
+    # Two-column row: radar (left) + summary stats (right)
+    radar_w = (W - MARGIN * 2) * 0.5 - 6
+    summary_w = (W - MARGIN * 2) * 0.5 - 6
+    card(MARGIN, y, radar_w, radar_h, fill=SURFACE_0, stroke=LINE)
+
+    radar_cx = MARGIN + radar_w / 2
+    radar_cy = y - radar_h / 2 + 10
+    radar_chart(radar_axes, radar_cx, radar_cy, 90)
+
+    # Legend below
+    leg_y = y - radar_h + 16
+    c.setStrokeColor(GREEN)
+    c.setLineWidth(0.8)
+    c.setDash(3, 3)
+    c.line(MARGIN + 16, leg_y, MARGIN + 32, leg_y)
+    c.setDash()
+    c.setFillColor(INK_60)
+    c.setFont("Helvetica", 7.5)
+    c.drawString(MARGIN + 36, leg_y - 2, "MLB reference")
+    c.setStrokeColor(RED)
+    c.setLineWidth(1.2)
+    c.line(MARGIN + 120, leg_y, MARGIN + 136, leg_y)
+    c.drawString(MARGIN + 140, leg_y - 2, "Your swing")
+    c.setLineWidth(1)
+
+    # Right summary: axis percentages stacked
+    sum_x = MARGIN + radar_w + 12
+    card(sum_x, y, summary_w, radar_h, fill=SURFACE_0, stroke=LINE)
+    red_dot(sum_x + 16, y - 18, 2.5)
+    eyebrow(sum_x + 24, y - 21, "AXIS BREAKDOWN")
+
+    row_y = y - 50
+    for label, pct in radar_axes:
+        c.setFillColor(INK_80)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(sum_x + 16, row_y, label)
+
+        # Bar track
+        bar_x = sum_x + 130
+        bar_w = summary_w - (bar_x - sum_x) - 56
+        c.setFillColor(SURFACE_2)
+        c.roundRect(bar_x, row_y - 1, bar_w, 6, 3, fill=1, stroke=0)
+        # Fill
+        bar_color = band_color_for_pct(pct)
+        fill_w = max(0.0, min(1.0, pct / 100.0)) * bar_w
+        if fill_w > 1:
+            c.setFillColor(bar_color)
+            c.roundRect(bar_x, row_y - 1, fill_w, 6, 3, fill=1, stroke=0)
+        # Pct on right
+        c.setFillColor(INK_100)
+        c.setFont("Helvetica-Bold", 9)
+        c.drawRightString(sum_x + summary_w - 16, row_y,
+                          f"{int(round(pct))}%")
+        row_y -= 22
+
+    # Overall similarity
+    overall_sim = sum(p for _l, p in radar_axes) / max(len(radar_axes), 1)
+    c.setStrokeColor(LINE)
+    c.setLineWidth(0.5)
+    c.line(sum_x + 16, row_y, sum_x + summary_w - 16, row_y)
+    c.setLineWidth(1)
+    c.setFillColor(INK_60)
+    c.setFont("Helvetica-Bold", 7.5)
+    c.drawString(sum_x + 16, row_y - 14, "OVERALL MLB SIMILARITY")
+    c.setFillColor(RED)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawRightString(sum_x + summary_w - 16, row_y - 18,
+                      f"{int(round(overall_sim))}%")
+
+    y -= radar_h + 22
+
+    # ====================================================================
+    #                       DETAILED METRIC BREAKDOWN
+    # ====================================================================
+    metric_table = record.get("metric_table") or {}
+    if metric_table:
+        need_space(70)
+        section_eyebrow("07", "Detailed Breakdown")
+
+        for group, rows in metric_table.items():
+            if not rows:
+                continue
+            grp_h = 32 + len(rows) * 17 + 8
+            need_space(grp_h + 8)
+
+            card(MARGIN, y, W - MARGIN * 2, grp_h,
+                 fill=SURFACE_0, stroke=LINE)
+
+            c.setFillColor(INK_100)
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(MARGIN + 16, y - 18, str(group))
+            c.setStrokeColor(LINE)
+            c.setLineWidth(0.5)
+            c.line(MARGIN + 16, y - 24, W - MARGIN - 16, y - 24)
+            c.setLineWidth(1)
+
+            cur_y = y - 40
+            label_w = 160
+            bar_x = MARGIN + 16 + label_w + 12
+            bar_w = (W - MARGIN - 16) - bar_x - 78
+            pct_x = W - MARGIN - 16
+
+            for r in rows:
+                lbl = str(r.get("label", "—"))
+                if r.get("flagged"):
+                    lbl = "! " + lbl
+                lbl = fit_text(lbl, "Helvetica", 8.5, label_w)
+
+                pct = r.get("sim_pct")
+                try:
+                    pct_val = float(pct) if pct is not None else 0
+                except Exception:
+                    pct_val = 0
+
+                c.setFillColor(INK_80)
+                c.setFont("Helvetica", 8.5)
+                c.drawString(MARGIN + 16, cur_y, lbl)
+
+                c.setFillColor(SURFACE_2)
+                c.roundRect(bar_x, cur_y - 1, bar_w, 5, 2.5, fill=1, stroke=0)
+                if pct is not None and pct_val > 0:
+                    c.setFillColor(band_color_for_pct(pct_val))
+                    fw = max(2, min(1.0, pct_val / 100.0) * bar_w)
+                    c.roundRect(bar_x, cur_y - 1, fw, 5, 2.5, fill=1, stroke=0)
+
+                # You / Ref values above bar
+                you_str = str(r.get("player_str", "—"))
+                ref_str = str(r.get("ref_str", "—"))
+                c.setFillColor(INK_60)
+                c.setFont("Helvetica", 6.5)
+                c.drawString(bar_x, cur_y + 6,
+                             fit_text(f"You {you_str}  ·  Ref {ref_str}",
+                                      "Helvetica", 6.5, bar_w))
+
+                # Pct
+                c.setFillColor(INK_100)
+                c.setFont("Helvetica-Bold", 9)
+                c.drawRightString(pct_x, cur_y,
+                                  f"{int(round(pct_val))}%" if pct is not None else "—")
+
+                cur_y -= 17
+
+            y -= grp_h + 12
 
     # ====================================================================
     #                       PROGRESS — SCORE HISTORY LINE

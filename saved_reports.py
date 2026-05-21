@@ -544,19 +544,46 @@ _SR_LOCAL_CSS = """
 #                       HELPERS
 # ============================================================
 def _parse_date(rec: dict):
-    """Best-effort parse of the date string into a datetime."""
+    """Best-effort parse of a record's date into a datetime.
+
+    Handles ISO 8601 (with optional trailing 'Z' and microseconds),
+    space-separated datetimes, and bare dates. The previous
+    implementation sliced the value by ``len(fmt)`` — the *format
+    string's* length, not the value's — which truncated common
+    timestamps like ``2026-05-18T14:23:00`` to ``2026-05-18T14:23:``
+    and failed every parse. We now parse the full string instead.
+    """
     for key in ("created_at", "timestamp", "date"):
         v = rec.get(key)
         if not v:
             continue
         if isinstance(v, datetime):
             return v
-        for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S",
-                    "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        s = str(v).strip()
+
+        # 1. ISO 8601 — the common case. fromisoformat handles
+        #    'YYYY-MM-DDTHH:MM:SS[.ffffff]' and the space variant; strip
+        #    a trailing 'Z' (UTC) which older Pythons don't accept.
+        iso = s[:-1] if s.endswith("Z") else s
+        try:
+            return datetime.fromisoformat(iso)
+        except ValueError:
+            pass
+
+        # 2. Explicit formats, parsed against the FULL string.
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%S.%f",
+                    "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S",
+                    "%Y-%m-%d %H:%M", "%Y-%m-%d"):
             try:
-                return datetime.strptime(str(v)[:len(fmt)], fmt)
+                return datetime.strptime(s, fmt)
             except ValueError:
                 continue
+
+        # 3. Last resort — a leading YYYY-MM-DD date prefix.
+        try:
+            return datetime.strptime(s[:10], "%Y-%m-%d")
+        except ValueError:
+            continue
     return None
 
 

@@ -1,0 +1,118 @@
+{
+  "n_total": 11,
+  "n_scored": 11,
+  "n_skipped": 0,
+  "skipped_by_reason": {},
+  "v3": {
+    "n": 11,
+    "mean_abs_error_frames": 12.454545454545455,
+    "median_abs_error_frames": 10,
+    "mean_abs_error_ms": 207.57575757575756,
+    "median_abs_error_ms": 166.66666666666666,
+    "pct_within_tight": 0.45454545454545453,
+    "pct_within_loose": 0.5454545454545454,
+    "mean_signed_error_frames": -12.090909090909092
+  },
+  "v4": {
+    "n": 11,
+    "mean_abs_error_frames": 0.9090909090909091,
+    "median_abs_error_frames": 1,
+    "mean_abs_error_ms": 15.151515151515152,
+    "median_abs_error_ms": 16.666666666666668,
+    "pct_within_tight": 1.0,
+    "pct_within_loose": 1.0,
+    "mean_signed_error_frames": 0.7272727272727273
+  },
+  "head_to_head": {
+    "n": 11,
+    "v4_better": 10,
+    "v3_better": 0,
+    "tie": 1,
+    "pct_v4_better": 0.9090909090909091,
+    "pct_v3_better": 0.0,
+    "pct_tie": 0.09090909090909091
+  },
+  "stride_style": {
+    "n_evaluated": 11,
+    "n_correct": 10,
+    "overall_accuracy": 0.9090909090909091,
+    "per_class_accuracy": {
+      "no_stride": 1.0,
+      "standard_stride": 1.0,
+      "toe_tap": 0.75,
+      "leg_kick": 1.0
+    },
+    "confusion": {
+      "no_stride": {
+        "no_stride": 1,
+        "standard_stride": 0,
+        "toe_tap": 0,
+        "leg_kick": 0,
+        "uncertain": 0
+      },
+      "standard_stride": {
+        "no_stride": 0,
+        "standard_stride": 4,
+        "toe_tap": 0,
+        "leg_kick": 0,
+        "uncertain": 0
+      },
+      "toe_tap": {
+        "no_stride": 0,
+        "standard_stride": 1,
+        "toe_tap": 3,
+        "leg_kick": 0,
+        "uncertain": 0
+      },
+      "leg_kick": {
+        "no_stride": 0,
+        "standard_stride": 0,
+        "toe_tap": 0,
+        "leg_kick": 2,
+        "uncertain": 0
+      }
+    }
+  },
+  "per_stride_style": {
+    "no_stride": {
+      "n": 1,
+      "mean_abs_error_frames": 0,
+      "median_abs_error_frames": 0,
+      "mean_abs_error_ms": 0.0,
+      "median_abs_error_ms": 0.0,
+      "pct_within_tight": 1.0,
+      "pct_within_loose": 1.0,
+      "mean_signed_error_frames": 0
+    },
+    "standard_stride": {
+      "n": 4,
+      "mean_abs_error_frames": 0.25,
+      "median_abs_error_frames": 0.0,
+      "mean_abs_error_ms": 4.166666666666667,
+      "median_abs_error_ms": 0.0,
+      "pct_within_tight": 1.0,
+      "pct_within_loose": 1.0,
+      "mean_signed_error_frames": 0.25
+    },
+    "toe_tap": {
+      "n": 4,
+      "mean_abs_error_frames": 1.5,
+      "median_abs_error_frames": 1.5,
+      "mean_abs_error_ms": 25.0,
+      "median_abs_error_ms": 25.0,
+      "pct_within_tight": 1.0,
+      "pct_within_loose": 1.0,
+      "mean_signed_error_frames": 1.5
+    },
+    "leg_kick": {
+      "n": 2,
+      "mean_abs_error_frames": 1.5,
+      "median_abs_error_frames": 1.5,
+      "mean_abs_error_ms": 25.0,
+      "median_abs_error_ms": 25.0,
+      "pct_within_tight": 1.0,
+      "pct_within_loose": 1.0,
+      "mean_signed_error_frames": 0.5
+    }
+  }
+}

@@ -79,11 +79,25 @@ def _friendly_label(label):
 
 
 # ---- MAIN ENTRY POINT ----
-def analyze(player_fp_path, reference_arg=None):
+def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     """Run the full comparison and return a structured result dict.
 
     The dict is consumed by app.py to render UI cards. Field shape is stable
     enough that a future iOS app could consume the same JSON.
+
+    Parameters
+    ----------
+    player_fp_path
+        Path to the player's fingerprint JSON.
+    reference_arg
+        Optional reference identifier (slug or file path). When the
+        player has `locked_mlb_slug` set this is their locked MLB hitter.
+    preferred_goal
+        OPTIONAL — the player's `primary_goal` from the Player Settings
+        page. Forwarded into `build_drill_plan` so drill recommendations
+        weight categories that move the player's stated goal. Does NOT
+        change scoring math, gap detection, or MLB comp selection — it
+        only re-ranks roughly-tied drill categories.
     """
     # ----- LOAD PLAYER -----
     if not os.path.isfile(player_fp_path):
@@ -357,8 +371,17 @@ def analyze(player_fp_path, reference_arg=None):
         })
 
     # ----- NARRATIVES + DRILL PLAN -----
+    # `preferred_goal` is forwarded from app.py (the player's primary_goal
+    # set on the Player Settings page) so the drill plan can boost
+    # categories that move the player's stated goal. Gap-derived weights
+    # still dominate — the goal just breaks ties between equally-ranked
+    # categories.
     narratives = build_narratives(gaps_ranked_raw, ref_name, top_n=2)
-    drill_plan = build_drill_plan(gaps_ranked_raw, top_n_categories=2)
+    drill_plan = build_drill_plan(
+        gaps_ranked_raw,
+        top_n_categories=2,
+        preferred_goal=preferred_goal,
+    )
 
     # ----- METRIC TABLE (for expanders) -----
     # Group metrics by group so the UI can show them in collapsible sections.

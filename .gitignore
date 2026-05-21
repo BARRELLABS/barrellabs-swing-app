@@ -48,3 +48,9 @@ My swing*
 # ===== AI tooling clones (browser-use, etc.) =====
 tools/
 
+# ===== Phase 3 validation outputs (generated artifacts; sample stays in repo) =====
+validation/results/
+validation/reports/[0-9]*Z-*
+validation/videos/
+
+static/videos/

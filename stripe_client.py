@@ -225,7 +225,50 @@ def create_portal_session(*, return_url: str) -> str:
     return session.url
 
 
+def cancel_active_subscription(user_id: str | None = None) -> bool:
+    """Cancel the currently-active Stripe subscription for this user.
+
+    Called from auth.delete_account() so we don't keep billing a user
+    who's deleting their BarrelLabs account. Best-effort: if Stripe
+    isn't configured or there's no active subscription, returns False
+    without raising — the caller decides whether that's a hard failure.
+
+    Returns True iff a subscription was successfully cancelled.
+    """
+    customer_id = _existing_stripe_customer_id()
+    if not customer_id:
+        return False
+    try:
+        stripe = _stripe_module()
+    except Exception:
+        return False  # Stripe SDK not installed / no API key in this env.
+
+    try:
+        subs = stripe.Subscription.list(customer=customer_id, status="active", limit=10)
+        items = getattr(subs, "data", None) or subs.get("data", []) if hasattr(subs, "get") else []
+        if not items:
+            # nothing active to cancel
+            return False
+        cancelled_any = False
+        for sub in items:
+            sub_id = getattr(sub, "id", None) or (sub.get("id") if isinstance(sub, dict) else None)
+            if not sub_id:
+                continue
+            try:
+                # cancel_at_period_end=False means hard-cancel now; the user
+                # is deleting their account so we don't want a grace period
+                # where billing could still attempt.
+                stripe.Subscription.delete(sub_id)
+                cancelled_any = True
+            except Exception:
+                continue
+        return cancelled_any
+    except Exception:
+        return False
+
+
 __all__ = [
     "create_checkout_session",
     "create_portal_session",
+    "cancel_active_subscription",
 ]
