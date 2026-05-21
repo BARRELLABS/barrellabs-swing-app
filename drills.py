@@ -206,6 +206,122 @@ DRILL_DB = {
         ],
     },
 
+    "sequencing": {
+        "title": "Power Sequence — Fire in Order",
+        "why_it_matters": (
+            "The kinematic chain only delivers full power when it fires in "
+            "sequence: pelvis first, torso a split-second later. When the "
+            "upper body fires alongside the hips, the elastic snap that "
+            "drives bat speed is gone before it starts."
+        ),
+        "drills": [
+            {
+                "name": "Connection Ball Drill",
+                "how": (
+                    "Tuck a tennis ball or small connection ball under your lead "
+                    "armpit (the one closest to the pitcher). "
+                    "Take your normal swing — the ball must NOT drop until "
+                    "after contact. "
+                    "If the ball drops early, your arms are leaving the body "
+                    "before your hips have done their work. Slow the swing down "
+                    "and feel the hips lead. "
+                    "Build up to game speed over a set of 8 swings."
+                ),
+                "reps": "3 × 8",
+            },
+            {
+                "name": "Heavy-Bat Hip Turner",
+                "how": (
+                    "Use a fungo or weighted training bat (2–4 lbs heavier "
+                    "than your gamer). "
+                    "Take 10 controlled swings focusing ONLY on the hip turn "
+                    "— let the upper body and arms feel slow and reactive. "
+                    "Switch back to your game bat for 5 swings. The bat will "
+                    "feel like a feather and the sequence will feel automatic."
+                ),
+                "reps": "2 × 10",
+            },
+        ],
+    },
+
+    "rotational_speed": {
+        "title": "Rotational Speed — Pull the Trigger Faster",
+        "why_it_matters": (
+            "Peak hip rotational speed is the rotational analog of how hard "
+            "you throw a ball — it's a trainable physical quality. More hip "
+            "velocity at the trigger point means more barrel speed at contact, "
+            "full stop."
+        ),
+        "drills": [
+            {
+                "name": "Med-Ball Rotational Throws",
+                "how": (
+                    "Stand sideways to a wall, 5–8 feet away. Hold a 4–8 lb "
+                    "med ball at hip height. "
+                    "Load into your back hip (just like a swing), then EXPLODE "
+                    "rotationally and throw the ball into the wall as hard as "
+                    "you can. "
+                    "Catch the rebound, reset, and do it again — fast and "
+                    "hard. The goal is peak rotational velocity, not endurance. "
+                    "Two sides — 6 throws each."
+                ),
+                "reps": "3 × 6",
+            },
+            {
+                "name": "Sledgehammer to Tire",
+                "how": (
+                    "Stand next to a tire (or stack of pads). Hold a 6–10 lb "
+                    "sledgehammer overhead with both hands. "
+                    "Drive the hammer DOWN into the tire by rotating through "
+                    "the hips — the arms just hold on, the rotation does the "
+                    "work. "
+                    "Both sides. The deceleration on contact teaches the body "
+                    "to brake the hips violently, which transfers to bat speed."
+                ),
+                "reps": "2 × 8 per side",
+            },
+        ],
+    },
+
+    "front_side_stability": {
+        "title": "Stay Closed — Front Side First",
+        "why_it_matters": (
+            "When the front shoulder opens before the front foot is planted, "
+            "the upper-body slingshot effect is gone — hips and shoulders fire "
+            "together and the bat has to chase a swing that already happened. "
+            "A closed front side stores torque until the lower body is ready."
+        ),
+        "drills": [
+            {
+                "name": "Noodle Across the Chest",
+                "how": (
+                    "Have a partner (or use a pool noodle braced under your "
+                    "lead armpit) lay a noodle across your chest, pointed at "
+                    "the pitcher. "
+                    "Take swings. The noodle MUST stay pointed at the pitcher "
+                    "until your front foot is planted. If it rotates open early, "
+                    "you flew open. "
+                    "Slow the swing down until you can keep the noodle pointed "
+                    "forward through plant. Build up speed over 10 swings."
+                ),
+                "reps": "3 × 10",
+            },
+            {
+                "name": "Pause-at-Plant Tee",
+                "how": (
+                    "Set up off a tee. Take your normal load and stride. "
+                    "PAUSE for 1 full second at the moment the front foot "
+                    "plants — front shoulder closed, chin tucked, hips loaded. "
+                    "From the pause, drive the swing. The pause kills momentum "
+                    "in the upper body so the lower body has to initiate. "
+                    "Over time, shorten the pause to half a second, then "
+                    "to a 'feel' — the body remembers."
+                ),
+                "reps": "3 × 8",
+            },
+        ],
+    },
+
     "timing": {
         "title": "Sharpen Timing & Quickness",
         "why_it_matters": (
