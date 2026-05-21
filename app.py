@@ -4719,10 +4719,19 @@ if not _swing_check.allowed:
   <div style="font-size: 1.25rem; font-weight: 800; color: #fafafa; margin-top: 0.55rem;">
     You've used all {FREE_SWING_LIMIT} of your free swing analyses.
   </div>
-  <div style="color: #d4d4d4; line-height: 1.55; margin-top: 0.45rem;">
-    Upgrade to <strong style="color:#fafafa;">Solo Pro</strong> for unlimited
-    swings, personalized drill plans, swing video saving, the full
-    Development Tracker, PDF reports, and the complete MLB comp library.
+  <div style="font-size: 1.55rem; font-weight: 900; color:#E8C170;
+              letter-spacing: -0.01em; margin-top: 0.35rem;
+              font-feature-settings: 'tnum';">
+    Solo Pro · <span style="color:#fafafa;">$14.99/mo</span>
+    <span style="font-size: 0.9rem; font-weight: 600; color:#d4d4d4;
+                 margin-left: 0.4rem; letter-spacing: 0;">
+      or $99/yr (save 45%)
+    </span>
+  </div>
+  <div style="color: #d4d4d4; line-height: 1.55; margin-top: 0.55rem;">
+    Unlimited swings, personalized drill plans, swing video saving, the full
+    Development Tracker, PDF reports, the complete MLB comp library.
+    <span style="color:#a3a3a3;">Cancel anytime.</span>
   </div>
   <div style="color: #a3a3a3; font-size: 0.86rem; margin-top: 0.55rem;">
     Got a beta code? Redeem it from <em>Account Settings → Subscription</em> to
@@ -4959,6 +4968,70 @@ except Exception as _post_analyze_render_err:
         history=swing_history,
         phase_chart_path=str(phase_chart_path) if phase_chart_path and phase_chart_path.is_file() else None,
     )
+
+
+# ============================================================
+# ---------- POST-ANALYSIS UPGRADE NUDGE (Free tier only) ----------
+# ============================================================
+# Conversion-funnel audit quick-win: the old swing_report_v2 had a
+# text-only red strip with no CTA after every analysis. Now that the
+# post-analyze path renders the new editorial design, surface a real
+# clickable nudge with price + value prop directly under the report.
+# Only fires for Free users — Pro users see nothing (we already have
+# their money).
+if not is_pro(_plan_snapshot):
+    st.markdown(
+        """
+<div style="
+    margin: 1.8rem 0 0.4rem 0;
+    padding: 1.6rem 1.8rem;
+    border-radius: 16px;
+    border: 1px solid rgba(232,193,112,0.35);
+    background:
+      radial-gradient(120% 100% at 0% 0%, rgba(232,193,112,0.10), transparent 55%),
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004));
+">
+  <div style="
+      font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+      font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: #E8C170;
+      margin-bottom: 0.4rem;
+  ">↗  Loved your analysis?</div>
+  <div style="
+      font-family: 'Instrument Serif', 'Fraunces', Georgia, serif;
+      font-style: italic;
+      font-size: 1.75rem;
+      line-height: 1.15;
+      color: #F4EFE6;
+      letter-spacing: -0.01em;
+  ">Unlock the full BarrelLabs experience.</div>
+  <div style="
+      color: #d4d4d4;
+      line-height: 1.55;
+      margin-top: 0.5rem;
+      max-width: 60ch;
+  ">
+    Save this video, compare it side-by-side with your next swing,
+    download a PDF for your coach, and unlock the full MLB reference
+    library and personalized drill plans.
+    <strong style="color:#E8C170;">Solo Pro — $14.99/mo</strong>
+    <span style="color:#a3a3a3;">or $99/yr (save 45%) · Cancel anytime.</span>
+  </div>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _upgrade_col, _spacer = st.columns([1.6, 4])
+    with _upgrade_col:
+        if st.button(
+            "↗  Upgrade to Solo Pro",
+            type="primary",
+            width="stretch",
+            key="post_analysis_upgrade_cta",
+        ):
+            st.session_state["page"] = "pricing"
+            st.rerun()
 
 
 # ============================================================

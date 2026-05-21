@@ -301,8 +301,13 @@ def render_pricing_page():
     # ---- Plan cards ----
     col_solo, col_fam, col_coach = st.columns(3, gap="large")
 
-    _render_plan_card(col_solo,  "solo_pro",   interval, featured=False)
-    _render_plan_card(col_fam,   "family_pro", interval, featured=True)
+    # Conversion-funnel audit follow-up: "Most Popular" badge now sits on
+    # Solo Pro (the entry-level paid plan), not Family Pro. First-time
+    # paying customers overwhelmingly want Solo, not a 4-seat Family plan
+    # they don't yet need. Defaulting visual emphasis to Family was
+    # pushing price-sensitive users back to Free.
+    _render_plan_card(col_solo,  "solo_pro",   interval, featured=True)
+    _render_plan_card(col_fam,   "family_pro", interval, featured=False)
     _render_plan_card(col_coach, "coach_pro",  interval, featured=False)
 
     # ---- Already paid? Refresh my plan ----
