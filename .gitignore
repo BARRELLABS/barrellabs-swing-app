@@ -39,6 +39,8 @@ profile_pics/
 # ===== Dev-only swing artifacts (NOT used at runtime) =====
 *.mp4
 *.mov
+# Allow the bundled sample clip (base64-embedded on upload page)
+!assets/sample_swing.mp4
 *_fingerprint.json
 *_metrics.csv
 *_phases.png
