@@ -206,6 +206,122 @@ DRILL_DB = {
         ],
     },
 
+    "sequencing": {
+        "title": "Power Sequence — Fire in Order",
+        "why_it_matters": (
+            "The kinematic chain only delivers full power when it fires in "
+            "sequence: pelvis first, torso a split-second later. When the "
+            "upper body fires alongside the hips, the elastic snap that "
+            "drives bat speed is gone before it starts."
+        ),
+        "drills": [
+            {
+                "name": "Connection Ball Drill",
+                "how": (
+                    "Tuck a tennis ball or small connection ball under your lead "
+                    "armpit (the one closest to the pitcher). "
+                    "Take your normal swing — the ball must NOT drop until "
+                    "after contact. "
+                    "If the ball drops early, your arms are leaving the body "
+                    "before your hips have done their work. Slow the swing down "
+                    "and feel the hips lead. "
+                    "Build up to game speed over a set of 8 swings."
+                ),
+                "reps": "3 × 8",
+            },
+            {
+                "name": "Heavy-Bat Hip Turner",
+                "how": (
+                    "Use a fungo or weighted training bat (2–4 lbs heavier "
+                    "than your gamer). "
+                    "Take 10 controlled swings focusing ONLY on the hip turn "
+                    "— let the upper body and arms feel slow and reactive. "
+                    "Switch back to your game bat for 5 swings. The bat will "
+                    "feel like a feather and the sequence will feel automatic."
+                ),
+                "reps": "2 × 10",
+            },
+        ],
+    },
+
+    "rotational_speed": {
+        "title": "Rotational Speed — Pull the Trigger Faster",
+        "why_it_matters": (
+            "Peak hip rotational speed is the rotational analog of how hard "
+            "you throw a ball — it's a trainable physical quality. More hip "
+            "velocity at the trigger point means more barrel speed at contact, "
+            "full stop."
+        ),
+        "drills": [
+            {
+                "name": "Med-Ball Rotational Throws",
+                "how": (
+                    "Stand sideways to a wall, 5–8 feet away. Hold a 4–8 lb "
+                    "med ball at hip height. "
+                    "Load into your back hip (just like a swing), then EXPLODE "
+                    "rotationally and throw the ball into the wall as hard as "
+                    "you can. "
+                    "Catch the rebound, reset, and do it again — fast and "
+                    "hard. The goal is peak rotational velocity, not endurance. "
+                    "Two sides — 6 throws each."
+                ),
+                "reps": "3 × 6",
+            },
+            {
+                "name": "Sledgehammer to Tire",
+                "how": (
+                    "Stand next to a tire (or stack of pads). Hold a 6–10 lb "
+                    "sledgehammer overhead with both hands. "
+                    "Drive the hammer DOWN into the tire by rotating through "
+                    "the hips — the arms just hold on, the rotation does the "
+                    "work. "
+                    "Both sides. The deceleration on contact teaches the body "
+                    "to brake the hips violently, which transfers to bat speed."
+                ),
+                "reps": "2 × 8 per side",
+            },
+        ],
+    },
+
+    "front_side_stability": {
+        "title": "Stay Closed — Front Side First",
+        "why_it_matters": (
+            "When the front shoulder opens before the front foot is planted, "
+            "the upper-body slingshot effect is gone — hips and shoulders fire "
+            "together and the bat has to chase a swing that already happened. "
+            "A closed front side stores torque until the lower body is ready."
+        ),
+        "drills": [
+            {
+                "name": "Noodle Across the Chest",
+                "how": (
+                    "Have a partner (or use a pool noodle braced under your "
+                    "lead armpit) lay a noodle across your chest, pointed at "
+                    "the pitcher. "
+                    "Take swings. The noodle MUST stay pointed at the pitcher "
+                    "until your front foot is planted. If it rotates open early, "
+                    "you flew open. "
+                    "Slow the swing down until you can keep the noodle pointed "
+                    "forward through plant. Build up speed over 10 swings."
+                ),
+                "reps": "3 × 10",
+            },
+            {
+                "name": "Pause-at-Plant Tee",
+                "how": (
+                    "Set up off a tee. Take your normal load and stride. "
+                    "PAUSE for 1 full second at the moment the front foot "
+                    "plants — front shoulder closed, chin tucked, hips loaded. "
+                    "From the pause, drive the swing. The pause kills momentum "
+                    "in the upper body so the lower body has to initiate. "
+                    "Over time, shorten the pause to half a second, then "
+                    "to a 'feel' — the body remembers."
+                ),
+                "reps": "3 × 8",
+            },
+        ],
+    },
+
     "timing": {
         "title": "Sharpen Timing & Quickness",
         "why_it_matters": (
@@ -634,20 +750,92 @@ def _narrate_timing_cat(timing_gaps, ref_name):
     return [first, why, fix]
 
 
+def _narrate_sequencing(gaps_in_cat, ref_name):
+    """Power Sequence M1 narrative — hip → shoulder lag."""
+    first = (
+        f"Your kinematic chain isn't firing in order. The hips and the "
+        f"upper body need to fire on a delay — pelvis first, torso a "
+        f"split-second later — to transfer energy efficiently into the bat."
+    )
+    why = (
+        f"When the shoulders fire AT THE SAME TIME as the hips (or before "
+        f"them), the upper body never gets to amplify what the lower body "
+        f"started. {ref_name} sequences the chain — hips snap, then "
+        f"shoulders ride the snap. That's where the bat speed comes from."
+    )
+    fix = (
+        "What the fix feels like: hips lead, hands wait. Start the swing "
+        "with the back hip, then let the shoulders react to what the hips "
+        "did — not initiate alongside them."
+    )
+    return [first, why, fix]
+
+
+def _narrate_rotational_speed(gaps_in_cat, ref_name):
+    """Power Sequence M2 narrative — hip angular velocity."""
+    first = (
+        f"You're getting through the swing but not at top speed. The "
+        f"hips are rotating, just not violently enough to drive elite "
+        f"bat speed."
+    )
+    why = (
+        f"Peak hip rotational speed is the rotational analog of how hard "
+        f"you can throw a ball — it's a measurable physical quality you "
+        f"train. {ref_name} pulls the trigger faster, which is why the "
+        f"barrel arrives with the kind of speed defenses can't catch up to."
+    )
+    fix = (
+        "What the fix feels like: short and violent, not long and smooth. "
+        "Med-ball rotational throws teach the body to RECRUIT power into "
+        "the rotation rather than glide through it."
+    )
+    return [first, why, fix]
+
+
+def _narrate_front_side_stability(gaps_in_cat, ref_name):
+    """Power Sequence M3 narrative — early shoulder fly-out."""
+    first = (
+        f"Your front shoulder is opening up too early — before the front "
+        f"foot has finished planting. That kills the storage of torque "
+        f"between hips and shoulders."
+    )
+    why = (
+        f"When the shoulders pre-open, the entire upper-body \"slingshot\" "
+        f"effect is gone — the hips and shoulders end up firing together "
+        f"and the bat has to catch up to a swing that already happened. "
+        f"{ref_name} keeps the front shoulder pointed at the pitcher "
+        f"until AFTER the front foot is down."
+    )
+    fix = (
+        "What the fix feels like: chin to back shoulder, chest pointed at "
+        "the catcher until you can't help but turn. Closed-shoulder tee "
+        "work with a noodle across the chest gives the body the cue."
+    )
+    return [first, why, fix]
+
+
 _CATEGORY_NARRATORS = {
-    "head_stability": _narrate_head_stability,
-    "hip_rotation": _narrate_hip_rotation,
-    "hip_shoulder_separation": _narrate_separation,
-    "knee_extension": _narrate_knee,
-    "timing": _narrate_timing_cat,
+    "head_stability":           _narrate_head_stability,
+    "hip_rotation":             _narrate_hip_rotation,
+    "hip_shoulder_separation":  _narrate_separation,
+    "knee_extension":           _narrate_knee,
+    "timing":                   _narrate_timing_cat,
+    # Power Sequence (new):
+    "sequencing":               _narrate_sequencing,
+    "rotational_speed":         _narrate_rotational_speed,
+    "front_side_stability":     _narrate_front_side_stability,
 }
 
 _CATEGORY_TITLES = {
-    "head_stability": "HEAD STABILITY",
-    "hip_rotation": "HIP ROTATION",
-    "hip_shoulder_separation": "HIP-SHOULDER SEPARATION",
-    "knee_extension": "FRONT-SIDE FIRMNESS",
-    "timing": "TIMING & TEMPO",
+    "head_stability":           "HEAD QUIET",
+    "hip_rotation":             "HIP TURN COMPLETION",
+    "hip_shoulder_separation":  "TORQUE STORAGE",
+    "knee_extension":           "LOWER-BODY DRIVE",
+    "timing":                   "TIMING & TEMPO",
+    # Power Sequence (new):
+    "sequencing":               "POWER SEQUENCE",
+    "rotational_speed":         "ROTATIONAL SPEED",
+    "front_side_stability":     "STAY CLOSED",
 }
 
 
@@ -760,18 +948,48 @@ def build_narratives(gaps_ranked, ref_name, top_n=2):
 # tie. Tuned on the assumption that gap weights are in the 1-5 range
 # (see build_drill_plan).
 GOAL_CATEGORY_BOOSTS: dict[str, dict[str, int]] = {
-    "More power":            {"hip_rotation": 3, "hip_shoulder_separation": 3,
-                              "knee_extension": 2},
-    "Better contact":        {"head_stability": 3, "timing": 2},
-    "Better timing":         {"timing": 4, "head_stability": 1},
-    "Fix timing":            {"timing": 4, "head_stability": 1},  # legacy label
-    "Better consistency":    {"head_stability": 2, "timing": 2,
-                              "hip_rotation": 1},
-    "Improve bat path":      {"hip_shoulder_separation": 3, "knee_extension": 2},
-    "Reduce strikeouts":     {"timing": 3, "head_stability": 2},
-    "Improve mechanics":     {},          # balanced — no boost
-    "Improve overall swing": {},          # balanced — no boost
-    "Find MLB comparison":   {},          # not a training goal
+    "More power": {
+        "rotational_speed":          4,   # NEW — primary mapping
+        "sequencing":                3,   # NEW — secondary
+        "hip_rotation":              2,
+        "hip_shoulder_separation":   2,
+        "knee_extension":            1,
+    },
+    "Better contact": {
+        "front_side_stability":      3,   # NEW — primary mapping
+        "head_stability":            3,
+        "sequencing":                2,   # NEW — secondary
+        "timing":                    2,
+    },
+    "Better timing": {
+        "sequencing":                4,   # NEW — exact match for "timing"
+        "timing":                    3,
+        "head_stability":            1,
+    },
+    "Fix timing": {                       # legacy label, alias the above
+        "sequencing":                4,
+        "timing":                    3,
+        "head_stability":            1,
+    },
+    "Better consistency": {
+        "front_side_stability":      2,   # NEW
+        "head_stability":            2,
+        "timing":                    2,
+        "hip_rotation":              1,
+    },
+    "Improve bat path": {
+        "front_side_stability":      3,   # NEW — bat path is tied to front side
+        "hip_shoulder_separation":   3,
+        "knee_extension":            2,
+    },
+    "Reduce strikeouts": {
+        "timing":                    3,
+        "head_stability":            2,
+        "sequencing":                2,   # NEW
+    },
+    "Improve mechanics":     {},
+    "Improve overall swing": {},
+    "Find MLB comparison":   {},
 }
 
 
@@ -874,7 +1092,16 @@ def build_drill_plan(gaps_ranked, top_n_categories=2, *, preferred_goal=None):
 
 
 def classify_gap(result):
-    """Map a single gap result dict to a drill category key."""
+    """Map a single gap result dict to a drill category key.
+
+    Three new Power Sequence categories (Phase Power Sequence redesign):
+      - sequencing            (kinematic chain — pelvis → torso lag)
+      - rotational_speed      (peak hip angular velocity)
+      - front_side_stability  (early shoulder fly-out)
+
+    The new gaps are synthesized in analyzer.py from the `sequence`
+    block's rating fields — see _synthesize_sequence_gaps() there.
+    """
     group = result.get("group", "")
     label = result.get("label", "").lower()
 
@@ -888,6 +1115,13 @@ def classify_gap(result):
         return "knee_extension"
     if group == "Timing":
         return "timing"
+    if group == "Power Sequence":
+        if "sequencing" in label or "lag" in label:
+            return "sequencing"
+        if "hip speed" in label or "omega" in label or "rotational speed" in label:
+            return "rotational_speed"
+        if "stay closed" in label or "fly-out" in label or "front-side" in label:
+            return "front_side_stability"
     return None
 
 
