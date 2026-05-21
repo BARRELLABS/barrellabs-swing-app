@@ -107,6 +107,11 @@ _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
     ("Library",      "historical_charts",    ()),
 ]
 
+# Family nav entry is built dynamically per-user in render_edge_masthead
+# so it only appears for Family Pro households. We keep a sentinel here
+# for callers that introspect _NAV_ENTRIES to resolve active pages.
+_FAMILY_NAV_ENTRY: Tuple[str, str, Tuple[str, ...]] = ("Family", "family", ())
+
 
 _EDGE_MASTHEAD_CSS = """
 <style>
@@ -568,10 +573,24 @@ def _streak_value(user: Dict[str, Any]) -> Optional[int]:
 
 def _resolve_active(active_page: str) -> str:
     """Map sub-pages (e.g., swing_report) to their parent nav entry."""
-    for label, key, alts in _NAV_ENTRIES:
+    all_entries = list(_NAV_ENTRIES) + [_FAMILY_NAV_ENTRY]
+    for label, key, alts in all_entries:
         if active_page == key or active_page in alts:
             return key
     return "dashboard"
+
+
+def _show_family_nav(user: Optional[Dict[str, Any]]) -> bool:
+    """Return True if the Family nav item should appear for this user."""
+    try:
+        import family_storage
+        uid = (user or {}).get("user_id") or (user or {}).get("id") or ""
+        return bool(
+            family_storage.is_family_pro_member(uid)
+            or family_storage.load_family_for_user(uid) is not None
+        )
+    except Exception:
+        return False
 
 
 def render_edge_masthead(
@@ -646,8 +665,18 @@ def render_edge_masthead(
         # and immediately clicks a nav tab in the same rerun.
         _ps_intercept = (st.session_state.get("page") == "player_settings")
 
+        # Build nav entry list: static entries + conditional Family item.
+        # Family appears after Sessions (index 1) so it reads as a
+        # sibling to the individual player's session view.
+        _show_fam = _show_family_nav(user)
+        _nav_to_render = []
+        for _entry in _NAV_ENTRIES:
+            _nav_to_render.append(_entry)
+            if _entry[1] == "saved_reports" and _show_fam:
+                _nav_to_render.append(_FAMILY_NAV_ENTRY)
+
         with st.container(key="bl_edge_navbar"):
-            for label, page_key, _alts in _NAV_ENTRIES:
+            for label, page_key, _alts in _nav_to_render:
                 if st.button(
                     label,
                     key=f"_ble_nav_{page_key}",
