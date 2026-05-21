@@ -8,15 +8,17 @@ stMainBlockContainer[.block-container, default padding 96px 16px 160px]
 those defaults applied via a CLASS stylesheet (exactly like Streamlit's
 emotion CSS, NOT inline) so the real _EDGE_MASTHEAD_CSS !important
 overrides behave precisely as in production. Then injects the REAL
-_EDGE_MASTHEAD_CSS + the REAL render_edge_masthead() HTML, and asserts
-via Playwright:
-  * .ble-mast top == 0  (no padding/gap/header above)
+_EDGE_MASTHEAD_CSS + a faithful reproduction of the real
+render_edge_masthead() DOM (st.container(key="bl_edge_masthead") with
+the 5 st.button children inside st.container(key="bl_edge_navbar")),
+and asserts via Playwright:
+  * .st-key-bl_edge_masthead top == 0  (no padding/gap/header above)
   * stApp / stMain / stMainBlockContainer / body backgrounds all #0A0B0E
   * stHeader not visible
+  * the nav container exists and is laid out as a flex row
 Exit code 0 only if ALL pass. Screenshot -> /tmp/seam_fix.png
 """
 from __future__ import annotations
-import re
 import sys
 import types
 from pathlib import Path
@@ -24,40 +26,124 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-# --- capture the REAL masthead html + css via a tiny streamlit stub ---
+# ---------------------------------------------------------------------
+# Streamlit stub that mirrors Streamlit 1.57's real DOM emission well
+# enough for layout assertions. st.container(key=K) emits
+# <div class="st-key-K"><div data-testid="stVerticalBlock">...</div></div>
+# st.button emits the full 1.57 button DOM inside a stButton wrapper.
+# ---------------------------------------------------------------------
 _CAP: list[str] = []
+_STACK: list[str] = []  # tracks open containers for proper close order
+
+
+def _emit(html: str) -> None:
+    _CAP.append(html)
+
+
+def _open_element_container() -> None:
+    _emit('<div data-testid="stElementContainer" class="stElementContainer">')
+
+
+def _close_element_container() -> None:
+    _emit("</div>")
+
+
 st = types.ModuleType("streamlit")
+
+
 class _SS(dict):
     def __getattr__(s, k):
-        try: return s[k]
-        except KeyError as e: raise AttributeError(k) from e
-    def __setattr__(s, k, v): s[k] = v
+        try:
+            return s[k]
+        except KeyError as e:
+            raise AttributeError(k) from e
+
+    def __setattr__(s, k, v):
+        s[k] = v
+
+
 st.session_state = _SS()
+
+
 class _QP(dict):
-    def get(self, k, d=None): return super().get(k, d)
+    def get(self, k, d=None):
+        return super().get(k, d)
+
+
 st.query_params = _QP()
-class _C:
-    def __enter__(self): return self
-    def __exit__(self, *e): return False
-st.markdown = lambda s, **k: _CAP.append(str(s))
-st.container = lambda *a, **k: _C()
-st.columns = lambda n, **k: [_C() for _ in range(n if isinstance(n, int) else len(n))]
-for _n in ("button", "write", "error", "warning", "info", "caption",
+
+
+class _Container:
+    def __init__(self, key: str | None):
+        self.key = key
+
+    def __enter__(self):
+        if self.key:
+            _emit(
+                f'<div class="st-key-{self.key} stElementContainer" '
+                f'data-testid="stElementContainer">'
+                f'<div data-testid="stVerticalBlock" class="stVerticalBlock">'
+            )
+            _STACK.append("container_keyed")
+        else:
+            _emit('<div data-testid="stVerticalBlock" class="stVerticalBlock">')
+            _STACK.append("container_unkeyed")
+        return self
+
+    def __exit__(self, *e):
+        kind = _STACK.pop() if _STACK else None
+        if kind == "container_keyed":
+            _emit("</div></div>")
+        else:
+            _emit("</div>")
+        return False
+
+
+def _md(s, **k):
+    # Markdown calls outside any container still need to be visible.
+    _emit(str(s))
+
+
+def _btn(label, *, key=None, type="secondary", **k):
+    btn_kind = "primary" if type == "primary" else "secondary"
+    testid = f"stBaseButton-{btn_kind}"
+    _open_element_container()
+    _emit(
+        f'<div data-testid="stButton" class="stButton">'
+        f'<button kind="{btn_kind}" data-testid="{testid}" type="button">'
+        f'<div data-testid="stMarkdownContainer" class="stMarkdownContainer">'
+        f'<p>{label}</p>'
+        f'</div></button></div>'
+    )
+    _close_element_container()
+    return False  # never "clicked"
+
+
+st.markdown = _md
+st.container = lambda *a, key=None, **k: _Container(key)
+st.button = _btn
+st.columns = lambda n, **k: [_Container(None) for _ in range(n if isinstance(n, int) else len(n))]
+for _n in ("write", "error", "warning", "info", "caption",
            "image", "rerun", "stop", "toast"):
     setattr(st, _n, lambda *a, **k: None)
-_c1 = types.ModuleType("streamlit.components.v1"); _c1.html = lambda *a, **k: None
-_c0 = types.ModuleType("streamlit.components"); _c0.v1 = _c1; st.components = _c0
+_c1 = types.ModuleType("streamlit.components.v1")
+_c1.html = lambda *a, **k: None
+_c0 = types.ModuleType("streamlit.components")
+_c0.v1 = _c1
+st.components = _c0
 sys.modules["streamlit"] = st
 sys.modules["streamlit.components"] = _c0
 sys.modules["streamlit.components.v1"] = _c1
 
 import importlib
+
 bec = importlib.import_module("bl_edge_chrome")
 _CAP.clear()
-bec.render_edge_masthead({"name": "Mario Ricard",
-                          "gamification": {"current_streak_days": 7}},
-                         active_page="dashboard")
-mast_blob = "\n".join(_CAP)  # contains the <style>…</style> + masthead HTML
+bec.render_edge_masthead(
+    {"name": "Mario Ricard", "gamification": {"current_streak_days": 7}},
+    active_page="dashboard",
+)
+mast_blob = "\n".join(_CAP)  # full <style> + masthead DOM with buttons
 
 # Streamlit 1.57 default chrome reproduced via a CLASS stylesheet
 # (same mechanism as Streamlit's emotion CSS — no inline styles).
@@ -74,6 +160,11 @@ ST_DEFAULTS = """
   [data-testid="stVerticalBlock"]{display:flex;flex-direction:column;
     gap:16px;}
   [data-testid="stElementContainer"]{}
+  /* Streamlit 1.57 default button reset (so our masthead CSS does the
+     visible work, not browser defaults). */
+  button{font:inherit;color:inherit;cursor:pointer;
+    background:rgb(247,247,247);border:1px solid rgba(49,51,63,0.2);
+    padding:0.25rem 0.75rem;border-radius:0.5rem;}
 </style>
 """
 
@@ -117,7 +208,7 @@ CHECK = r"""
 () => {
   const bg = el => getComputedStyle(el).backgroundColor;
   const norm = c => c.replace(/\s+/g,'');
-  const m = document.querySelector('.ble-mast');
+  const m = document.querySelector('.st-key-bl_edge_masthead');
   const r = m ? m.getBoundingClientRect() : null;
   const hdr = document.querySelector('[data-testid="stHeader"]');
   const hs = hdr ? getComputedStyle(hdr) : null;
@@ -128,16 +219,21 @@ CHECK = r"""
   layers.forEach(s=>{const e=document.querySelector(s);
     layerBg[s]= e? norm(bg(e)) : 'MISSING';});
   const bodyBg = norm(bg(document.body));
+  const nav = document.querySelector('.st-key-bl_edge_navbar');
+  const navStyle = nav ? getComputedStyle(nav) : null;
+  const buttons = nav ? nav.querySelectorAll('button') : [];
   return {
-    mastTop: r ? Math.round(r.top) : 'NO .ble-mast',
+    mastTop: r ? Math.round(r.top) : 'NO .st-key-bl_edge_masthead',
     mastBg: m ? norm(bg(m)) : null,
+    mastDisplay: m ? getComputedStyle(m).display : null,
     headerHidden: hs ? (hs.display==='none'||hs.visibility==='hidden') : 'no header',
     layerBg, bodyBg, ink,
     allInk: Object.values(layerBg).every(v=>v===ink) && bodyBg===ink,
-    navGlass: (()=>{const n=document.querySelector('.ble-nav');
-      if(!n)return null;const s=getComputedStyle(n);
-      return {bg:s.backgroundColor, blur:s.backdropFilter,
-              radius:s.borderRadius};})(),
+    nav: nav ? {
+      display: navStyle.display,
+      borderRadius: navStyle.borderRadius,
+      buttonCount: buttons.length,
+    } : null,
   };
 }
 """
@@ -153,10 +249,14 @@ with sync_playwright() as p:
     b.close()
 
 import json
+
 print(json.dumps(res, indent=2))
 
 ok = (res["mastTop"] == 0
       and res["headerHidden"] is True
-      and res["allInk"] is True)
-print("\n=== VERDICT:", "PASS ✅" if ok else "FAIL ❌", "===")
+      and res["allInk"] is True
+      and res["nav"] is not None
+      and res["nav"]["display"] == "flex"
+      and res["nav"]["buttonCount"] == 5)
+print("\n=== VERDICT:", "PASS" if ok else "FAIL", "===")
 sys.exit(0 if ok else 1)
