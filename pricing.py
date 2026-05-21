@@ -218,18 +218,29 @@ _PRICING_CSS = """
       radial-gradient(120% 60% at 50% 0%, rgba(232,193,112,0.045), transparent 60%),
       var(--pr-bg-glass);
     display: flex; flex-direction: column;
-    transition: transform 0.28s cubic-bezier(.21,.79,.31,1.02),
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.42s cubic-bezier(.21,.79,.31,1.02),
                 border-color 0.28s ease,
-                box-shadow 0.28s ease;
+                box-shadow 0.32s ease;
     animation: pr-card-settle 0.55s cubic-bezier(.21,.79,.31,1.02) both;
 }
 .pr-card:nth-child(1) { animation-delay: 0.04s; }
 .pr-card:nth-child(2) { animation-delay: 0.12s; }
 .pr-card:nth-child(3) { animation-delay: 0.20s; }
 .pr-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
     border-color: var(--pr-line-hi);
-    box-shadow: 0 18px 46px rgba(0,0,0,0.50);
+    box-shadow:
+      0 24px 60px rgba(0,0,0,0.55),
+      0 0 0 1px var(--pr-line-hi);
+}
+/* While JS is actively tilting the card on mousemove, switch to a
+   snappier transition so the parallax feels live, not laggy. */
+.pr-card.is-tilting {
+    transition: transform 0.08s ease-out,
+                border-color 0.28s ease,
+                box-shadow 0.32s ease;
 }
 
 /* Featured card — bigger lift, outer gold glow, shimmer sweep on
@@ -264,22 +275,28 @@ _PRICING_CSS = """
     background-size: 220% 100%;
     animation: pr-shimmer-sweep 3.8s ease-in-out infinite;
 }
-/* Cursor-tracked spotlight on featured card (vars set by JS) */
-.pr-card.is-featured::before {
+/* Cursor-tracked spotlight on every card (vars set by JS). Non-featured
+   cards get a soft bone-tinted glow; featured upgrades to gold. */
+.pr-card::before {
     content: ""; position: absolute; inset: 0;
     border-radius: inherit; pointer-events: none;
     background: radial-gradient(
-        320px circle at var(--pr-mx, 50%) var(--pr-my, -100px),
-        rgba(232,193,112,0.14), transparent 60%);
+        360px circle at var(--pr-mx, 50%) var(--pr-my, -120px),
+        rgba(244,239,230,0.08), transparent 62%);
     opacity: 0; transition: opacity 0.32s ease;
     z-index: 2;
 }
-.pr-card.is-featured:hover::before { opacity: 1; }
+.pr-card.is-featured::before {
+    background: radial-gradient(
+        360px circle at var(--pr-mx, 50%) var(--pr-my, -120px),
+        rgba(232,193,112,0.18), transparent 62%);
+}
+.pr-card:hover::before { opacity: 1; }
 
 /* "Recommended" floating badge */
 .pr-card-badge {
     position: absolute; top: -1px; left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) translateZ(40px);
     padding: 7px 22px; border-radius: var(--pr-r-pill);
     background: var(--pr-gold); color: #1a1206;
     font-family: var(--pr-mono); font-size: 10.5px; font-weight: 700;
@@ -289,6 +306,24 @@ _PRICING_CSS = """
       0 0 0 4px var(--pr-bg-elev),
       0 6px 18px -8px rgba(232,193,112,0.6);
 }
+
+/* Inner content layers — when the card tilts on mousemove,
+   these get a slight translateZ so they parallax above the
+   card surface, giving the parallax a real 3D feel rather
+   than a flat skew. */
+.pr-card .pr-card-name,
+.pr-card .pr-price-row,
+.pr-card .pr-price-equiv,
+.pr-card .pr-price-save,
+.pr-card .pr-card-cta-wrap {
+    transform: translateZ(0);
+    transition: transform 0.18s ease-out;
+}
+.pr-card.is-tilting .pr-card-name      { transform: translateZ(22px); }
+.pr-card.is-tilting .pr-price-row      { transform: translateZ(34px); }
+.pr-card.is-tilting .pr-price-equiv    { transform: translateZ(18px); }
+.pr-card.is-tilting .pr-price-save     { transform: translateZ(18px); }
+.pr-card.is-tilting .pr-card-cta-wrap  { transform: translateZ(24px); }
 
 .pr-card-eyebrow {
     font-family: var(--pr-mono); font-size: 10.5px; font-weight: 600;
@@ -311,16 +346,32 @@ _PRICING_CSS = """
 .pr-card-seats strong { color: var(--pr-bone); font-weight: 500; }
 
 /* Price: the hero of the card. Featured card gets a serif italic
-   number with a bone→gold→deep-gold vertical gradient mask. */
+   number with a bone→gold→deep-gold vertical gradient mask. The
+   italic serif "9" has both a high ascender and a swash descender,
+   so we give the price element generous padding + line-height +
+   inline-block so the gradient mask doesn't clip the glyph. */
 .pr-price-row {
-    display: flex; align-items: baseline; gap: 8px;
-    margin-bottom: 6px; position: relative; z-index: 3;
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 8px; position: relative; z-index: 3;
+    overflow: visible;
 }
 .pr-price-big {
+    display: inline-block;
     font-family: var(--pr-serif); font-style: italic;
     font-size: clamp(4.4rem, 6.2vw, 5.6rem);
-    font-weight: 400; line-height: 0.96;
-    letter-spacing: -0.05em; color: var(--pr-bone);
+    font-weight: 400;
+    /* The italic Instrument Serif "9" has a swash descender that
+       drops ~22% below the baseline. The text element's line-box
+       must contain both ascender and descender, and the gradient
+       text-fill needs explicit bottom padding so its mask doesn't
+       crop the descender curl. */
+    line-height: 1.4;
+    letter-spacing: -0.045em; color: var(--pr-bone);
+    padding: 0.10em 0.06em 0.30em 0;
+    overflow: visible;
+    /* Pulls the next sibling element back up to compensate for the
+       generous bottom padding — visual rhythm stays tight. */
+    margin-bottom: -0.22em;
 }
 .pr-card.is-featured .pr-price-big {
     background: linear-gradient(180deg,
@@ -692,24 +743,55 @@ def render_pricing_page() -> None:
     _render_plan_card(col_solo,  "solo_pro",   interval, featured=True)
     _render_plan_card(col_coach, "coach_pro",  interval, featured=False)
 
-    # Cursor-tracked spotlight on the featured card. Re-binds every
-    # render because Streamlit recreates the DOM on every interaction.
+    # Cursor-tracked spotlight + 3D parallax tilt on every plan card.
+    # Re-binds every render because Streamlit recreates the DOM on
+    # every interaction. Featured card keeps its baseline lift/scale,
+    # non-featured cards tilt from rest. Inline transform overrides
+    # CSS during mousemove and clears on mouseleave so the CSS
+    # :hover/baseline state takes back over smoothly.
     st.markdown("""
     <script>
-      (function() {{
-          const cards = window.parent.document.querySelectorAll('.pr-card.is-featured');
-          cards.forEach(card => {{
+      (function() {
+          const cards = window.parent.document.querySelectorAll('.pr-card');
+          cards.forEach(card => {
               if (card.dataset._prTracked === '1') return;
               card.dataset._prTracked = '1';
-              card.addEventListener('mousemove', (e) => {{
+              const isFeatured = card.classList.contains('is-featured');
+              const baseScale  = isFeatured ? 1.025 : 1.0;
+              const restY      = isFeatured ? -16 : 0;
+              const hoverY     = isFeatured ? -20 : -6;
+
+              card.addEventListener('mouseenter', () => {
+                  card.classList.add('is-tilting');
+              });
+              card.addEventListener('mousemove', (e) => {
                   const r = card.getBoundingClientRect();
-                  card.style.setProperty('--pr-mx', (e.clientX - r.left) + 'px');
-                  card.style.setProperty('--pr-my', (e.clientY - r.top)  + 'px');
-              }});
-          }});
-      }})();
+                  const localX = e.clientX - r.left;
+                  const localY = e.clientY - r.top;
+                  const px = localX / r.width;
+                  const py = localY / r.height;
+                  // tilt range: ±7° on Y (left/right), ±5° on X (up/down)
+                  const ry = (px - 0.5) * 14;
+                  const rx = (0.5 - py) * 10;
+                  card.style.setProperty('--pr-mx', localX + 'px');
+                  card.style.setProperty('--pr-my', localY + 'px');
+                  card.style.transform =
+                      'translateY(' + hoverY + 'px) ' +
+                      'scale(' + baseScale + ') ' +
+                      'perspective(1100px) ' +
+                      'rotateX(' + rx.toFixed(2) + 'deg) ' +
+                      'rotateY(' + ry.toFixed(2) + 'deg)';
+              });
+              card.addEventListener('mouseleave', () => {
+                  card.classList.remove('is-tilting');
+                  card.style.transform = '';
+                  card.style.setProperty('--pr-mx', '50%');
+                  card.style.setProperty('--pr-my', '-120px');
+              });
+          });
+      })();
     </script>
-    """.replace("{{", "{").replace("}}", "}"), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     # ── "Refresh my plan" CTA (only when Stripe checkout is pending) ─
     if st.session_state.get("_pending_checkout_url"):

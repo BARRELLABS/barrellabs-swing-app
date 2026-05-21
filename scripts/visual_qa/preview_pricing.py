@@ -39,50 +39,94 @@ def _extract_css() -> str:
     return m.group(1)
 
 
-def _build_html() -> str:
+def _build_html(interval: str = "annual") -> str:
     """Assemble the static HTML mirror of render_pricing_page's output.
     Plan prices + features are hand-mirrored from PLAN_PRICING so the
-    preview matches the live page byte-for-byte where possible."""
+    preview matches the live page byte-for-byte where possible.
+
+    `interval` switches between "annual" (the default we ship as primary)
+    and "monthly" so we can verify both states render cleanly."""
     css = _extract_css()
 
-    # Card payloads — mirror what _render_plan_card produces.
-    # Solo Pro is FEATURED (audit-driven) and sits in the MIDDLE column
-    # via family → solo → coach order.
-    cards = [
-        {
-            "name":         "Family Pro",
-            "eyebrow":      "Family · 4 seats",
-            "seats_line":   "Up to <strong>4 family members</strong>",
-            "featured":     False,
-            "price":        "$199",
-            "period":       "/yr",
-            "equiv":        "$16.58/mo billed annually",
-            "save":         "Save 45% vs monthly",
-            "cta":          "Start with Family",
-        },
-        {
-            "name":         "Solo Pro",
-            "eyebrow":      "Solo · 1 seat",
-            "seats_line":   "For <strong>1 player</strong>",
-            "featured":     True,
-            "price":        "$99",
-            "period":       "/yr",
-            "equiv":        "$8.25/mo billed annually",
-            "save":         "Save 45% vs monthly",
-            "cta":          "Start with Solo",
-        },
-        {
-            "name":         "Coach Pro",
-            "eyebrow":      "Coach · 20 seats",
-            "seats_line":   "Up to <strong>20 players</strong>",
-            "featured":     False,
-            "price":        "$599",
-            "period":       "/yr",
-            "equiv":        "$49.92/mo billed annually",
-            "save":         "Save 45% vs monthly",
-            "cta":          "Start with Coach",
-        },
-    ]
+    # Card payloads — mirror what _render_plan_card produces. Solo Pro is
+    # FEATURED (audit-driven) and sits in the MIDDLE column via family →
+    # solo → coach order. Two parallel variants so we can verify the
+    # Monthly state without spinning up Streamlit.
+    if interval == "monthly":
+        cards = [
+            {
+                "name":       "Family Pro",
+                "eyebrow":    "Family · 4 seats",
+                "seats_line": "Up to <strong>4 family members</strong>",
+                "featured":   False,
+                "price":      "$24.99",
+                "period":     "/mo",
+                "equiv":      "",
+                "save":       "",
+                "cta":        "Start with Family",
+            },
+            {
+                "name":       "Solo Pro",
+                "eyebrow":    "Solo · 1 seat",
+                "seats_line": "For <strong>1 player</strong>",
+                "featured":   True,
+                "price":      "$14.99",
+                "period":     "/mo",
+                "equiv":      "",
+                "save":       "",
+                "cta":        "Start with Solo",
+            },
+            {
+                "name":       "Coach Pro",
+                "eyebrow":    "Coach · 20 seats",
+                "seats_line": "Up to <strong>20 players</strong>",
+                "featured":   False,
+                "price":      "$79.99",
+                "period":     "/mo",
+                "equiv":      "",
+                "save":       "",
+                "cta":        "Start with Coach",
+            },
+        ]
+    else:
+        cards = [
+            {
+                "name":         "Family Pro",
+                "eyebrow":      "Family · 4 seats",
+                "seats_line":   "Up to <strong>4 family members</strong>",
+                "featured":     False,
+                "price":        "$199",
+                "period":       "/yr",
+                "equiv":        "$16.58/mo billed annually",
+                "save":         "↗ Save 40% vs monthly",
+                "cta":          "Start with Family",
+            },
+            {
+                "name":         "Solo Pro",
+                "eyebrow":      "Solo · 1 seat",
+                "seats_line":   "For <strong>1 player</strong>",
+                "featured":     True,
+                "price":        "$99",
+                "period":       "/yr",
+                "equiv":        "$8.25/mo billed annually",
+                "save":         "↗ Save 45% vs monthly",
+                "cta":          "Start with Solo",
+            },
+            {
+                "name":         "Coach Pro",
+                "eyebrow":      "Coach · 20 seats",
+                "seats_line":   "Up to <strong>20 players</strong>",
+                "featured":     False,
+                "price":        "$599",
+                "period":       "/yr",
+                "equiv":        "$49.92/mo billed annually",
+                "save":         "↗ Save 38% vs monthly",
+                "cta":          "Start with Coach",
+            },
+        ]
+    # Toggle pill state mirrors the live UI: the selected interval gets
+    # the bone fill, the other stays ghosted.
+    monthly_active = (interval == "monthly")
     features = [
         "Unlimited swing analyses",
         "Personalized drill plan",
@@ -195,13 +239,16 @@ def _build_html() -> str:
       <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin:8px 0 44px 0;">
         <div data-testid="stRadio" style="background:var(--pr-bg-glass);border:1px solid var(--pr-line);
                                           border-radius:100px;padding:4px;display:inline-flex;">
-          <label style="margin:0;padding:8px 18px;border-radius:100px;color:var(--pr-bone-dim);
+          <label style="margin:0;padding:8px 18px;border-radius:100px;
+                        background:{'var(--pr-bone)' if monthly_active else 'transparent'};
+                        color:{'var(--pr-bg)' if monthly_active else 'var(--pr-bone-dim)'};
                         font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;
                         letter-spacing:0.16em;text-transform:uppercase;cursor:pointer;">
             Monthly
           </label>
           <label style="margin:0;padding:8px 18px;border-radius:100px;
-                        background:var(--pr-bone);color:var(--pr-bg);
+                        background:{'transparent' if monthly_active else 'var(--pr-bone)'};
+                        color:{'var(--pr-bone-dim)' if monthly_active else 'var(--pr-bg)'};
                         font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;
                         letter-spacing:0.16em;text-transform:uppercase;cursor:pointer;">
             Annual
@@ -233,6 +280,45 @@ def _build_html() -> str:
         access — no card required.
       </div>
     </div>
+    <script>
+      // Mirror of the JS injected in pricing.py — so opening this
+      // preview HTML in a browser actually exercises the hover tilt
+      // and spotlight, not just the static layout.
+      (function() {{
+          const cards = document.querySelectorAll('.pr-card');
+          cards.forEach(card => {{
+              const isFeatured = card.classList.contains('is-featured');
+              const baseScale  = isFeatured ? 1.025 : 1.0;
+              const hoverY     = isFeatured ? -20 : -6;
+              card.addEventListener('mouseenter', () => {{
+                  card.classList.add('is-tilting');
+              }});
+              card.addEventListener('mousemove', (e) => {{
+                  const r = card.getBoundingClientRect();
+                  const localX = e.clientX - r.left;
+                  const localY = e.clientY - r.top;
+                  const px = localX / r.width;
+                  const py = localY / r.height;
+                  const ry = (px - 0.5) * 14;
+                  const rx = (0.5 - py) * 10;
+                  card.style.setProperty('--pr-mx', localX + 'px');
+                  card.style.setProperty('--pr-my', localY + 'px');
+                  card.style.transform =
+                      'translateY(' + hoverY + 'px) ' +
+                      'scale(' + baseScale + ') ' +
+                      'perspective(1100px) ' +
+                      'rotateX(' + rx.toFixed(2) + 'deg) ' +
+                      'rotateY(' + ry.toFixed(2) + 'deg)';
+              }});
+              card.addEventListener('mouseleave', () => {{
+                  card.classList.remove('is-tilting');
+                  card.style.transform = '';
+                  card.style.setProperty('--pr-mx', '50%');
+                  card.style.setProperty('--pr-my', '-120px');
+              }});
+          }});
+      }})();
+    </script>
     </body></html>
     """).strip()
 
@@ -240,37 +326,42 @@ def _build_html() -> str:
 def main() -> int:
     from playwright.sync_api import sync_playwright
 
-    html = _build_html()
-    out_html = Path("/tmp/pricing_v2_preview.html")
-    out_html.write_text(html)
+    # Two variants of the static HTML — one per interval — so we can
+    # verify both states render cleanly without spinning up Streamlit.
+    annual_html  = _build_html(interval="annual")
+    monthly_html = _build_html(interval="monthly")
+
+    out_annual  = Path("/tmp/pricing_v2_preview.html")
+    out_monthly = Path("/tmp/pricing_v2_preview_monthly.html")
+    out_annual.write_text(annual_html)
+    out_monthly.write_text(monthly_html)
+
+    targets = [
+        (out_annual,  "/tmp/pricing_v2_desktop.png",         1440),
+        (out_annual,  "/tmp/pricing_v2_mobile.png",          430),
+        (out_monthly, "/tmp/pricing_v2_monthly_desktop.png", 1440),
+        (out_monthly, "/tmp/pricing_v2_monthly_mobile.png",  430),
+    ]
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # Desktop
-        ctx = browser.new_context(viewport={"width": 1440, "height": 900})
-        page = ctx.new_page()
-        page.goto(f"file://{out_html}")
-        page.wait_for_load_state("networkidle")
-        # Let the webfonts settle
-        page.wait_for_timeout(1500)
-        page.screenshot(
-            path="/tmp/pricing_v2_desktop.png",
-            full_page=True,
-        )
-        # Mobile
-        ctx2 = browser.new_context(viewport={"width": 430, "height": 900})
-        p2 = ctx2.new_page()
-        p2.goto(f"file://{out_html}")
-        p2.wait_for_load_state("networkidle")
-        p2.wait_for_timeout(1500)
-        p2.screenshot(
-            path="/tmp/pricing_v2_mobile.png",
-            full_page=True,
-        )
+        for source, out_png, width in targets:
+            ctx = browser.new_context(viewport={"width": width, "height": 900})
+            page = ctx.new_page()
+            page.goto(f"file://{source}")
+            page.wait_for_load_state("networkidle")
+            # Let the webfonts settle so the screenshot captures Instrument
+            # Serif and Geist, not Times fallback.
+            page.wait_for_timeout(1500)
+            page.screenshot(path=out_png, full_page=True)
+            ctx.close()
         browser.close()
 
-    print(f"Wrote /tmp/pricing_v2_desktop.png + /tmp/pricing_v2_mobile.png")
-    print(f"Preview HTML at: {out_html}")
+    print("Wrote:")
+    for _, png, _ in targets:
+        print(f"  {png}")
+    print(f"Preview HTML (annual):  {out_annual}")
+    print(f"Preview HTML (monthly): {out_monthly}")
     return 0
 
 
