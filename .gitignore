@@ -53,3 +53,4 @@ validation/results/
 validation/reports/[0-9]*Z-*
 validation/videos/
 
+static/videos/

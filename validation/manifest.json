@@ -291,23 +291,6 @@
       "labeled_at": ""
     },
     {
-      "id": "bobby_witt_jr_swing",
-      "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
-        "camera_view": "profile",
-        "real_time": true,
-        "rotation_onset_frame": null
-      },
-      "video_path": "/Users/logancollins/Desktop/bobby_witt_jr_swing.mp4",
-      "fingerprint_path": null,
-      "handedness": null,
-      "notes": "auto-imported from Desktop/",
-      "labeled_by": "",
-      "labeled_at": ""
-    },
-    {
       "id": "corbin_carroll_swing",
       "ground_truth": {
         "stride_style": "standard_stride",

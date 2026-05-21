@@ -1,0 +1,9 @@
+[server]
+# Serve files from ./static/ at /app/static/ — used by the validation
+# labeling tool to embed a custom HTML5 video player with a JS-driven
+# live frame counter. Streamlit's built-in st.video() doesn't expose
+# currentTime so we can't overlay a frame number on it.
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false

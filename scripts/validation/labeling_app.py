@@ -31,6 +31,7 @@ from typing import Optional
 
 import cv2
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -48,6 +49,11 @@ from scripts.validation._video_discovery import (  # noqa: E402
     discover_videos as _discover_videos_impl,
     auto_import_videos as _auto_import_videos_impl,
 )
+from scripts.validation import _video_server  # noqa: E402
+
+# Spin up the dedicated video file server (port 8504) once per process.
+# Idempotent — if it's already running we no-op.
+_video_server.ensure_running()
 
 MANIFEST_PATH = PROJECT_ROOT / "validation" / "manifest.json"
 VIDEOS_DIR = PROJECT_ROOT / "validation" / "videos"
@@ -110,6 +116,71 @@ def _try_transcode(src: Path, dst: Path) -> tuple[bool, str]:
         tail = proc.stderr.strip().splitlines()[-5:] if proc.stderr else []
         return False, "ffmpeg failed:\n" + "\n".join(tail)
     return True, "ok"
+
+
+def _is_browser_playable(src: Path) -> bool:
+    """Use ffprobe to check whether src is already a browser-playable
+    H.264 MP4. Returns False on any error (caller will transcode)."""
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        return False
+    try:
+        r = subprocess.run(
+            [
+                ffprobe, "-v", "error",
+                "-select_streams", "v:0",
+                "-show_entries", "stream=codec_name,pix_fmt",
+                "-of", "csv=p=0",
+                str(src),
+            ],
+            capture_output=True, text=True, timeout=10,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    if r.returncode != 0:
+        return False
+    parts = r.stdout.strip().split(",")
+    if len(parts) < 2:
+        return False
+    codec, pix_fmt = parts[0].strip(), parts[1].strip()
+    # Browsers play H.264 / AVC1 with yuv420p reliably. yuv420p10le, ProRes,
+    # HEVC, etc. all fail in Chromium's bundled ffmpeg.
+    return codec in ("h264", "avc1") and pix_fmt == "yuv420p"
+
+
+def _ensure_browser_playable(src: Path, dst: Path) -> tuple[Path, str]:
+    """Return a path that the browser can stream.
+
+    If `src` is already browser-playable, symlink it into `dst` (cheap).
+    Otherwise transcode it to H.264 at `dst` via ffmpeg (one-time cost).
+
+    Returns (path_to_use, status) where status is one of:
+      "cached"      → dst already existed, used as-is
+      "symlinked"   → src is browser-playable; dst is a symlink to src
+      "transcoded"  → ffmpeg produced a fresh H.264 file at dst
+      "fallback"    → no ffmpeg / probe failed; using src directly
+    """
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists():
+        return dst, "cached"
+
+    if _is_browser_playable(src):
+        try:
+            dst.symlink_to(src.resolve())
+            return dst, "symlinked"
+        except OSError:
+            pass  # fall through to copy via transcode
+
+    ok, _ = _try_transcode(src, dst)
+    if ok:
+        return dst, "transcoded"
+
+    # ffmpeg unavailable or failed — best-effort fallback
+    try:
+        dst.symlink_to(src.resolve())
+    except OSError:
+        return src, "fallback"
+    return dst, "fallback"
 
 
 @st.cache_resource(show_spinner=False)
@@ -604,15 +675,106 @@ st.caption(
 )
 
 
-# ---- Step A: playable preview (watch first) ----
-with st.expander("▶ Watch the swing at normal speed (preview only — does NOT affect marking)", expanded=True):
-    try:
-        st.video(str(video_path))
-    except Exception as e:  # noqa: BLE001
-        st.warning(f"Preview unavailable: {e!r} — the frame stepper below still works.")
-    st.caption(
-        "Identify the foot-plant + contact moments here, then collapse this "
-        "expander and use the frame stepper below to mark the exact frames."
+# ---- "What is foot plant?" definition (clears up toe-touch vs fully-planted) ----
+with st.expander("📖 What do I mark? (read this first)", expanded=False):
+    st.markdown("""
+    **FOOT PLANT** = the frame where the front foot is **fully on the ground**
+    (whole foot down — heel + toe — and weight is settling). NOT the moment the
+    toe *first* touches.
+
+    - **Standard stride:** the front foot lifts during the load, then comes
+      down. Mark the frame the WHOLE foot has just landed and stopped moving
+      downward.
+    - **Toe-tap stride:** front foot taps the ground briefly during load
+      (heel still up), lifts again, then plants for real. **Mark the FINAL
+      plant, not the tap.** This is the exact bug v3 falls into — it picks
+      the tap and v4 should pick the final plant.
+    - **No-stride:** the foot never really leaves the ground. Mark the frame
+      just before rotation begins.
+    - **Leg-kick:** mark the frame the lifted leg finally settles.
+
+    **CONTACT** = the frame the bat first appears to touch the ball.
+
+    **Toe-tap radio:** "Yes" if the front foot taps the ground briefly *before*
+    the final plant (e.g. Mookie Betts, Mike Trout, Kyle Tucker).
+    """)
+
+# ---- Step A: playable preview with live frame counter ----
+# Streamlit's st.video() doesn't expose currentTime, so we can't overlay a
+# frame number on it. Instead serve the file via /app/static/ (enabled in
+# .streamlit/config.toml) and embed our own <video> with a JS-driven frame
+# counter. The counter updates live as the user plays/scrubs the video.
+STATIC_VIDEOS_DIR = PROJECT_ROOT / "static" / "videos"
+STATIC_VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+# Always write to .mp4 — the transcoded output is always H.264 MP4 even if
+# the source is .mov / .qt / .MOV. Using a deterministic name (per swing id)
+# means the cache hits on every reload.
+_dst_video = STATIC_VIDEOS_DIR / f"{entry.id}.mp4"
+
+_status_key = f"_pl_status::{entry.id}"
+if _status_key not in st.session_state:
+    if _dst_video.exists():
+        st.session_state[_status_key] = "cached"
+    else:
+        # First time we're touching this swing — may need a transcode.
+        with st.spinner(
+            f"Preparing video for playback (one-time per swing — typically ~10–30 s)…"
+        ):
+            _, status = _ensure_browser_playable(video_path, _dst_video)
+        st.session_state[_status_key] = status
+# Serve via our dedicated video-file HTTP server on port 8504 rather than
+# Streamlit's static-file route (which doesn't reliably work in 1.57).
+_video_url = (
+    f"http://localhost:{_video_server.port()}/videos/{_dst_video.name}"
+)
+
+with st.expander("▶ Watch the swing — has a LIVE FRAME COUNTER as it plays", expanded=True):
+    components.html(
+        f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <video id="vid" controls preload="metadata"
+                 style="width: 100%; max-height: 480px; background:#000;
+                        border-radius: 8px;"
+                 src="{_video_url}"></video>
+          <div style="margin-top: 12px; display: flex; gap: 16px; align-items: center;">
+            <div style="font-size: 20px; font-weight: 700;
+                        background: #fff7d6; border: 2px solid #e8c170;
+                        padding: 10px 18px; border-radius: 10px;
+                        font-variant-numeric: tabular-nums;">
+              📍 Frame <span id="frameDisplay" style="color:#1f4e79;">—</span>
+              &nbsp;·&nbsp; t = <span id="timeDisplay">0.000</span>s
+            </div>
+            <div style="font-size: 13px; color: #666;">
+              ({fps:.1f} fps · {n_frames} frames total)
+            </div>
+          </div>
+          <p style="margin-top:8px; font-size: 13px; color: #444;">
+            Play the video. When you see the foot plant (or contact),
+            <strong>pause</strong> and read the frame number. Then type that
+            frame number in the Step 1 (or Step 2) box below ↓
+          </p>
+        </div>
+        <script>
+          (function() {{
+            const fps = {fps};
+            const v = document.getElementById('vid');
+            const fd = document.getElementById('frameDisplay');
+            const td = document.getElementById('timeDisplay');
+            function update() {{
+              const t = v.currentTime || 0;
+              fd.textContent = Math.round(t * fps);
+              td.textContent = t.toFixed(3);
+            }}
+            v.addEventListener('timeupdate', update);
+            v.addEventListener('seeked', update);
+            v.addEventListener('loadedmetadata', update);
+            v.addEventListener('play', update);
+            v.addEventListener('pause', update);
+          }})();
+        </script>
+        """,
+        height=600,
+        scrolling=False,
     )
 
 st.divider()
