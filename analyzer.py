@@ -105,6 +105,21 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     player = _load_fp(player_fp_path)
     player_name = player.get("video", "Player").replace(".mp4", "")
 
+    # Power Sequence biomech block — pre-computed by detect_phases.py.
+    # Pass through unchanged; the swing report renders it directly.
+    sequence_block = player.get("sequence") or {
+        "sequencing_lag_ms": None,
+        "peak_hip_omega_deg_s": None,
+        "front_side_stability_pct": None,
+        "hip_peak_frame": None,
+        "shoulder_peak_frame": None,
+        "rating": {
+            "sequencing_lag": None,
+            "peak_hip_omega": None,
+            "front_side_stability": None,
+        },
+    }
+
     # ----- RESOLVE REFERENCE -----
     reference = None
     ref_source = None      # "file" | "library" | "auto"
@@ -479,4 +494,5 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
         # reference playback at foot plant. Safe to omit downstream —
         # callers that don't render the comparison ignore this field.
         "phases_t": player.get("phases_t", {}) or {},
+        "sequence": sequence_block,
     }
