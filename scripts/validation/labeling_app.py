@@ -40,10 +40,36 @@ from scripts.validation.manifest import (  # noqa: E402
     VALID_STRIDE_STYLES, VALID_CAMERA_VIEWS,
 )
 from scripts.validation._text_utils import slugify  # noqa: E402
+from scripts.validation._video_discovery import (  # noqa: E402
+    ACCEPTED_VIDEO_EXTS,
+    resolve_scan_dirs as _resolve_scan_dirs_impl,
+    discover_videos as _discover_videos_impl,
+    auto_import_videos as _auto_import_videos_impl,
+)
 
 MANIFEST_PATH = PROJECT_ROOT / "validation" / "manifest.json"
 VIDEOS_DIR = PROJECT_ROOT / "validation" / "videos"
-ACCEPTED_VIDEO_EXTS = ("mp4", "mov", "m4v", "mkv")
+
+# Directories scanned at startup for videos to auto-import into the manifest.
+# Order matters: earlier paths win on filename collisions.
+#
+# You can add custom paths by setting the LABELING_VIDEO_DIRS env var to a
+# colon-separated list of absolute or repo-relative paths, e.g.:
+#   LABELING_VIDEO_DIRS=~/Movies/swings:/tmp/clips python3 -m streamlit run ...
+DEFAULT_SCAN_DIRS = [
+    VIDEOS_DIR,
+    PROJECT_ROOT / "uploads_streamlit",
+]
+
+
+def _resolve_scan_dirs() -> list[Path]:
+    return _resolve_scan_dirs_impl(DEFAULT_SCAN_DIRS, project_root=PROJECT_ROOT)
+
+
+def _auto_import_videos(manifest: Manifest, scan_dirs: list[Path]) -> int:
+    return _auto_import_videos_impl(
+        manifest, scan_dirs, project_root=PROJECT_ROOT,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +154,21 @@ except Exception as e:
     st.error(f"Failed to load manifest: {e!r}")
     st.stop()
 
+# ---- Auto-discover + import videos sitting in scan paths ----
+# Anything in validation/videos/ or uploads_streamlit/ (or in $LABELING_VIDEO_DIRS)
+# that isn't yet bound to a manifest entry gets appended as a fresh entry on
+# every app launch. Saves to disk atomically. Idempotent — re-running finds
+# nothing new to import.
+_scan_dirs = _resolve_scan_dirs()
+try:
+    _n_imported = _auto_import_videos(manifest, _scan_dirs)
+    if _n_imported > 0:
+        _save_manifest_atomic(manifest, MANIFEST_PATH)
+        st.toast(f"Auto-imported {_n_imported} new video(s) from scan paths",
+                 icon="🎬")
+except Exception as e:
+    st.warning(f"Auto-import failed (continuing anyway): {e!r}")
+
 # Partition swings into "labelable" (has usable video) and "skipped"
 labelable: list[tuple[SwingEntry, Path]] = []
 without_video: list[SwingEntry] = []
@@ -139,13 +180,35 @@ for entry in manifest.swings:
         without_video.append(entry)
 
 
-# ---- Upload form: in-UI video → manifest entry ----
-# Defaults to OPEN when there are no labelable swings (the user lands on
-# this form first). Collapsed otherwise so it doesn't dominate the layout
-# once they're already labeling.
+# ---- If no labelable swings, show the empty-state guide BEFORE the upload form ----
+if not labelable:
+    st.warning("No videos found in scan paths yet.")
+    st.markdown(
+        "**To start labeling, drop video files into any of these folders "
+        "and refresh:**"
+    )
+    for d in _scan_dirs:
+        exists = "✓ exists" if d.exists() else "✗ does not exist yet"
+        rel = d
+        try:
+            rel = d.relative_to(PROJECT_ROOT)
+        except ValueError:
+            pass
+        st.markdown(f"- `{rel}` ({exists})")
+    st.caption(
+        "Accepted formats: MP4, MOV, M4V, MKV. To add a custom scan path, "
+        "restart with `LABELING_VIDEO_DIRS=/your/path python3 -m streamlit "
+        "run scripts/validation/labeling_app.py`."
+    )
+    st.divider()
+
+
+# ---- Upload form: in-UI video → manifest entry (FALLBACK) ----
+# When videos are auto-discovered the scan workflow is preferred. This form
+# stays available collapsed for one-off uploads from outside scan paths.
 with st.expander(
-    "➕ Add a swing from a video file",
-    expanded=not labelable,
+    "➕ Or upload a single video from your machine",
+    expanded=False,
 ):
     st.caption(
         "Upload an MP4/MOV. The video is saved under `validation/videos/` "
@@ -615,8 +678,7 @@ if save_clicked:
         entry.labeled_at = new_labeled_at
         try:
             _save_manifest_atomic(manifest, MANIFEST_PATH)
-            st.success(f"✓ Saved labels for `{entry.id}` → `{MANIFEST_PATH}`")
-            st.balloons()
+            st.success(f"✓ Saved labels for `{entry.id}`")
             # Update session-state slots so the form shows the saved values
             # immediately on the next interaction.
             st.session_state[plant_key] = int(new_plant)
@@ -624,6 +686,24 @@ if save_clicked:
             st.session_state[rot_key] = (
                 int(new_rot) if int(new_rot) > 0 else None
             )
+            # Auto-advance: find the next swing that still needs labeling
+            # and jump to it. The sidebar selector picks it up via the
+            # `_just_added_id` session-state slot.
+            next_unlabeled = next(
+                (s for s in manifest.swings
+                 if not s.ground_truth.is_labeled
+                 and s.id != entry.id
+                 and _resolve_video(s.video_path) is not None),
+                None,
+            )
+            if next_unlabeled is not None:
+                st.session_state["_just_added_id"] = next_unlabeled.id
+                st.toast(f"Advancing to `{next_unlabeled.id}` →", icon="⏭️")
+                st.rerun()
+            else:
+                st.balloons()
+                st.info("🎉 No more unlabeled swings. Run the validation "
+                        "report with `python3 -m scripts.validation.run_validation`.")
         except Exception as e:
             st.error(f"Save failed: {e!r}")
 

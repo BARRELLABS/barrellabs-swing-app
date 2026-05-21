@@ -45,23 +45,38 @@ Reports land in `validation/reports/<UTC-timestamp>-report.md` (human) and
 python3 -m streamlit run scripts/validation/labeling_app.py
 ```
 
-### Adding swings: in-UI video upload
+### Adding swings: drop-folder workflow (recommended)
 
-When the manifest has no entries with bound videos, the labeling app opens
-directly onto an **Add a swing from a video file** form:
+The labeling tool **auto-discovers any video** sitting in:
 
-- **File uploader** — drag/drop or browse for an MP4/MOV/M4V/MKV.
-- **Swing ID** — auto-populated from the filename (slug-cleaned). If the ID
-  matches an existing manifest entry, the video is **bound to that entry**;
-  otherwise a **new entry** is appended.
-- **Handedness / stride-style guess / camera view / real-time** — initial
-  values. You can refine `stride_style` while labeling.
-- **Save** — writes the uploaded bytes to `validation/videos/<id>.<ext>`,
-  appends/updates the manifest, atomic-renames into place, and auto-selects
-  the new swing for immediate labeling.
+- `validation/videos/` (recommended primary location, gitignored)
+- `uploads_streamlit/` (production-upload folder)
+- Any directory listed in the `LABELING_VIDEO_DIRS` env var
+  (colon-separated; supports `~` expansion):
 
-Once you have at least one bound swing the form collapses (expand it any
-time to add more).
+  ```bash
+  LABELING_VIDEO_DIRS=~/Movies/swings:/tmp/clips python3 -m streamlit run \
+      scripts/validation/labeling_app.py
+  ```
+
+Workflow:
+
+1. Drop any number of MP4/MOV/M4V/MKV files into a scan directory.
+2. Launch the labeling app.
+3. Each discovered video is automatically appended to the manifest with
+   safe defaults (`stride_style: "standard_stride"`, `final_plant_frame: null`,
+   etc.) and tagged `auto-imported from <dir>/`.
+4. The sidebar swing-picker shows every video; just click through them.
+5. After each save, the app **auto-advances to the next unlabeled swing**.
+
+The auto-import is idempotent and never mutates existing entries — running
+the app twice with the same videos discovers nothing new on the second pass.
+
+### Or: in-UI upload (single file fallback)
+
+For one-off videos from outside scan paths, expand the **"Or upload a
+single video from your machine"** form. Same UI as before — file uploader,
+swing ID, stride-style guess, etc.
 
 ### Labeling UI elements
 
