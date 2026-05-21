@@ -1323,6 +1323,98 @@ def _swing_label(record: Dict[str, Any]) -> str:
     return "Latest Swing"
 
 
+# =====================================================================
+#                      POWER SEQUENCE SECTION
+# =====================================================================
+
+# Plain-language coach lines per rating (spec § Tile copy).
+_POWER_COPY = {
+    "sequencing_lag": {
+        "good":     "Pelvis-then-torso, the way pros do it.",
+        "marginal": "Hips and shoulders firing close together — small power leak.",
+        "poor":     "Shoulders fired before the hips. Top fix.",
+        None:       "Need a cleaner side angle to read this.",
+    },
+    "peak_hip_omega": {
+        "good":     "Solid rotational power. Good HS / college-prep range.",
+        "marginal": "Build hip speed — med-ball rotational throws.",
+        "poor":     "Hips aren't yet generating elite rotational power.",
+        None:       "Could not measure.",
+    },
+    "front_side_stability": {
+        "good":     "Front side stayed shut through plant.",
+        "marginal": "Front side opening earlier than ideal.",
+        "poor":     "Front shoulder flew open early. #1 amateur fault.",
+        None:       "Not enough shoulder rotation to characterize.",
+    },
+}
+
+
+def _format_pwr_value(metric: str, value):
+    """Format the tile value + unit per metric."""
+    if value is None:
+        return ("—", "")
+    if metric == "sequencing_lag":
+        return (f"{value:.0f}", "ms")
+    if metric == "peak_hip_omega":
+        return (f"{value:.0f}", "°/s")
+    if metric == "front_side_stability":
+        return (f"{value:.0f}", "%")
+    return (f"{value}", "")
+
+
+def _render_power_sequence(record) -> str:
+    """Return the HTML string for the Power Sequence section, or empty
+    string if the record has no usable sequence block."""
+    seq = (record.get("sequence") or {})
+    rating = (seq.get("rating") or {})
+    if not any(seq.get(k) is not None for k in (
+        "sequencing_lag_ms", "peak_hip_omega_deg_s", "front_side_stability_pct"
+    )):
+        return ""
+
+    def _tile(label, value, unit, rating_val, coach):
+        rating_class = rating_val or "marginal"
+        return f"""
+        <div class="srd-power-tile {rating_class}">
+          <div class="srd-power-tile-label">{label}</div>
+          <div class="srd-power-tile-value">{value}<span class="srd-power-tile-unit"> {unit}</span></div>
+          <div class="srd-power-tile-coach">{coach}</div>
+        </div>
+        """
+
+    lag_rating = rating.get("sequencing_lag")
+    verdict = {
+        "good":     "Your chain fired in order. The numbers below show how well.",
+        "marginal": "Your chain mostly fired in order. Tighten the sequence and the bat will jump.",
+        "poor":     "Your chain isn't firing in order yet. This is the biggest unlock available to you.",
+        None:       "How your body fired through the swing.",
+    }[lag_rating]
+
+    seq_val,  seq_unit  = _format_pwr_value("sequencing_lag",       seq.get("sequencing_lag_ms"))
+    omega_val, omega_unit = _format_pwr_value("peak_hip_omega",     seq.get("peak_hip_omega_deg_s"))
+    stab_val, stab_unit = _format_pwr_value("front_side_stability", seq.get("front_side_stability_pct"))
+
+    return f"""
+    <div class="srd-power-section">
+      <div class="srd-power-eyebrow">§ 01 · Power Sequence</div>
+      <h2 class="srd-power-title">How your body <span class="ital">fired.</span></h2>
+      <p class="srd-power-verdict">{verdict}</p>
+      <div class="srd-power-tiles">
+        {_tile("Sequencing", seq_val, seq_unit,
+                rating.get("sequencing_lag"),
+                _POWER_COPY["sequencing_lag"].get(rating.get("sequencing_lag")))}
+        {_tile("Peak Hip Speed", omega_val, omega_unit,
+                rating.get("peak_hip_omega"),
+                _POWER_COPY["peak_hip_omega"].get(rating.get("peak_hip_omega")))}
+        {_tile("Stay Closed", stab_val, stab_unit,
+                rating.get("front_side_stability"),
+                _POWER_COPY["front_side_stability"].get(rating.get("front_side_stability")))}
+      </div>
+    </div>
+    """
+
+
 def _build_header(record: Dict[str, Any], is_sample: bool) -> str:
     swing = _swing_label(record)
     date = _fmt_date(record)
@@ -2401,11 +2493,13 @@ def render_swing_report_dashboard_preview(
     import streamlit as st  # local — stubbed by the static renderer
 
     # Top sections — header through Progress
+    power_html = _render_power_sequence(record)
     top_html = (
         _DASHBOARD_CSS
         + '<div class="srd-wrap">'
         + (_build_header(record, is_sample) if is_preview else _build_header_production(record))
         + _build_hero(record, history)
+        + power_html
         + _build_priorities_drills(record, history)
         + _build_key_metrics(record, history)
         + _build_breakdown(record)
