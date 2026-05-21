@@ -244,3 +244,73 @@ class TestFrontSideStability:
             load_start=40, launch=58, contact=70, fps=60.0,
         )
         assert result["front_side_stability_pct"] == 150.0
+
+
+class TestRatings:
+    """The `rating` sub-dict maps each metric to 'good' / 'marginal' / 'poor'
+    using the thresholds locked in the spec (§ The 3 new metrics)."""
+
+    def test_sequencing_good_30ms(self):
+        from biomech import rate_sequencing_lag
+        assert rate_sequencing_lag(30.0) == "good"
+        assert rate_sequencing_lag(20.0) == "good"
+        assert rate_sequencing_lag(60.0) == "good"
+
+    def test_sequencing_marginal(self):
+        from biomech import rate_sequencing_lag
+        assert rate_sequencing_lag(10.0) == "marginal"
+        assert rate_sequencing_lag(70.0) == "marginal"
+
+    def test_sequencing_poor_simultaneous(self):
+        from biomech import rate_sequencing_lag
+        assert rate_sequencing_lag(0.0) == "poor"
+        assert rate_sequencing_lag(-20.0) == "poor"
+
+    def test_sequencing_none_passes_through(self):
+        from biomech import rate_sequencing_lag
+        assert rate_sequencing_lag(None) is None
+
+    def test_omega_good_900plus(self):
+        from biomech import rate_peak_hip_omega
+        assert rate_peak_hip_omega(1000.0) == "good"
+        assert rate_peak_hip_omega(900.0) == "good"
+
+    def test_omega_marginal_600_to_900(self):
+        from biomech import rate_peak_hip_omega
+        assert rate_peak_hip_omega(750.0) == "marginal"
+
+    def test_omega_poor_below_600(self):
+        from biomech import rate_peak_hip_omega
+        assert rate_peak_hip_omega(500.0) == "poor"
+
+    def test_stability_good_under_25(self):
+        from biomech import rate_front_side_stability
+        assert rate_front_side_stability(15.0) == "good"
+        assert rate_front_side_stability(25.0) == "good"
+
+    def test_stability_marginal_25_to_45(self):
+        from biomech import rate_front_side_stability
+        assert rate_front_side_stability(35.0) == "marginal"
+
+    def test_stability_poor_45plus(self):
+        from biomech import rate_front_side_stability
+        assert rate_front_side_stability(60.0) == "poor"
+
+    def test_compute_sequence_populates_rating_dict(self):
+        """End-to-end: feed real-shaped inputs, verify rating dict is filled."""
+        from biomech import compute_sequence
+        n = 200
+        x = np.arange(n, dtype=float)
+        hip_vel = 15.0 * np.exp(-((x - 60) ** 2) / 32.0)
+        rot = np.zeros(n)
+        for i in range(n):
+            if i <= 58: rot[i] = 10.0 * (i / 58)
+            elif i <= 70: rot[i] = 10.0 + 80.0 * (i - 58) / 12.0
+            else: rot[i] = 90.0
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=rot,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert result["rating"]["sequencing_lag"] in {"good", "marginal", "poor"}
+        assert result["rating"]["peak_hip_omega"] in {"good", "marginal", "poor"}
+        assert result["rating"]["front_side_stability"] in {"good", "marginal", "poor"}

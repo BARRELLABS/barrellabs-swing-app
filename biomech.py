@@ -47,6 +47,39 @@ def _search_window(load_start: int, contact: int, fps: float, n: int) -> tuple[i
     return lo, hi
 
 
+def rate_sequencing_lag(ms: Optional[float]) -> Optional[str]:
+    """Good: 20-60ms. Marginal: 5-20 or 60-80. Poor: <=5 or negative."""
+    if ms is None:
+        return None
+    if 20.0 <= ms <= 60.0:
+        return "good"
+    if 5.0 < ms < 20.0 or 60.0 < ms <= 80.0:
+        return "marginal"
+    return "poor"
+
+
+def rate_peak_hip_omega(deg_s: Optional[float]) -> Optional[str]:
+    """Good: >= 900 deg/s. Marginal: 600-900. Poor: < 600."""
+    if deg_s is None:
+        return None
+    if deg_s >= 900.0:
+        return "good"
+    if deg_s >= 600.0:
+        return "marginal"
+    return "poor"
+
+
+def rate_front_side_stability(pct: Optional[float]) -> Optional[str]:
+    """Good: <= 25%. Marginal: 25-45%. Poor: >= 45%. Lower is better."""
+    if pct is None:
+        return None
+    if pct <= 25.0:
+        return "good"
+    if pct < 45.0:
+        return "marginal"
+    return "poor"
+
+
 def compute_sequence(
     *,
     hip_vel: np.ndarray,
@@ -105,13 +138,17 @@ def compute_sequence(
             raw_pct = 100.0 * done_at_launch / total_to_contact
             front_side_stability_pct = float(max(-50.0, min(150.0, raw_pct)))
 
+    rating = {
+        "sequencing_lag":        rate_sequencing_lag(sequencing_lag_ms),
+        "peak_hip_omega":        rate_peak_hip_omega(peak_hip_omega_deg_s),
+        "front_side_stability":  rate_front_side_stability(front_side_stability_pct),
+    }
+
     return {
         "sequencing_lag_ms":         sequencing_lag_ms,
         "peak_hip_omega_deg_s":      peak_hip_omega_deg_s,
         "front_side_stability_pct":  front_side_stability_pct,
         "hip_peak_frame":            hip_peak_frame,
         "shoulder_peak_frame":       sho_peak_frame,
-        "rating": {"sequencing_lag": None,
-                   "peak_hip_omega": None,
-                   "front_side_stability": None},
+        "rating":                    rating,
     }
