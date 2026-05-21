@@ -976,6 +976,71 @@ _DASHBOARD_CSS = """
   .srd-drill { grid-template-columns: 44px 1fr; gap: 0.8rem; }
   .srd-drill-check { display: none; }
 }
+
+/* ───── Power Sequence section (new) ───── */
+.srd-power-section {
+    margin: 32px 0 40px 0;
+    padding: 28px 32px 32px 32px;
+    border: 1px solid var(--srd-line);
+    border-radius: 16px;
+    background:
+      radial-gradient(120% 60% at 50% 0%, rgba(232,193,112,0.06), transparent 70%),
+      var(--srd-glass-1);
+}
+.srd-power-eyebrow {
+    font-family: var(--srd-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--srd-gold);
+    margin: 0 0 8px 0;
+}
+.srd-power-title {
+    font-family: var(--srd-serif); font-size: 2.4rem;
+    line-height: 1.05; letter-spacing: -0.018em;
+    color: var(--srd-bone); font-weight: 400; margin: 0 0 8px 0;
+}
+.srd-power-title .ital { font-style: italic; color: var(--srd-gold); }
+.srd-power-verdict {
+    font-family: var(--srd-sans); font-size: 1.05rem;
+    line-height: 1.5; color: var(--srd-bone-60); max-width: 60ch;
+    margin: 0 0 22px 0;
+}
+.srd-power-tiles {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px; margin-top: 20px;
+}
+@media (max-width: 760px) {
+    .srd-power-tiles { grid-template-columns: 1fr; }
+}
+.srd-power-tile {
+    border: 1px solid var(--srd-line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    background: rgba(244,239,230,0.025);
+}
+.srd-power-tile.good   { border-color: rgba(232,193,112,0.42); }
+.srd-power-tile.marginal { border-color: var(--srd-line-hi); }
+.srd-power-tile.poor   { border-color: rgba(230,69,48,0.45); }
+.srd-power-tile-label {
+    font-family: var(--srd-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.20em; text-transform: uppercase;
+    color: var(--srd-bone-60); margin-bottom: 6px;
+}
+.srd-power-tile.good     .srd-power-tile-label { color: var(--srd-gold); }
+.srd-power-tile.poor     .srd-power-tile-label { color: var(--srd-red); }
+.srd-power-tile-value {
+    font-family: var(--srd-serif); font-style: italic;
+    font-size: 2.2rem; line-height: 1; letter-spacing: -0.02em;
+    color: var(--srd-bone); margin: 4px 0 8px 0;
+}
+.srd-power-tile-unit {
+    font-family: var(--srd-mono); font-size: 11px; font-weight: 500;
+    color: var(--srd-bone-60); letter-spacing: 0.12em;
+    text-transform: lowercase; margin-left: 4px;
+}
+.srd-power-tile-coach {
+    font-family: var(--srd-sans); font-size: 0.92rem;
+    line-height: 1.45; color: var(--srd-bone-60); max-width: 32ch;
+}
 </style>
 """
 
