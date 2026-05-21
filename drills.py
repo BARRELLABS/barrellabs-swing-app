@@ -948,18 +948,48 @@ def build_narratives(gaps_ranked, ref_name, top_n=2):
 # tie. Tuned on the assumption that gap weights are in the 1-5 range
 # (see build_drill_plan).
 GOAL_CATEGORY_BOOSTS: dict[str, dict[str, int]] = {
-    "More power":            {"hip_rotation": 3, "hip_shoulder_separation": 3,
-                              "knee_extension": 2},
-    "Better contact":        {"head_stability": 3, "timing": 2},
-    "Better timing":         {"timing": 4, "head_stability": 1},
-    "Fix timing":            {"timing": 4, "head_stability": 1},  # legacy label
-    "Better consistency":    {"head_stability": 2, "timing": 2,
-                              "hip_rotation": 1},
-    "Improve bat path":      {"hip_shoulder_separation": 3, "knee_extension": 2},
-    "Reduce strikeouts":     {"timing": 3, "head_stability": 2},
-    "Improve mechanics":     {},          # balanced — no boost
-    "Improve overall swing": {},          # balanced — no boost
-    "Find MLB comparison":   {},          # not a training goal
+    "More power": {
+        "rotational_speed":          4,   # NEW — primary mapping
+        "sequencing":                3,   # NEW — secondary
+        "hip_rotation":              2,
+        "hip_shoulder_separation":   2,
+        "knee_extension":            1,
+    },
+    "Better contact": {
+        "front_side_stability":      3,   # NEW — primary mapping
+        "head_stability":            3,
+        "sequencing":                2,   # NEW — secondary
+        "timing":                    2,
+    },
+    "Better timing": {
+        "sequencing":                4,   # NEW — exact match for "timing"
+        "timing":                    3,
+        "head_stability":            1,
+    },
+    "Fix timing": {                       # legacy label, alias the above
+        "sequencing":                4,
+        "timing":                    3,
+        "head_stability":            1,
+    },
+    "Better consistency": {
+        "front_side_stability":      2,   # NEW
+        "head_stability":            2,
+        "timing":                    2,
+        "hip_rotation":              1,
+    },
+    "Improve bat path": {
+        "front_side_stability":      3,   # NEW — bat path is tied to front side
+        "hip_shoulder_separation":   3,
+        "knee_extension":            2,
+    },
+    "Reduce strikeouts": {
+        "timing":                    3,
+        "head_stability":            2,
+        "sequencing":                2,   # NEW
+    },
+    "Improve mechanics":     {},
+    "Improve overall swing": {},
+    "Find MLB comparison":   {},
 }
 
 
