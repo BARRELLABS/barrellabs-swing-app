@@ -76,6 +76,17 @@ FOOT_PLANT_TO_CONTACT_MAX_MS = 350.0
 FOOT_PLANT_TO_CONTACT_NEAR_MIN_MS = 50.0
 FOOT_PLANT_TO_CONTACT_NEAR_MAX_MS = 500.0
 
+# Phase 4c — when to trust phase_debug's OWN foot_plant pick instead
+# of running candidate ranking. phase_debug's internal picker uses
+# signals beyond the foot_plant_candidates list (it looks at fa_y
+# directly), and when it lands within ~PHASE_DEBUG_TRUST_GAP_MAX_MS
+# of rotation_onset with confidence ≥ PHASE_DEBUG_TRUST_MIN_CONF,
+# it's almost always correct. Phase 4b validation showed v4's
+# re-ranking regressed on 7/7 short-clip swings where phase_debug
+# had already picked the right frame.
+PHASE_DEBUG_TRUST_MIN_CONF = 0.6
+PHASE_DEBUG_TRUST_GAP_MAX_MS = 300.0
+
 
 # ---------------------------------------------------------------------------
 # Feature flag
@@ -393,6 +404,72 @@ def detect_phases_v4(
     contact = int(phases_v3["contact"])
     peak_rotation = int(phases_v3["peak_rotation"])
     finish = int(phases_v3["finish"])
+
+    # ---- Phase 4c Fix 1: trust phase_debug's own foot_plant when confident ----
+    # phase_debug already runs a sophisticated foot_plant picker internally
+    # (it looks at fa_y peaks + alignment with rotation_onset, not just the
+    # candidates list). When phase_debug picks a frame with confidence ≥
+    # PHASE_DEBUG_TRUST_MIN_CONF AND that frame sits within
+    # PHASE_DEBUG_TRUST_GAP_MAX_MS of rotation_onset, that's the right
+    # answer almost every time.
+    #
+    # v4's candidate ranking was originally designed to fix the toe-tap
+    # "picks the tap" case where phase_debug's candidate list contains
+    # both the tap and the final plant. But Phase 4b validation showed
+    # the foot_plant_candidates list often DOESN'T contain the actual
+    # plant for short clips — phase_debug computes foot_plant from
+    # signals beyond the candidates. In those cases, v4's re-derivation
+    # corrupts the answer. This branch short-circuits to phase_debug's
+    # pick when it's already confident enough to trust.
+    pd_fp = analysis_debug["selected_phases"].get("foot_plant", {}) or {}
+    pd_fp_frame = int(pd_fp.get("frame", -1))
+    pd_fp_conf = float(pd_fp.get("confidence", 0.0))
+    pd_fp_reason = str(pd_fp.get("reason", ""))
+    pd_gap_to_rot_ms = (
+        abs(pd_fp_frame - rot_onset) * 1000.0 / fps
+        if (fps > 0 and pd_fp_frame >= 0) else float("inf")
+    )
+    if (pd_fp_frame >= 0
+            and pd_fp_conf >= PHASE_DEBUG_TRUST_MIN_CONF
+            and pd_gap_to_rot_ms <= PHASE_DEBUG_TRUST_GAP_MAX_MS):
+        # Adopt phase_debug's pick directly. Re-derive the dependent
+        # phases (load_start, launch, knee_min) against it so all the
+        # downstream phases line up.
+        foot_plant_v4 = pd_fp_frame
+        load_start_v4 = derive_load_start_v4(
+            stride, knee, foot_plant_v4=foot_plant_v4, fps=fps,
+        )
+        launch_v4 = derive_launch_v4(
+            foot_plant_v4=foot_plant_v4, contact=contact, burst_lo=burst_lo,
+        )
+        knee_min_v4 = derive_knee_min_v4(
+            knee, load_start_v4=load_start_v4, foot_plant_v4=foot_plant_v4,
+            peak_rotation=peak_rotation, fps=fps,
+        )
+        phases_v4 = {
+            "load_start":    int(load_start_v4),
+            "foot_plant":    int(foot_plant_v4),
+            "launch":        int(launch_v4),
+            "contact":       int(contact),
+            "peak_rotation": int(peak_rotation),
+            "finish":        int(finish),
+        }
+        return {
+            "schema_version":   "phase_detector_v4",
+            "phases":           phases_v4,
+            "phases_t":         {k: _t(times, v) for k, v in phases_v4.items()},
+            "knee_min_frame":   int(knee_min_v4),
+            "confidence":       float(round(pd_fp_conf, 3)),
+            "selection_reason": (
+                f"phase_debug.foot_plant @ frame {pd_fp_frame} "
+                f"(conf={pd_fp_conf:.2f}, "
+                f"{pd_gap_to_rot_ms:.0f}ms from rotation_onset): "
+                f"{pd_fp_reason}"
+            ),
+            "alternatives":     [],
+            "diff_from_v3":     _compute_diff(phases_v4, phases_v3, fps=fps),
+            "fallback_to_v3":   False,
+        }
 
     # --- Pick the best candidate via ranked scoring ---
     if not candidates:
