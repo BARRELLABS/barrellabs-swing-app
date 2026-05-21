@@ -4924,11 +4924,41 @@ _live_record["date"] = "Just analyzed"
 _live_record["swing_number"] = len(swing_history) if swing_history else 1
 _live_record["swing_duration_ms"] = slow_mo.get("player_corrected_swing_ms")
 
-render_swing_report(
-    _live_record,
-    history=swing_history,
-    phase_chart_path=str(phase_chart_path) if phase_chart_path and phase_chart_path.is_file() else None,
-)
+# Phase audit follow-up: unify the post-analyze swing report onto the
+# same editorial design used when re-opening from Sessions. Previously
+# the post-analyze path rendered the OLD bld2-* design (Inter + iOS red)
+# while Sessions→Open Report used the NEW srd-* design (Instrument Serif
+# + bone/gold). Same conceptual page, two different design languages —
+# trust-eroding. This call now goes through swing_report_dashboard_preview
+# (the renderer Sessions→Open Report already uses) so every user sees
+# the new design at the most important moment: right after analysis.
+#
+# Falls back to the legacy render_swing_report if the new renderer
+# raises — never block the user from seeing their analysis.
+try:
+    from swing_report_dashboard_preview import (
+        render_swing_report_dashboard_preview,
+    )
+    render_swing_report_dashboard_preview(
+        _live_record,
+        swing_history or [],
+        is_sample=False,
+        is_preview=False,
+    )
+except Exception as _post_analyze_render_err:
+    # Log + fall back to the legacy renderer so the user still gets a
+    # report even if the new renderer has a regression.
+    import traceback
+    print(
+        f"⚠  post-analyze render via swing_report_dashboard_preview "
+        f"failed: {_post_analyze_render_err!r} — falling back to legacy."
+    )
+    traceback.print_exc()
+    render_swing_report(
+        _live_record,
+        history=swing_history,
+        phase_chart_path=str(phase_chart_path) if phase_chart_path and phase_chart_path.is_file() else None,
+    )
 
 
 # ============================================================

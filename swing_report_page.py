@@ -654,7 +654,7 @@ def render_swing_report_page(
     # 2. Page wrapper
     render_edge_page_wrapper_open()
 
-    # 3. Back-to-Sessions affordance
+    # 3. Back-to-Sessions affordance + export bar (PDF / Print)
     bcol, _spacer = st.columns([2, 8])
     with bcol:
         st.markdown('<div class="srp-back-link">', unsafe_allow_html=True)
@@ -665,6 +665,85 @@ def render_swing_report_page(
             st.session_state.pop("view_swing_report_id", None)
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # ---- Export bar — Download PDF + Print (audit follow-up) ----
+    # The new editorial Swing Report shipped without export wiring even
+    # though the PDF builder exists. Lifting the Pro-gated pattern from
+    # app.py:2333-2380 so users can finally download/print their reports
+    # from the new path. Build is gated on can_export_pdf so we don't
+    # waste cycles building PDF bytes for Free users (just shows a 🔒).
+    pdf_bytes = None
+    pdf_allowed = False
+    try:
+        from entitlements import can_export_pdf
+        from subscription_storage import load_my_plan
+        from swing_report import build_swing_report_pdf
+        pdf_allowed = bool(can_export_pdf(load_my_plan()))
+        if pdf_allowed:
+            pdf_bytes = build_swing_report_pdf(record, history=history)
+    except Exception as _pdf_err:
+        # Gracefully degrade — the report still renders even if PDF
+        # build fails or entitlements lookup goes sideways.
+        pdf_bytes = None
+        pdf_allowed = False
+
+    _row_key = record.get("id") or record.get("timestamp") or "new"
+    exp_col1, exp_col2, _exp_spacer = st.columns([1.4, 1.4, 5])
+    with exp_col1:
+        if pdf_allowed and pdf_bytes is not None:
+            st.download_button(
+                "⬇  Download PDF Report",
+                data=pdf_bytes,
+                file_name=f"swing_report_{record.get('timestamp', 'saved')}.pdf",
+                mime="application/pdf",
+                width="stretch",
+                key=f"srp_pdf_dl_{_row_key}",
+            )
+        else:
+            if st.button(
+                "🔒  PDF — Upgrade",
+                width="stretch",
+                key=f"srp_pdf_locked_{_row_key}",
+                help="PDF report export is a Pro feature.",
+            ):
+                st.toast(
+                    "PDF export is a Pro feature. Upgrade to Solo Pro "
+                    "(or redeem a beta code) to download reports.",
+                    icon="🔒",
+                )
+    with exp_col2:
+        # Print via window.print() — tiny inline HTML button matched to
+        # the new editorial palette (bone text on transparent w/ gold
+        # hover, not the old red).
+        st.markdown(
+            """
+            <button class="srp-print-btn" onclick="window.print();return false;">
+              🖨  Print Report
+            </button>
+            <style>
+            .srp-print-btn {
+                width: 100%;
+                background: transparent;
+                color: #F4EFE6;
+                border: 1px solid rgba(232,193,112,0.45);
+                border-radius: 999px;
+                padding: 0.62rem 1rem;
+                font-family: 'Geist', 'Inter', system-ui, sans-serif;
+                font-weight: 500;
+                font-size: 0.92rem;
+                letter-spacing: -0.005em;
+                cursor: pointer;
+                transition: background .22s ease, transform .22s ease, box-shadow .22s ease;
+            }
+            .srp-print-btn:hover {
+                background: rgba(232,193,112,0.08);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px -10px rgba(232,193,112,0.6);
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # 4. The full dashboard-style premium swing report.
     try:
