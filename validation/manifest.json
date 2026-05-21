@@ -1,0 +1,294 @@
+{
+  "schema_version": "validation_v1",
+  "swings": [
+    {
+      "id": "mookie_betts",
+      "video_path": null,
+      "fingerprint_path": "references/mookie_betts.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Known toe-tap hitter. Existing v3 fingerprint shows foot_plant_to_launch = 25.7ms which is implausibly short and consistent with the v3 detector locking onto the tap. Re-process with DETECTOR_V4=true once a source video is available.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "aaron_judge",
+      "video_path": null,
+      "fingerprint_path": "references/aaron_judge.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "leg_kick",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Pronounced leg-kick load. Tests v4's lift_frac threshold path.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "ronald_acuna_jr",
+      "video_path": null,
+      "fingerprint_path": "references/ronald_acuna_jr.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "leg_kick",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "High leg kick + slight tap variant.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "mike_trout",
+      "video_path": null,
+      "fingerprint_path": "references/mike_trout.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Subtle toe-tap variant.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "shohei_ohtani",
+      "video_path": null,
+      "fingerprint_path": "references/shohei_ohtani.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "leg_kick",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Pronounced leg-kick. Left-handed.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "kyle_tucker",
+      "video_path": null,
+      "fingerprint_path": "references/kyle_tucker.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Toe-tap variant.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "juan_soto",
+      "video_path": null,
+      "fingerprint_path": "references/juan_soto.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Standard stride hitter — expected: v4 should AGREE with v3.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "freddie_freeman",
+      "video_path": null,
+      "fingerprint_path": "references/freddie_freeman.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Standard stride hitter.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "alex_bregman",
+      "video_path": null,
+      "fingerprint_path": "references/alex_bregman.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Standard stride hitter.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "yandy_diaz",
+      "video_path": null,
+      "fingerprint_path": "references/yandy_diaz.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "no_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Very quiet feet — close to no_stride.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "francisco_lindor",
+      "video_path": null,
+      "fingerprint_path": "references/francisco_lindor.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Switch hitter — fingerprint is for one side.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "gunnar_henderson",
+      "video_path": null,
+      "fingerprint_path": "references/gunnar_henderson.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "Modern compact stride.",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "jose_ramirez",
+      "video_path": null,
+      "fingerprint_path": "references/jose_ramirez.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "kyle_schwarber",
+      "video_path": null,
+      "fingerprint_path": "references/kyle_schwarber.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "manny_machado",
+      "video_path": null,
+      "fingerprint_path": "references/manny_machado.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "spencer_torkelson",
+      "video_path": null,
+      "fingerprint_path": "references/spencer_torkelson.json",
+      "handedness": "RIGHT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "yordan_alvarez",
+      "video_path": null,
+      "fingerprint_path": "references/yordan_alvarez.json",
+      "handedness": "LEFT",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "rotation_onset_frame": null,
+        "camera_view": "profile",
+        "real_time": false
+      },
+      "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    }
+  ]
+}

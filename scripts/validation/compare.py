@@ -1,0 +1,433 @@
+"""
+Compare v3 and v4 detector outputs against hand-labeled ground truth.
+
+Reads fingerprint JSONs produced by `detect_phases.py DETECTOR_V4=true`
+plus manifest entries with ground-truth labels, then computes:
+
+  PER-SWING METRICS
+    - v3 foot_plant frame error    (signed, frames)
+    - v4 foot_plant frame error    (signed, frames)
+    - v3 foot_plant timing error   (signed, ms; uses fingerprint.fps)
+    - v4 foot_plant timing error   (signed, ms)
+    - v4 stride_style correct      (bool — v3 doesn't classify stride style)
+    - v3-v4 disagreement           (frames)
+    - v4 confidence                (from detector_v4.confidence)
+    - winner                       ("v3" | "v4" | "tie" — by absolute error)
+
+  AGGREGATE METRICS
+    - mean / median absolute error (v3, v4)
+    - % swings within 3 / 10 frames of ground truth (v3, v4)
+    - % swings where v4 beat v3, lost to v3, tied
+    - stride-style confusion matrix and per-class accuracy
+    - count of skipped swings (missing fingerprint, unlabeled, etc.)
+
+Both raw per-swing rows and aggregate summary are returned for the
+report writer to consume.
+"""
+
+from __future__ import annotations
+
+import json
+import statistics
+from dataclasses import dataclass, asdict, field
+from pathlib import Path
+from typing import Optional
+
+from .manifest import Manifest, SwingEntry, GroundTruth, VALID_STRIDE_STYLES
+
+
+THRESHOLD_FRAMES_TIGHT = 3   # "near match"
+THRESHOLD_FRAMES_LOOSE = 10  # "in the ballpark"
+
+
+@dataclass
+class SwingResult:
+    """One row of the comparison table."""
+    id: str
+    status: str               # "scored" | "unlabeled" | "missing_fingerprint" |
+                              # "v4_unavailable" | "load_error"
+    notes: str = ""
+
+    # Ground truth
+    gt_stride_style: Optional[str] = None
+    gt_final_plant: Optional[int] = None
+    gt_contact: Optional[int] = None
+
+    # Detector outputs
+    v3_foot_plant: Optional[int] = None
+    v4_foot_plant: Optional[int] = None
+    v4_confidence: Optional[float] = None
+    v4_stride_style: Optional[str] = None
+    v4_fallback: Optional[bool] = None
+    fps: Optional[float] = None
+
+    # Errors (signed: detector - ground_truth)
+    v3_error_frames: Optional[int] = None
+    v4_error_frames: Optional[int] = None
+    v3_error_ms: Optional[float] = None
+    v4_error_ms: Optional[float] = None
+
+    # Cross-detector
+    v3_v4_delta_frames: Optional[int] = None
+    stride_style_correct: Optional[bool] = None
+    winner: Optional[str] = None  # "v3" | "v4" | "tie"
+
+
+@dataclass
+class StrideStyleMetrics:
+    """Confusion matrix + per-class accuracy."""
+    confusion: dict[str, dict[str, int]] = field(default_factory=dict)
+    per_class_accuracy: dict[str, float] = field(default_factory=dict)
+    overall_accuracy: float = 0.0
+    n_evaluated: int = 0
+    n_correct: int = 0
+
+
+@dataclass
+class DetectorMetrics:
+    """Per-detector aggregate timing accuracy."""
+    n: int = 0
+    mean_abs_error_frames: float = 0.0
+    median_abs_error_frames: float = 0.0
+    mean_abs_error_ms: float = 0.0
+    median_abs_error_ms: float = 0.0
+    pct_within_tight: float = 0.0   # % within ±3 frames
+    pct_within_loose: float = 0.0   # % within ±10 frames
+    mean_signed_error_frames: float = 0.0  # bias (positive = picks too late)
+
+
+@dataclass
+class HeadToHead:
+    """Pairwise comparison of v3 vs v4."""
+    n: int = 0
+    v4_better: int = 0
+    v3_better: int = 0
+    tie: int = 0
+    pct_v4_better: float = 0.0
+    pct_v3_better: float = 0.0
+    pct_tie: float = 0.0
+
+
+@dataclass
+class Summary:
+    """Aggregate validation report."""
+    n_total: int = 0
+    n_scored: int = 0
+    n_skipped: int = 0
+    skipped_by_reason: dict[str, int] = field(default_factory=dict)
+    v3: DetectorMetrics = field(default_factory=DetectorMetrics)
+    v4: DetectorMetrics = field(default_factory=DetectorMetrics)
+    head_to_head: HeadToHead = field(default_factory=HeadToHead)
+    stride_style: StrideStyleMetrics = field(default_factory=StrideStyleMetrics)
+    per_stride_style: dict[str, DetectorMetrics] = field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Fingerprint loading + per-swing scoring
+# ---------------------------------------------------------------------------
+
+
+def load_fingerprint(path: str | Path) -> dict:
+    """Load a fingerprint JSON from disk."""
+    with open(path) as f:
+        return json.load(f)
+
+
+def evaluate_swing(
+    entry: SwingEntry,
+    fingerprint: Optional[dict],
+    *,
+    load_error: Optional[str] = None,
+) -> SwingResult:
+    """Score one swing against its ground truth.
+
+    Returns a SwingResult populated with whichever fields could be computed.
+    Sets `status` to indicate why a swing was or wasn't scored.
+    """
+    result = SwingResult(
+        id=entry.id,
+        status="unknown",
+        gt_stride_style=entry.ground_truth.stride_style,
+        gt_final_plant=entry.ground_truth.final_plant_frame,
+        gt_contact=entry.ground_truth.contact_frame,
+    )
+
+    if load_error:
+        result.status = "load_error"
+        result.notes = load_error
+        return result
+
+    if fingerprint is None:
+        result.status = "missing_fingerprint"
+        result.notes = (
+            f"no fingerprint at {entry.fingerprint_path or '(no path)'} "
+            f"and no video at {entry.video_path or '(no path)'}"
+        )
+        return result
+
+    fps = fingerprint.get("fps")
+    if isinstance(fps, (int, float)):
+        result.fps = float(fps)
+
+    # v3 phases — always present
+    phases_frame = fingerprint.get("phases_frame") or {}
+    result.v3_foot_plant = phases_frame.get("foot_plant")
+
+    # v4 phases — only present when DETECTOR_V4 was on at processing time
+    phases_frame_v4 = fingerprint.get("phases_frame_v4")
+    detector_v4_block = fingerprint.get("detector_v4")
+    if phases_frame_v4 and detector_v4_block:
+        result.v4_foot_plant = phases_frame_v4.get("foot_plant")
+        result.v4_confidence = detector_v4_block.get("confidence")
+        result.v4_fallback = detector_v4_block.get("fallback_to_v3", False)
+    # phase_debug stride_style — comes from analysis_debug, not detector_v4
+    analysis_debug = fingerprint.get("analysis_debug")
+    if analysis_debug:
+        result.v4_stride_style = analysis_debug.get("stride_style")
+
+    if not entry.ground_truth.is_labeled:
+        result.status = "unlabeled"
+        result.notes = "ground_truth.final_plant_frame is null — cannot score"
+        # Still compute v3-v4 disagreement if we can
+        if (result.v3_foot_plant is not None
+                and result.v4_foot_plant is not None):
+            result.v3_v4_delta_frames = (
+                result.v4_foot_plant - result.v3_foot_plant
+            )
+        return result
+
+    if result.v3_foot_plant is None:
+        result.status = "load_error"
+        result.notes = "fingerprint has no phases_frame.foot_plant"
+        return result
+
+    if result.v4_foot_plant is None:
+        result.status = "v4_unavailable"
+        result.notes = (
+            "fingerprint has no phases_frame_v4 (process with DETECTOR_V4=true)"
+        )
+        # Still score v3
+        result.v3_error_frames = (
+            result.v3_foot_plant - entry.ground_truth.final_plant_frame
+        )
+        if result.fps:
+            result.v3_error_ms = result.v3_error_frames * 1000.0 / result.fps
+        return result
+
+    # Both detectors available + ground truth available — full scoring.
+    gt_plant = entry.ground_truth.final_plant_frame
+    result.v3_error_frames = result.v3_foot_plant - gt_plant
+    result.v4_error_frames = result.v4_foot_plant - gt_plant
+    if result.fps:
+        result.v3_error_ms = result.v3_error_frames * 1000.0 / result.fps
+        result.v4_error_ms = result.v4_error_frames * 1000.0 / result.fps
+    result.v3_v4_delta_frames = result.v4_foot_plant - result.v3_foot_plant
+    if result.v4_stride_style is not None:
+        result.stride_style_correct = (
+            result.v4_stride_style == entry.ground_truth.stride_style
+        )
+
+    v3_abs = abs(result.v3_error_frames)
+    v4_abs = abs(result.v4_error_frames)
+    if v4_abs < v3_abs:
+        result.winner = "v4"
+    elif v3_abs < v4_abs:
+        result.winner = "v3"
+    else:
+        result.winner = "tie"
+
+    result.status = "scored"
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Aggregate metrics
+# ---------------------------------------------------------------------------
+
+
+def _detector_metrics(
+    rows: list[SwingResult], *, which: str
+) -> DetectorMetrics:
+    """Compute aggregate timing metrics for one detector ('v3' or 'v4')."""
+    err_field = f"{which}_error_frames"
+    ms_field = f"{which}_error_ms"
+    scored = [
+        r for r in rows
+        if r.status == "scored" and getattr(r, err_field) is not None
+    ]
+    n = len(scored)
+    if n == 0:
+        return DetectorMetrics()
+
+    err_frames = [getattr(r, err_field) for r in scored]
+    abs_err_frames = [abs(e) for e in err_frames]
+    err_ms_present = [getattr(r, ms_field) for r in scored
+                      if getattr(r, ms_field) is not None]
+    abs_err_ms = [abs(e) for e in err_ms_present]
+
+    m = DetectorMetrics()
+    m.n = n
+    m.mean_abs_error_frames = statistics.mean(abs_err_frames)
+    m.median_abs_error_frames = statistics.median(abs_err_frames)
+    if abs_err_ms:
+        m.mean_abs_error_ms = statistics.mean(abs_err_ms)
+        m.median_abs_error_ms = statistics.median(abs_err_ms)
+    m.mean_signed_error_frames = statistics.mean(err_frames)
+    m.pct_within_tight = sum(
+        1 for e in abs_err_frames if e <= THRESHOLD_FRAMES_TIGHT
+    ) / n
+    m.pct_within_loose = sum(
+        1 for e in abs_err_frames if e <= THRESHOLD_FRAMES_LOOSE
+    ) / n
+    return m
+
+
+def _head_to_head(rows: list[SwingResult]) -> HeadToHead:
+    scored = [r for r in rows if r.status == "scored" and r.winner is not None]
+    n = len(scored)
+    h = HeadToHead(n=n)
+    if n == 0:
+        return h
+    h.v4_better = sum(1 for r in scored if r.winner == "v4")
+    h.v3_better = sum(1 for r in scored if r.winner == "v3")
+    h.tie = sum(1 for r in scored if r.winner == "tie")
+    h.pct_v4_better = h.v4_better / n
+    h.pct_v3_better = h.v3_better / n
+    h.pct_tie = h.tie / n
+    return h
+
+
+def _stride_style_metrics(rows: list[SwingResult]) -> StrideStyleMetrics:
+    """Confusion matrix + per-class accuracy for the v4/phase_debug
+    stride_style classifier."""
+    sm = StrideStyleMetrics()
+    # Initialize confusion matrix with every known class
+    sm.confusion = {gt: {pred: 0 for pred in VALID_STRIDE_STYLES + ("uncertain",)}
+                    for gt in VALID_STRIDE_STYLES}
+    evaluated = [r for r in rows
+                 if r.gt_stride_style is not None
+                 and r.v4_stride_style is not None]
+    sm.n_evaluated = len(evaluated)
+    if sm.n_evaluated == 0:
+        return sm
+    sm.n_correct = 0
+    for r in evaluated:
+        gt = r.gt_stride_style
+        pred = r.v4_stride_style
+        if gt in sm.confusion:
+            row = sm.confusion[gt]
+            row[pred] = row.get(pred, 0) + 1
+        if gt == pred:
+            sm.n_correct += 1
+    sm.overall_accuracy = sm.n_correct / sm.n_evaluated
+
+    for cls, row in sm.confusion.items():
+        total = sum(row.values())
+        if total == 0:
+            continue
+        correct = row.get(cls, 0)
+        sm.per_class_accuracy[cls] = correct / total
+    return sm
+
+
+def _per_stride_style_breakdown(
+    rows: list[SwingResult],
+) -> dict[str, DetectorMetrics]:
+    """For each ground-truth stride style, compute v4 timing metrics on the
+    swings of that class. Useful for spotting "v4 is great on toe_tap but
+    weak on leg_kick" patterns."""
+    out: dict[str, DetectorMetrics] = {}
+    for cls in VALID_STRIDE_STYLES:
+        subset = [r for r in rows if r.gt_stride_style == cls]
+        out[cls] = _detector_metrics(subset, which="v4")
+    return out
+
+
+def summarize(rows: list[SwingResult]) -> Summary:
+    """Roll up per-swing results into the aggregate Summary."""
+    s = Summary()
+    s.n_total = len(rows)
+    s.n_scored = sum(1 for r in rows if r.status == "scored")
+    s.n_skipped = s.n_total - s.n_scored
+    skipped: dict[str, int] = {}
+    for r in rows:
+        if r.status != "scored":
+            skipped[r.status] = skipped.get(r.status, 0) + 1
+    s.skipped_by_reason = skipped
+    s.v3 = _detector_metrics(rows, which="v3")
+    s.v4 = _detector_metrics(rows, which="v4")
+    s.head_to_head = _head_to_head(rows)
+    s.stride_style = _stride_style_metrics(rows)
+    s.per_stride_style = _per_stride_style_breakdown(rows)
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Top-level evaluation
+# ---------------------------------------------------------------------------
+
+
+def evaluate_manifest(
+    manifest: Manifest,
+    *,
+    fingerprint_dir: Optional[Path] = None,
+) -> tuple[list[SwingResult], Summary]:
+    """Evaluate every swing in the manifest, returning (rows, summary).
+
+    `fingerprint_dir` is the directory to search for fingerprints when an
+    entry has no explicit `fingerprint_path`. Convention: searches for
+    `<entry.id>_fingerprint.json` and `<entry.id>.json`.
+    """
+    rows: list[SwingResult] = []
+    for entry in manifest.swings:
+        fp = None
+        load_error = None
+        try:
+            if entry.fingerprint_path:
+                fp = load_fingerprint(entry.fingerprint_path)
+            elif fingerprint_dir is not None:
+                # Convention-based lookup
+                candidates = [
+                    fingerprint_dir / f"{entry.id}_fingerprint.json",
+                    fingerprint_dir / f"{entry.id}.json",
+                ]
+                for c in candidates:
+                    if c.exists():
+                        fp = load_fingerprint(c)
+                        break
+        except Exception as e:
+            load_error = f"failed to load fingerprint: {e!r}"
+
+        rows.append(evaluate_swing(entry, fp, load_error=load_error))
+
+    return rows, summarize(rows)
+
+
+def as_dicts(rows: list[SwingResult]) -> list[dict]:
+    """Serialize per-swing rows for JSON output."""
+    return [asdict(r) for r in rows]
+
+
+def summary_as_dict(summary: Summary) -> dict:
+    """Serialize the summary for JSON output."""
+    return {
+        "n_total": summary.n_total,
+        "n_scored": summary.n_scored,
+        "n_skipped": summary.n_skipped,
+        "skipped_by_reason": dict(summary.skipped_by_reason),
+        "v3": asdict(summary.v3),
+        "v4": asdict(summary.v4),
+        "head_to_head": asdict(summary.head_to_head),
+        "stride_style": {
+            "n_evaluated": summary.stride_style.n_evaluated,
+            "n_correct": summary.stride_style.n_correct,
+            "overall_accuracy": summary.stride_style.overall_accuracy,
+            "per_class_accuracy": dict(summary.stride_style.per_class_accuracy),
+            "confusion": {
+                gt: dict(row) for gt, row in summary.stride_style.confusion.items()
+            },
+        },
+        "per_stride_style": {
+            cls: asdict(m) for cls, m in summary.per_stride_style.items()
+        },
+    }
