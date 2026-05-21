@@ -417,25 +417,16 @@ CAMERA_VIEW = "three_quarter" if hip_to_torso_pre >= VIEW_3D_THRESHOLD else "pro
 # ---------- HELPER: BURST DETECTION FROM A 1D RATE SIGNAL ----------
 # Used by both the 3D and 2D paths. Given a per-frame rate-of-change array,
 # returns (burst_lo, burst_hi, burst_peak_idx, peak_rate, base_start, base_end).
-def _find_burst_and_baseline(rate_arr, fps_, n_, min_rate=1.0):
-    rate_smooth_ = smooth(rate_arr, window=5)
-    burst_peak_ = int(np.argmax(rate_smooth_))
-    peak_rate_ = float(rate_smooth_[burst_peak_])
-    threshold_ = max(peak_rate_ * 0.3, min_rate)
-    lo_ = burst_peak_
-    while lo_ > 0 and rate_smooth_[lo_ - 1] >= threshold_:
-        lo_ -= 1
-    hi_ = burst_peak_
-    while hi_ < n_ - 1 and rate_smooth_[hi_ + 1] >= threshold_:
-        hi_ += 1
-    burst_lo_ = max(0, lo_ - int(fps_ * 0.15))
-    burst_hi_ = min(n_ - 1, hi_ + int(fps_ * 0.30))
-    pre_gap_ = int(fps_ * 0.05)
-    base_end_ = max(5, burst_lo_ - pre_gap_)
-    base_start_ = max(0, base_end_ - int(fps_ * 1.0))
-    if base_end_ - base_start_ < 5:
-        base_start_, base_end_ = 0, max(5, min(n_, int(fps_ * 0.5)))
-    return burst_lo_, burst_hi_, burst_peak_, peak_rate_, base_start_, base_end_
+# Burst detection — extracted to phase_burst.py so it can be unit-tested
+# without pulling in mediapipe / opencv. detect_phases.py keeps the legacy
+# `_find_burst_and_baseline` name as an alias for the imported function.
+from phase_burst import (
+    find_burst_and_baseline as _find_burst_and_baseline,
+    _find_distinct_burst_peaks,
+    MULTI_SWING_MIN_DURATION_S,
+    MULTI_SWING_MIN_DISTANCE_S,
+    MULTI_SWING_HEIGHT_RATIO,
+)
 
 if prefer_3d:
     # ===================== 3D PATH (three-quarter views) =====================
