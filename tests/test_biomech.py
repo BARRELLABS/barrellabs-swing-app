@@ -30,3 +30,93 @@ class TestBiomechModuleExists:
     def test_exports_compute_sequence(self):
         from biomech import compute_sequence
         assert callable(compute_sequence)
+
+
+class TestSequencingLag:
+    """M1: hip-peak → shoulder-peak gap in milliseconds.
+
+    Good band: 20-60 ms (pelvis leads, torso follows).
+    Marginal: 5-20 ms or 60-80 ms.
+    Poor: <= 5 ms (simultaneous) or negative (shoulders lead).
+    """
+
+    def _make_signals(self, *, n: int, hip_peak: int, shoulder_peak: int):
+        """Build synthetic hip_vel + shoulder_rotation arrays.
+
+        hip_vel: gaussian peak at hip_peak frame.
+        shoulder_rotation: linearly rising to contact, but with the
+          inflection (max gradient) at shoulder_peak frame.
+        """
+        x = np.arange(n, dtype=float)
+        hip_vel = 10.0 * np.exp(-((x - hip_peak) ** 2) / (2.0 * 4.0 ** 2))
+        # Cumulative sum of a gaussian peaked at shoulder_peak gives an
+        # S-curve whose gradient peaks at shoulder_peak — exactly what we
+        # need to test argmax(|gradient(shoulder_rotation)|).
+        shoulder_pulse = np.exp(-((x - shoulder_peak) ** 2) / (2.0 * 4.0 ** 2))
+        shoulder_rotation = np.cumsum(shoulder_pulse) * 5.0  # arbitrary deg scale
+        return hip_vel, shoulder_rotation
+
+    def test_good_lag_30ms_at_60fps(self):
+        """Hip peak at 60, shoulder peak at 62 → 2 frames = 33.3 ms at 60fps."""
+        from biomech import compute_sequence
+        n = 200
+        hip_vel, shoulder_rotation = self._make_signals(
+            n=n, hip_peak=60, shoulder_peak=62,
+        )
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 28.0 <= result["sequencing_lag_ms"] <= 38.0, (
+            f"Expected ~33ms; got {result['sequencing_lag_ms']}"
+        )
+
+    def test_simultaneous_fire_zero_lag(self):
+        """Hip + shoulder peak on same frame → ~0ms."""
+        from biomech import compute_sequence
+        n = 200
+        hip_vel, shoulder_rotation = self._make_signals(
+            n=n, hip_peak=60, shoulder_peak=60,
+        )
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert abs(result["sequencing_lag_ms"]) <= 3.0
+
+    def test_shoulders_lead_negative_lag(self):
+        """Shoulder peak BEFORE hip peak → negative lag."""
+        from biomech import compute_sequence
+        n = 200
+        hip_vel, shoulder_rotation = self._make_signals(
+            n=n, hip_peak=62, shoulder_peak=58,
+        )
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert result["sequencing_lag_ms"] < 0, (
+            f"Expected negative; got {result['sequencing_lag_ms']}"
+        )
+
+    def test_search_window_ignores_followthrough(self):
+        """A huge post-contact shoulder spike must NOT win — it's
+        outside the [load_start - 200ms, contact + 50ms] window."""
+        from biomech import compute_sequence
+        n = 300
+        x = np.arange(n, dtype=float)
+        # Real hip peak at 60, real shoulder peak at 63 (32ms lag good).
+        hip_vel = 10.0 * np.exp(-((x - 60) ** 2) / (2.0 * 4.0 ** 2))
+        real_pulse = np.exp(-((x - 63) ** 2) / (2.0 * 4.0 ** 2))
+        # MASSIVE follow-through shoulder pulse at frame 200, way after contact.
+        followthrough_pulse = 100.0 * np.exp(-((x - 200) ** 2) / (2.0 * 4.0 ** 2))
+        shoulder_rotation = np.cumsum(real_pulse + followthrough_pulse)
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        # If the search window worked, lag ≈ +50ms (3 frames at 60fps);
+        # if it failed, lag would be huge (~140 frames = 2333ms).
+        assert -100 <= result["sequencing_lag_ms"] <= 100, (
+            f"search window leaked; got {result['sequencing_lag_ms']}ms"
+        )

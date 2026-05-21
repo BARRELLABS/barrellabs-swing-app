@@ -22,6 +22,31 @@ from typing import Optional
 import numpy as np
 
 
+def _smooth(arr: np.ndarray, window: int = 5) -> np.ndarray:
+    """Same moving-average smooth() used by detect_phases.py and phase_burst.py."""
+    arr = np.asarray(arr, dtype=float)
+    out = np.copy(arr)
+    half = window // 2
+    for i in range(len(arr)):
+        lo = max(0, i - half)
+        hi = min(len(arr), i + half + 1)
+        out[i] = np.mean(arr[lo:hi])
+    return out
+
+
+def _search_window(load_start: int, contact: int, fps: float, n: int) -> tuple[int, int]:
+    """The interval inside which we look for hip / shoulder peaks.
+
+    200ms before load_start through 50ms after contact. This excludes
+    post-contact follow-through from dominating the shoulder peak.
+    """
+    lo = max(0, int(load_start) - int(round(0.20 * fps)))
+    hi = min(int(n), int(contact) + int(round(0.05 * fps)))
+    if hi <= lo:                       # malformed phases — fall back to whole clip
+        return 0, int(n)
+    return lo, hi
+
+
 def compute_sequence(
     *,
     hip_vel: np.ndarray,
@@ -33,14 +58,45 @@ def compute_sequence(
 ) -> dict:
     """Compute the Power Sequence block from per-frame signals.
 
-    Inputs are already-smoothed arrays from detect_phases.py:
-      - hip_vel: smoothed gradient of hip_rotation (deg/frame)
-      - shoulder_rotation: baselined shoulder rotation (deg)
-
-    Returns a dict with the 3 metric values + their per-frame anchors +
-    a rating sub-dict that classifies each into good / marginal / poor.
-
-    Returns None values where the metric is undefined (e.g. negligible
-    shoulder rotation makes stability % meaningless).
+    See module docstring + the design spec for full algorithm rationale.
     """
-    raise NotImplementedError("filled in next task")
+    hip_vel = np.asarray(hip_vel, dtype=float)
+    shoulder_rotation = np.asarray(shoulder_rotation, dtype=float)
+    n = min(len(hip_vel), len(shoulder_rotation))
+    if n == 0 or fps <= 0:
+        return {
+            "sequencing_lag_ms":         None,
+            "peak_hip_omega_deg_s":      None,
+            "front_side_stability_pct":  None,
+            "hip_peak_frame":            None,
+            "shoulder_peak_frame":       None,
+            "rating": {"sequencing_lag": None,
+                       "peak_hip_omega": None,
+                       "front_side_stability": None},
+        }
+
+    lo, hi = _search_window(load_start, contact, fps, n)
+
+    # M1 — sequencing lag
+    # Use forward difference (diff with prepend) rather than np.gradient so
+    # that the peak of d/dt(cumsum(gaussian(t0))) falls exactly at t0 instead
+    # of being split symmetrically across t0-1 and t0 by central differences.
+    shoulder_vel = _smooth(np.diff(shoulder_rotation, prepend=shoulder_rotation[0]), window=5)
+    hip_window = np.abs(hip_vel[lo:hi])
+    sho_window = np.abs(shoulder_vel[lo:hi])
+    hip_peak_frame = int(lo + np.argmax(hip_window)) if len(hip_window) else None
+    sho_peak_frame = int(lo + np.argmax(sho_window)) if len(sho_window) else None
+    sequencing_lag_ms: Optional[float] = None
+    if hip_peak_frame is not None and sho_peak_frame is not None:
+        sequencing_lag_ms = (sho_peak_frame - hip_peak_frame) * 1000.0 / fps
+
+    return {
+        "sequencing_lag_ms":         sequencing_lag_ms,
+        "peak_hip_omega_deg_s":      None,
+        "front_side_stability_pct":  None,
+        "hip_peak_frame":            hip_peak_frame,
+        "shoulder_peak_frame":       sho_peak_frame,
+        "rating": {"sequencing_lag": None,
+                   "peak_hip_omega": None,
+                   "front_side_stability": None},
+    }
