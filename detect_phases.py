@@ -34,6 +34,15 @@ _base = os.path.splitext(os.path.basename(INPUT_VIDEO))[0]
 OUTPUT_CSV = f"{_base}_metrics.csv"
 OUTPUT_CHART = f"{_base}_phases.png"
 OUTPUT_FINGERPRINT = f"{_base}_fingerprint.json"
+OUTPUT_PHASES_DEBUG = f"{_base}_phases_debug.json"
+
+# Phase 1 instrumentation flag (observability only — does not change any
+# existing phase index, metric value, or score). Enable by setting env var
+# PHASE_DEBUG_V1 to "1", "true", "yes", or "on". When disabled this module
+# is not imported and detect_phases.py runs exactly as before.
+PHASE_DEBUG_V1 = str(os.environ.get("PHASE_DEBUG_V1", "")).strip().lower() in {
+    "1", "true", "yes", "on",
+}
 # ----------------
 
 NOSE = 0
@@ -160,6 +169,10 @@ while True:
             "right_knee_x": right_knee[0], "right_knee_y": right_knee[1],
             "left_ankle_x": left_ankle[0], "left_ankle_y": left_ankle[1],
             "right_ankle_x": right_ankle[0], "right_ankle_y": right_ankle[1],
+            # Per-landmark visibility (in [0, 1]) — added in Phase 1 for
+            # phase_debug. Existing detector logic ignores these fields.
+            "left_ankle_visibility":  float(lm[LEFT_ANKLE].visibility),
+            "right_ankle_visibility": float(lm[RIGHT_ANKLE].visibility),
         }
         if wlm is not None:
             rec.update({
@@ -186,6 +199,11 @@ if not records:
 # Detection: measure the vertical range of each ankle in the early portion of
 # the clip (load + stride window). The front foot lifts noticeably more.
 auto_note = ""
+# Handedness auto-detection ratio (bigger/smaller of L and R foot motion in
+# the early window). Populated below when HANDEDNESS == "AUTO"; left as None
+# for manual overrides. Used by phase_debug for the low_handedness_confidence
+# warning.
+handedness_auto_ratio = None
 if HANDEDNESS == "AUTO":
     n_records = len(records)
     # Tight early window — covers stance + load + stride. Crucially EXCLUDES
@@ -221,6 +239,7 @@ if HANDEDNESS == "AUTO":
         striding_foot = "right"
 
     ratio = bigger / max(smaller, 1.0)
+    handedness_auto_ratio = float(ratio)
     detail = (f"L: y={left_y_lift:.0f}px x={left_x_disp:.0f}px | "
               f"R: y={right_y_lift:.0f}px x={right_x_disp:.0f}px")
     if ratio < 1.3:
@@ -247,6 +266,11 @@ for r in records:
     r["stride_px"] = abs(fa[0] - ba[0])
     r["front_ankle_x"] = fa[0]
     r["front_ankle_y"] = fa[1]
+    # Phase 1 instrumentation: propagate front-ankle visibility once
+    # handedness is known. Existing detector logic ignores this field.
+    r["front_ankle_visibility"] = float(
+        r.get(f"{front_side}_ankle_visibility", 1.0)
+    )
 
 if auto_note:
     print(auto_note)
@@ -706,6 +730,60 @@ t_launch_to_contact = times[contact] - times[launch]
 t_swing = times[contact] - times[foot_plant]
 
 
+# ---------- PHASE_DEBUG_V1 INSTRUMENTATION (observability only) ----------
+# This block runs only when PHASE_DEBUG_V1 is enabled. It computes a parallel
+# set of observations (candidate stable contacts, per-phase confidence,
+# stride-style classification, alternatives, warnings) WITHOUT modifying any
+# of the phase indices, metric values, or score outputs above. The output is
+# written into the fingerprint as `analysis_debug` and to a separate
+# `<base>_phases_debug.json` file. See phase_debug.py for the algorithm.
+#
+# Wrapped in try/except: instrumentation is observability-only and MUST NEVER
+# break the legacy detector. If any exception escapes, log it and continue
+# with a fingerprint that simply omits the analysis_debug field.
+analysis_debug = None
+if PHASE_DEBUG_V1:
+    try:
+        import phase_debug  # local import so disabled runs pay no cost
+        fa_visibility_arr = np.asarray(
+            [r.get("front_ankle_visibility", 1.0) for r in records], dtype=float
+        )
+        burst_lo_dbg, burst_hi_dbg, burst_peak_dbg = SWING_BURST
+        ref_torso_for_debug = (
+            float(np.percentile(torso_length_px, 95))
+            if len(torso_length_px) > 0 else 0.0
+        )
+        analysis_debug = phase_debug.build_debug_payload(
+            times=times,
+            fa_y=fa_y,
+            vis_fa=fa_visibility_arr,
+            hip_vel=hip_vel,
+            stride=stride,
+            knee=knee,
+            phases=phases,
+            burst_lo=int(burst_lo_dbg),
+            burst_hi=int(burst_hi_dbg),
+            burst_peak=int(burst_peak_dbg),
+            fps=float(fps),
+            torso_length_px=ref_torso_for_debug,
+            handedness=HANDEDNESS,
+            handedness_ratio=handedness_auto_ratio,
+            edge_warnings=edge_warnings,
+        )
+        # Also emit a standalone debug JSON next to the fingerprint
+        with open(OUTPUT_PHASES_DEBUG, "w") as f:
+            json.dump(analysis_debug, f, indent=2)
+        print(phase_debug.format_debug_summary(analysis_debug))
+        print(f"Saved phase debug  → {OUTPUT_PHASES_DEBUG}")
+    except Exception as _dbg_exc:
+        # Instrumentation failure must not block the legacy pipeline.
+        import traceback
+        print(f"⚠  PHASE_DEBUG_V1 instrumentation failed: {_dbg_exc!r}")
+        print("   Fingerprint will be written without analysis_debug.")
+        traceback.print_exc()
+        analysis_debug = None
+
+
 # ---------- SAVE CSV ----------
 records_out = []
 for i, r in enumerate(records):
@@ -921,6 +999,12 @@ fingerprint = {
         "hip_to_torso_ratio_stance": float(hip_to_torso_ratio),
     },
 }
+
+# Attach Phase 1 observability payload when PHASE_DEBUG_V1 is on. This is the
+# only fingerprint mutation in this block — every other field above is
+# unchanged from the legacy detector.
+if analysis_debug is not None:
+    fingerprint["analysis_debug"] = analysis_debug
 
 with open(OUTPUT_FINGERPRINT, "w") as f:
     json.dump(fingerprint, f, indent=2)
