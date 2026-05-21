@@ -43,6 +43,18 @@ OUTPUT_PHASES_DEBUG = f"{_base}_phases_debug.json"
 PHASE_DEBUG_V1 = str(os.environ.get("PHASE_DEBUG_V1", "")).strip().lower() in {
     "1", "true", "yes", "on",
 }
+
+# Phase 2 toe-tap-aware detector flag (shadow mode — v4 runs ALONGSIDE v3
+# and emits a parallel phases_v4 dict for comparison; v3 outputs are
+# unchanged). Enabling DETECTOR_V4 implicitly enables PHASE_DEBUG_V1 since
+# v4 consumes the candidate list produced by phase_debug.
+DETECTOR_V4 = str(os.environ.get("DETECTOR_V4", "")).strip().lower() in {
+    "1", "true", "yes", "on",
+}
+if DETECTOR_V4:
+    PHASE_DEBUG_V1 = True
+
+OUTPUT_DETECTOR_V4_DEBUG = f"{_base}_detector_v4.json"
 # ----------------
 
 NOSE = 0
@@ -784,6 +796,46 @@ if PHASE_DEBUG_V1:
         analysis_debug = None
 
 
+# ---------- DETECTOR_V4 SHADOW MODE (observability + parallel detection) ----------
+# v4 runs ALONGSIDE the legacy v3 detector. It selects foot_plant by ranking
+# the stable-contact periods from analysis_debug against rotation_onset and
+# contact timing — fixing the toe-tap bug where v3's argmax(fa_y) picks the
+# tap instead of the final plant. v4 outputs are written to a new
+# `detector_v4` field on the fingerprint and to a standalone debug JSON.
+# v3 outputs are unchanged.
+#
+# Wrapped in try/except: a v4 failure must never break v3 output.
+detector_v4_result = None
+if DETECTOR_V4:
+    try:
+        import phase_detector_v4
+        if analysis_debug is None:
+            raise RuntimeError(
+                "DETECTOR_V4 requires PHASE_DEBUG_V1 instrumentation, but "
+                "analysis_debug was not produced (instrumentation may have failed)."
+            )
+        detector_v4_result = phase_detector_v4.detect_phases_v4(
+            times=times,
+            stride=stride,
+            knee=knee,
+            analysis_debug=analysis_debug,
+            phases_v3=phases,
+            burst_lo=int(SWING_BURST[0]),
+            burst_hi=int(SWING_BURST[1]),
+            fps=float(fps),
+        )
+        with open(OUTPUT_DETECTOR_V4_DEBUG, "w") as f:
+            json.dump(detector_v4_result, f, indent=2)
+        print(phase_detector_v4.format_v4_summary(detector_v4_result))
+        print(f"Saved v4 detector → {OUTPUT_DETECTOR_V4_DEBUG}")
+    except Exception as _v4_exc:
+        import traceback
+        print(f"⚠  DETECTOR_V4 shadow run failed: {_v4_exc!r}")
+        print("   Fingerprint will be written without detector_v4 block.")
+        traceback.print_exc()
+        detector_v4_result = None
+
+
 # ---------- SAVE CSV ----------
 records_out = []
 for i, r in enumerate(records):
@@ -1000,11 +1052,22 @@ fingerprint = {
     },
 }
 
-# Attach Phase 1 observability payload when PHASE_DEBUG_V1 is on. This is the
-# only fingerprint mutation in this block — every other field above is
-# unchanged from the legacy detector.
+# Attach Phase 1 observability payload when PHASE_DEBUG_V1 is on. This is
+# additive — every other fingerprint field above is unchanged from the
+# legacy v3 detector.
 if analysis_debug is not None:
     fingerprint["analysis_debug"] = analysis_debug
+
+# Attach Phase 2 v4 shadow result when DETECTOR_V4 is on. Also additive;
+# never mutates the v3 phases above. The legacy `phases_t` and `phases_frame`
+# fields continue to reflect the v3 detector exactly.
+if detector_v4_result is not None:
+    fingerprint["detector_v4"] = detector_v4_result
+    # Convenience top-level mirrors so consumers can compare without
+    # walking into detector_v4.phases — kept symmetrical with the v3
+    # phases_t / phases_frame fields above.
+    fingerprint["phases_t_v4"] = detector_v4_result["phases_t"]
+    fingerprint["phases_frame_v4"] = detector_v4_result["phases"]
 
 with open(OUTPUT_FINGERPRINT, "w") as f:
     json.dump(fingerprint, f, indent=2)
