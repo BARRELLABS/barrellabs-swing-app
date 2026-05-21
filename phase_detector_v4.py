@@ -203,6 +203,71 @@ def rank_candidates(
 # ---------------------------------------------------------------------------
 
 
+def _effective_anchor(
+    candidate: dict,
+    *,
+    rot_onset: int,
+    fps: float,
+    near_window_ms: float = 200.0,
+    long_stance_threshold_ms: float = 300.0,
+) -> int:
+    """Translate a candidate into the foot_plant frame we should report.
+
+    For most candidates the candidate's ``start_frame`` IS the foot plant —
+    it's the first frame the foot settled. But there are two cases where
+    start_frame is the WRONG anchor:
+
+    1. **Ends-before case** (Phase 4a Fix 1): candidate ends just before
+       rotation_onset. Real on the no-stride pattern — foot stays on
+       ground, lifts briefly, then contact. Anchor at end+1 (just before
+       lift), not at start.
+
+    2. **Straddle-long-stance case** (Phase 4b Fix 1 extension): candidate
+       STRADDLES rotation_onset AND started ≥ ``long_stance_threshold_ms``
+       before. This is the same no-stride pattern but the contact period
+       happens to extend past rot_onset rather than ending just before it.
+       Phase 3 → Phase 4a results showed this case wasn't being caught
+       (img_8436 / img_8608 / mariotswing all still reporting frame=0).
+       Anchor at rot_onset itself — that's the last on-ground frame
+       before the swing begins.
+
+    For normal toe-tap or standard-stride swings the candidate's start
+    IS the plant — it's the first frame the foot settled after a real
+    lift. Those candidates fall into neither remediation branch and the
+    start frame is returned unchanged.
+    """
+    s = int(candidate["start_frame"])
+    e = int(candidate["end_frame"])
+    if s <= rot_onset <= e:
+        # Straddle case — the contact spans rotation onset.
+        # If the contact started a long time before rot_onset, it's a
+        # stance that runs straight through the start of the swing —
+        # anchor at rot_onset (Phase 4b Fix 1 extension).
+        start_to_onset_ms = (
+            (rot_onset - s) * 1000.0 / fps if fps > 0 else 0.0
+        )
+        if start_to_onset_ms >= long_stance_threshold_ms:
+            return max(s, int(rot_onset))
+        # Otherwise the contact started recently enough that start IS
+        # plausibly the plant (e.g. a regular stride that landed right
+        # before rotation onset).
+        return s
+    if s > rot_onset:
+        # Starts after rotation_onset — unusual. Keep start as anchor.
+        return s
+    # Ends before rotation onset. If close (≤ near_window_ms), the
+    # candidate is a stance that flowed straight into the swing — the
+    # ANCHOR should be the last on-ground frame just before lift, not
+    # the start of the stance period.
+    gap_ms = (rot_onset - e) * 1000.0 / fps if fps > 0 else 0.0
+    if gap_ms <= near_window_ms:
+        return max(s, min(e + 1, int(rot_onset)))
+    # Stance ends far before rotation_onset — the candidate is not the
+    # plant at all (this case should fail scoring upstream). Keep start
+    # as anchor for backwards compatibility.
+    return s
+
+
 def derive_load_start_v4(
     stride: np.ndarray,
     knee: np.ndarray,
@@ -354,7 +419,15 @@ def detect_phases_v4(
             ranked_alternatives=ranked,
         )
 
-    foot_plant_v4 = int(best["start_frame"])
+    # Phase 4a Fix 1: when the selected candidate ENDS just before
+    # rotation begins (i.e. a stance period that runs straight into the
+    # swing), use the frame just before rotation_onset as the anchor,
+    # not the start of the contact period. This fixes the "frame-0 bug"
+    # exposed by the Phase 3 validation report on real-time clips where
+    # there's only one long stable contact spanning pre-rotation.
+    foot_plant_v4 = _effective_anchor(
+        best, rot_onset=rot_onset, fps=fps,
+    )
 
     # --- Re-derive dependent phases with the new anchor ---
     load_start_v4 = derive_load_start_v4(
@@ -386,7 +459,32 @@ def detect_phases_v4(
     else:
         margin_note = "single candidate available"
 
-    selection_reason = "; ".join(best["reasons"] + [margin_note])
+    # Phase 4a Fix 3: distance-to-rotation-onset penalty.
+    # A high-confidence pick must actually be near where rotation begins.
+    # On Phase 3 the elly_de_la_cruz_swing row showed confidence=1.00 but
+    # the pick was 145 frames off — confidence should fall when the
+    # picked frame is far from rot_onset regardless of raw score.
+    gap_ms = (
+        abs(foot_plant_v4 - rot_onset) * 1000.0 / fps if fps > 0 else 0.0
+    )
+    rot_distance_note = ""
+    if gap_ms > 500.0:
+        confidence *= 0.30
+        rot_distance_note = (
+            f"foot_plant {gap_ms:.0f} ms from rotation_onset — "
+            "low confidence"
+        )
+    elif gap_ms > 200.0:
+        confidence *= 0.50
+        rot_distance_note = (
+            f"foot_plant {gap_ms:.0f} ms from rotation_onset — "
+            "reduced confidence"
+        )
+
+    selection_reason = "; ".join(
+        best["reasons"] + [margin_note]
+        + ([rot_distance_note] if rot_distance_note else [])
+    )
 
     # --- Build phases dict ---
     phases_v4 = {

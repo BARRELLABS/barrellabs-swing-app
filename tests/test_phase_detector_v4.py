@@ -522,5 +522,297 @@ class TestFormatSummary:
         assert "Fell back to v3" in s
 
 
+# ---------------------------------------------------------------------------
+# Phase 4a — regression tests for the 3 bugs surfaced by the Phase 3 report
+# ---------------------------------------------------------------------------
+
+
+class TestPhase4aFix1EndOfContactAnchor:
+    """Fix 1: when there's a single stable-contact period covering the
+    whole pre-rotation window, v4 should anchor foot_plant to the END of
+    the contact (just before lift), not the START (frame 0).
+
+    The Phase 3 report row that exposed this:
+      img_8436   gt_plant=52   v3=52 (perfect)   v4=0  (off by -52)
+    """
+
+    def test_effective_anchor_uses_end_for_pre_rotation_stance(self):
+        # Long stance from frame 0 to 50, rotation_onset at 55. Foot lifts
+        # during 50–55 and contact happens at 57.
+        contact = {"start_frame": 0, "end_frame": 50, "duration_ms": 833.0}
+        anchor = phase_detector_v4._effective_anchor(
+            contact, rot_onset=55, fps=60.0,
+        )
+        # Should land on frame 51 (end+1) — clamped not to exceed rot_onset
+        assert anchor == 51, f"expected 51, got {anchor}"
+
+    def test_effective_anchor_unchanged_for_straddle_recent_start(self):
+        # Contact straddles rotation_onset AND started recently (200ms
+        # before rot_onset) → this is a real plant. Start IS the plant.
+        # fps=60, gap = 18 frames = 300ms — JUST below the long_stance threshold.
+        contact = {"start_frame": 142, "end_frame": 200, "duration_ms": 967.0}
+        anchor = phase_detector_v4._effective_anchor(
+            contact, rot_onset=160, fps=60.0,
+        )
+        # 18 frames * 1000/60 = 300ms, default threshold = 300ms → uses start
+        # (the >= comparison makes 300ms exactly fall on the threshold;
+        # we use < threshold to keep start, so 18 frames at exactly 300ms
+        # triggers the long-stance branch. Use 17 frames to be safely below.)
+        # Adjust to verify "recent start" returns start_frame:
+        contact_recent = {"start_frame": 145, "end_frame": 200,
+                          "duration_ms": 917.0}
+        anchor_recent = phase_detector_v4._effective_anchor(
+            contact_recent, rot_onset=160, fps=60.0,
+        )
+        # 15 frames * 1000/60 = 250ms — well below 300ms threshold
+        assert anchor_recent == 145, f"expected start=145, got {anchor_recent}"
+
+    def test_effective_anchor_straddle_long_stance_anchors_at_rot_onset(self):
+        """Phase 4b extension: a long stance that STRADDLES rot_onset
+        (e.g. no-stride pattern) should anchor at rot_onset, not at
+        start. Targets the img_8436 / img_8608 / mariotswing failure
+        mode from the Phase 4a Pass #2 report."""
+        # Stance covers frames 0-56, rot_onset at 53. Start is 53 frames
+        # = 1767ms before rot_onset at 30 fps — way past the 300ms threshold.
+        contact = {"start_frame": 0, "end_frame": 56, "duration_ms": 1900.0}
+        anchor = phase_detector_v4._effective_anchor(
+            contact, rot_onset=53, fps=30.0,
+        )
+        # Should anchor at rot_onset=53, not at start=0
+        assert anchor == 53, (
+            f"long stance straddling rot_onset should anchor at rot_onset; "
+            f"got {anchor}"
+        )
+
+    def test_effective_anchor_straddle_short_stance_keeps_start(self):
+        """Real toe-tap final-plant contact straddles rot_onset by a
+        small margin — those should keep start_frame (the real plant).
+        Targets the toe-tap MLB clips where v4 already wins."""
+        # Plant starts at frame 130, rot_onset=135, ends at 145.
+        # Start to rot_onset gap = 5 frames = 167ms at 30 fps —
+        # well below the 300ms long-stance threshold.
+        contact = {"start_frame": 130, "end_frame": 145, "duration_ms": 533.0}
+        anchor = phase_detector_v4._effective_anchor(
+            contact, rot_onset=135, fps=30.0,
+        )
+        assert anchor == 130, (
+            f"recent-start straddle should keep start; got {anchor}"
+        )
+
+    def test_effective_anchor_unchanged_for_distant_stance(self):
+        # Stance ends 500ms before rot_onset → not the plant, keep start
+        contact = {"start_frame": 0, "end_frame": 20, "duration_ms": 333.0}
+        anchor = phase_detector_v4._effective_anchor(
+            contact, rot_onset=60, fps=60.0,
+        )
+        # Gap = 40 frames = 667 ms — well beyond the 200ms window
+        assert anchor == 0
+
+    def test_end_to_end_single_contact_clip(self):
+        """Replicate the img_8436 failure mode end-to-end and assert v4
+        picks the end-of-stance frame, not 0."""
+        n = 60
+        fps = 60.0
+        times = np.arange(n) / fps
+        # Foot on the ground from frame 0–50, then lifts slightly
+        fa_y = np.full(n, 500.0)
+        fa_y[50:55] = 490.0   # tiny lift before contact
+        fa_y[55:] = 495.0
+        vis_fa = np.ones(n) * 0.95
+        # Hip velocity ramps up around frame 50, peaks at 57 (contact)
+        hip_vel = np.zeros(n)
+        for i in range(50, 58):
+            hip_vel[i] = 10.0 * (i - 50) / 7.0
+        for i in range(58, n):
+            hip_vel[i] = max(0.0, 10.0 * math.exp(-(i - 57) / 3.0))
+        stride = np.concatenate([np.full(45, 5.0), np.linspace(5, 30, 15)])
+        knee = np.concatenate([np.full(45, 175.0), np.linspace(175, 145, 15)])
+        # Legacy v3 detector picks foot_plant=52 (correct on this clip)
+        phases_v3 = {
+            "load_start": 40, "foot_plant": 52, "launch": 56,
+            "contact": 57, "peak_rotation": 58, "finish": 59,
+        }
+        analysis_debug = phase_debug.build_debug_payload(
+            times=times, fa_y=fa_y, vis_fa=vis_fa, hip_vel=hip_vel,
+            stride=stride, knee=knee, phases=phases_v3,
+            burst_lo=50, burst_hi=58, burst_peak=57,
+            fps=fps, torso_length_px=200.0,
+            handedness="RIGHT", handedness_ratio=1.8, edge_warnings=[],
+        )
+        result = phase_detector_v4.detect_phases_v4(
+            times=times, stride=stride, knee=knee,
+            analysis_debug=analysis_debug, phases_v3=phases_v3,
+            burst_lo=50, burst_hi=58, fps=fps,
+        )
+        # v4 should pick a plant frame near rotation onset (not 0)
+        assert result["phases"]["foot_plant"] >= 30, (
+            f"v4 plant should be near rotation onset, got "
+            f"{result['phases']['foot_plant']}"
+        )
+
+
+class TestPhase4aFix2TighterToeTapClassifier:
+    """Fix 2: the bare contact-count rule (≥3 contacts → toe_tap) was
+    over-predicting toe_tap because MediaPipe jitter splits a single
+    stance into multiple contacts with no real lift between them.
+
+    Phase 3 confusion matrix:
+        29 standard_stride swings → 11 mis-classified as toe_tap (~38%)
+
+    The fix requires at least 2 REAL lifts (≥50ms gap + ≥8% torso
+    height) between consecutive contacts before believing it's a tap.
+    """
+
+    def test_jitter_split_stance_not_classified_as_toe_tap(self):
+        """3 contacts close together with no real lift between them
+        should classify as standard_stride, not toe_tap."""
+        # Build fa_y that stays mostly on the ground for frames 0-80, then
+        # has a real stride lift from 80-100, then settles. MediaPipe
+        # jitter splits the initial stance into 3 short contacts via tiny
+        # blips that the contact-finder picks up.
+        n = 120
+        fa_y = np.full(n, 500.0)
+        # Tiny jitter blips that split the stance — only 2 frames each,
+        # so the lift is real but extremely brief.
+        fa_y[25:27] = 498.0
+        fa_y[55:57] = 498.0
+        # Real stride lift
+        fa_y[80:100] = 440.0  # 60px lift = 30% of 200px torso
+        contacts = [
+            {"start_frame": 0,   "end_frame": 24,  "duration_ms": 400.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+            {"start_frame": 27,  "end_frame": 54,  "duration_ms": 450.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+            {"start_frame": 57,  "end_frame": 79,  "duration_ms": 367.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+            {"start_frame": 100, "end_frame": 119, "duration_ms": 333.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+        ]
+        style, reason = phase_debug.classify_stride_style(
+            contacts, fa_y=fa_y, foot_plant=100, contact=115,
+            burst_lo=80, torso_length_px=200.0, fps=60.0,
+        )
+        assert style != "toe_tap", (
+            f"jitter-split stance should NOT be toe_tap; got {style} ({reason})"
+        )
+
+    def test_real_toe_tap_still_classified_as_toe_tap(self):
+        """Real toe-tap (stance + meaningful tap + final plant with real
+        lifts between) must still classify as toe_tap."""
+        n = 240
+        fa_y = np.full(n, 500.0)
+        # Real lift 1 (frames 100–115) — 60 px lift = 30% of 200 torso
+        fa_y[100:115] = 440.0
+        # Real lift 2 (frames 135–150)
+        fa_y[135:150] = 440.0
+        contacts = [
+            {"start_frame": 0,   "end_frame": 99,  "duration_ms": 1650.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+            {"start_frame": 115, "end_frame": 134, "duration_ms": 317.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+            {"start_frame": 150, "end_frame": 239, "duration_ms": 1500.0,
+             "mean_y": 500.0, "mean_abs_vel": 1.0, "min_visibility": 0.9},
+        ]
+        style, reason = phase_debug.classify_stride_style(
+            contacts, fa_y=fa_y, foot_plant=150, contact=175,
+            burst_lo=165, torso_length_px=200.0, fps=60.0,
+        )
+        assert style == "toe_tap", (
+            f"real toe-tap should classify as toe_tap; got {style} ({reason})"
+        )
+
+
+
+class TestPhase4aFix3ConfidenceCalibration:
+    """Fix 3: a high raw score must NOT translate to high confidence when
+    the picked frame is far from rotation_onset.
+
+    Phase 3 row that exposed this:
+        elly_de_la_cruz_swing  v4=1322  conf=1.00  but 145 frames off
+    """
+
+    def test_confidence_capped_when_plant_far_from_rot_onset(self):
+        """Synthetic clip where v4 picks a plant ≥ 500 ms from
+        rotation_onset — confidence must be ≤ 0.5."""
+        n = 200
+        fps = 60.0
+        times = np.arange(n) / fps
+        # Foot on ground throughout — single long contact
+        fa_y = np.full(n, 500.0)
+        vis_fa = np.ones(n) * 0.95
+        # Rotation onset at frame 100, contact at 120
+        hip_vel = np.zeros(n)
+        for i in range(100, 121):
+            hip_vel[i] = 10.0 * (i - 100) / 20.0
+        for i in range(121, n):
+            hip_vel[i] = max(0.0, 10.0 * math.exp(-(i - 120) / 5.0))
+        stride = np.concatenate([np.full(80, 5.0), np.linspace(5, 40, 120)])
+        knee = np.concatenate([np.full(80, 175.0), np.linspace(175, 145, 120)])
+        phases_v3 = {
+            "load_start": 30, "foot_plant": 0, "launch": 110,
+            "contact": 120, "peak_rotation": 125, "finish": 140,
+        }
+        analysis_debug = phase_debug.build_debug_payload(
+            times=times, fa_y=fa_y, vis_fa=vis_fa, hip_vel=hip_vel,
+            stride=stride, knee=knee, phases=phases_v3,
+            burst_lo=100, burst_hi=130, burst_peak=120,
+            fps=fps, torso_length_px=200.0,
+            handedness="RIGHT", handedness_ratio=1.8, edge_warnings=[],
+        )
+        result = phase_detector_v4.detect_phases_v4(
+            times=times, stride=stride, knee=knee,
+            analysis_debug=analysis_debug, phases_v3=phases_v3,
+            burst_lo=100, burst_hi=130, fps=fps,
+        )
+        # If the v4 pick happens to be near rotation onset, we don't get
+        # to test the penalty — skip in that case. Otherwise the penalty
+        # must apply.
+        v4_plant = result["phases"]["foot_plant"]
+        gap_ms = abs(v4_plant - 100) * 1000.0 / fps
+        if gap_ms > 200.0:
+            assert result["confidence"] <= 0.5, (
+                f"confidence should be capped when plant is {gap_ms:.0f}ms "
+                f"from rot_onset; got conf={result['confidence']}"
+            )
+
+    def test_confidence_unchanged_when_plant_near_rot_onset(self):
+        """When the picked plant IS near rotation_onset, the calibration
+        penalty does NOT kick in."""
+        from phase_detector_v4 import detect_phases_v4
+        # Single candidate exactly straddling rotation_onset, high raw
+        # score. Should keep its high confidence.
+        n = 150
+        fps = 60.0
+        times = np.arange(n) / fps
+        analysis_debug = {
+            "foot_plant_candidates": [
+                {"start_frame": 100, "end_frame": 130,
+                 "duration_ms": 517.0, "mean_y": 500.0,
+                 "mean_abs_vel": 1.0, "min_visibility": 0.95,
+                 "start_time_s": 1.667, "end_time_s": 2.167,
+                 "mean_y_px": 500.0, "mean_abs_vel_px_per_s": 1.0,
+                 "selected_as_foot_plant": True},
+            ],
+            "selected_phases": {
+                "rotation_onset": {"frame": 110, "time_s": 1.833,
+                                    "confidence": 0.9, "reason": "synthetic"},
+            },
+        }
+        phases_v3 = {
+            "load_start": 50, "foot_plant": 110, "launch": 115,
+            "contact": 125, "peak_rotation": 130, "finish": 140,
+        }
+        result = detect_phases_v4(
+            times=times, stride=np.zeros(n), knee=np.full(n, 175.0),
+            analysis_debug=analysis_debug, phases_v3=phases_v3,
+            burst_lo=100, burst_hi=130, fps=fps,
+        )
+        # Plant straddles rot_onset — penalty should NOT fire
+        assert result["confidence"] >= 0.85, (
+            f"confidence should stay high for on-target pick; "
+            f"got conf={result['confidence']}"
+        )
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

@@ -287,10 +287,45 @@ def classify_stride_style(
     # Three or more stable contacts in the load window = stance + tap + plant
     # (and possibly more). Two = stance + plant (standard). One = continuous
     # contact (no-stride).
+    #
+    # Phase 4a Fix 2: the bare contact-count rule over-predicts toe_tap on
+    # standard strides because MediaPipe jitter often splits a single stance
+    # into 2–4 contacts with no real lift between them. Before believing
+    # "3 contacts = toe_tap" we verify there are at least TWO real lifts
+    # (gaps where the foot meaningfully left the ground) interspersed.
+    #
+    # Phase 4b note: I tried loosening to 1 real lift + 5% torso threshold
+    # to catch the user-labeled toe-taps but it re-introduced false
+    # positives — a jitter-split stance + ONE stride lift is indistinguishable
+    # from a real toe-tap under a 1-lift rule. Reverted to 2-lifts +
+    # 8% torso. The 0/10 toe-tap accuracy issue requires a more thoughtful
+    # rewrite (likely needing a richer per-contact feature set rather than
+    # just gap-and-lift counting) and is left for Phase 4c.
     if n_contacts >= 3:
-        return ("toe_tap",
-                f"{n_contacts} stable contacts in load window "
-                f"(stance + tap(s) + final plant)")
+        contacts_sorted = sorted(contacts, key=lambda c: c["start_frame"])
+        real_lifts = 0
+        for i in range(len(contacts_sorted) - 1):
+            a = contacts_sorted[i]
+            b = contacts_sorted[i + 1]
+            gap_start = int(a["end_frame"]) + 1
+            gap_end = int(b["start_frame"])
+            if gap_end <= gap_start:
+                continue
+            gap_ms = (gap_end - gap_start) * 1000.0 / fps if fps > 0 else 0.0
+            if gap_ms < 50.0:
+                continue
+            between_y = fa_y[gap_start:gap_end]
+            if len(between_y) == 0:
+                continue
+            lift_during_gap = ground_y - float(np.min(between_y))
+            if lift_during_gap / torso_length_px >= 0.08:
+                real_lifts += 1
+        if real_lifts >= 2:
+            return ("toe_tap",
+                    f"{n_contacts} stable contacts with {real_lifts} real "
+                    "lifts between them (stance + tap(s) + final plant)")
+        # Multiple contacts but no real lifts → jitter/noise. Fall through
+        # to the standard-stride logic below rather than calling it toe_tap.
     if n_contacts == 2:
         return ("standard_stride",
                 f"2 stable contacts (stance + plant), lift {lift_frac:.2f}× torso")

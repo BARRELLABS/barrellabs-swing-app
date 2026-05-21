@@ -294,8 +294,8 @@
       "id": "corbin_carroll_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 672,
+        "contact_frame": 760,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -305,14 +305,14 @@
       "handedness": null,
       "notes": "auto-imported from Desktop/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "elly_de_la_cruz_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 1177,
+        "contact_frame": 1351,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -322,14 +322,14 @@
       "handedness": null,
       "notes": "auto-imported from Desktop/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "jackson_merrill_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 922,
+        "contact_frame": 1081,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -339,14 +339,14 @@
       "handedness": null,
       "notes": "auto-imported from Desktop/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "julio_rodriguez_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 1409,
+        "contact_frame": 1766,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -356,14 +356,14 @@
       "handedness": null,
       "notes": "auto-imported from Desktop/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "steven_kwan_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 1308,
+        "contact_frame": 1485,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -373,14 +373,14 @@
       "handedness": null,
       "notes": "auto-imported from Desktop/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_8436",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 52,
+        "contact_frame": 57,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -390,14 +390,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_8601",
       "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "stride_style": "toe_tap",
+        "final_plant_frame": 91,
+        "contact_frame": 95,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -407,14 +407,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_8605",
       "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "stride_style": "toe_tap",
+        "final_plant_frame": 100,
+        "contact_frame": 105,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -424,14 +424,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_8607",
       "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "stride_style": "toe_tap",
+        "final_plant_frame": 73,
+        "contact_frame": 79,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -441,14 +441,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_8608",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 43,
+        "contact_frame": 48,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -458,14 +458,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "img_9005",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 58,
+        "contact_frame": 62,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -475,14 +475,14 @@
       "handedness": null,
       "notes": "auto-imported from Downloads/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "alex_bregman_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 678,
+        "contact_frame": 765,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -492,14 +492,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "bryce_harper_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 754,
+        "contact_frame": 852,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -509,14 +509,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "francisco_lindor_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 696,
+        "contact_frame": 821,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -526,14 +526,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "freddie_freeman_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 384,
+        "contact_frame": 501,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -543,14 +543,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "gunnar_henderson_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 672,
+        "contact_frame": 749,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -560,14 +560,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "jose_ramirez_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 973,
+        "contact_frame": 1200,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -577,14 +577,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "juan_soto_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 370,
+        "contact_frame": 394,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -594,14 +594,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "judge_swing_copy",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 132,
+        "contact_frame": 138,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -611,14 +611,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "judge_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 424,
+        "contact_frame": 468,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -628,14 +628,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "kyle_schwarber_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 560,
+        "contact_frame": 663,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -645,14 +645,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "kyle_tucker_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 473,
+        "contact_frame": 566,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -662,14 +662,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "manny_machado_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 630,
+        "contact_frame": 700,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -679,14 +679,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "mookie_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 770,
+        "contact_frame": 944,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -696,14 +696,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "ronald_acuna_jr_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 164,
+        "contact_frame": 204,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -713,14 +713,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "shohei_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 875,
+        "contact_frame": 954,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -730,14 +730,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "spencer_torkelson_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 1037,
+        "contact_frame": 1341,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -747,14 +747,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "swing",
       "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "stride_style": "toe_tap",
+        "final_plant_frame": 102,
+        "contact_frame": 105,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -764,14 +764,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "swing_with_skeleton",
       "ground_truth": {
-        "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "stride_style": "toe_tap",
+        "final_plant_frame": 102,
+        "contact_frame": 105,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -781,14 +781,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "trout_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 277,
+        "contact_frame": 356,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -798,14 +798,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "mariotswing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 38,
+        "contact_frame": 44,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -815,14 +815,14 @@
       "handedness": null,
       "notes": "auto-imported from uploads_streamlit/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "my_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 183,
+        "contact_frame": 186,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -832,14 +832,14 @@
       "handedness": null,
       "notes": "auto-imported from uploads_streamlit/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "yandy_diaz_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 386,
+        "contact_frame": 405,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -849,14 +849,14 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
     },
     {
       "id": "yordan_alvarez_swing",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": null,
-        "contact_frame": null,
+        "final_plant_frame": 550,
+        "contact_frame": 641,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -866,7 +866,143 @@
       "handedness": null,
       "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
-      "labeled_at": ""
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "adley_rutschman_swing",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": 394,
+        "contact_frame": 489,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/ adley_rutschman_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "anthony_santander_swing",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": 365,
+        "contact_frame": 413,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/anthony_santander_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "corey_seager_swing",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": 824,
+        "contact_frame": 913,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/corey_seager_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "jarren_duran_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": 550,
+        "contact_frame": 620,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/jarren_duran_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "jose_altuve_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": 886,
+        "contact_frame": 997,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/jose_altuve_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "kevin_mcgonigle_swing",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": 539,
+        "contact_frame": 609,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/kevin_mcgonigle_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "marcus_semien_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": 547,
+        "contact_frame": 583,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/marcus_semien_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
+    },
+    {
+      "id": "vladimir_guerrero_jr_swing",
+      "ground_truth": {
+        "stride_style": "toe_tap",
+        "final_plant_frame": 594,
+        "contact_frame": 643,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "validation/videos/vladimir_guerrero_jr_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from videos/",
+      "labeled_by": "",
+      "labeled_at": "2026-05-21"
     }
   ]
 }
