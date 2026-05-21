@@ -427,6 +427,7 @@ from phase_burst import (
     MULTI_SWING_MIN_DISTANCE_S,
     MULTI_SWING_HEIGHT_RATIO,
 )
+import biomech
 
 if prefer_3d:
     # ===================== 3D PATH (three-quarter views) =====================
@@ -991,6 +992,32 @@ if _t_swing_ms > SLOW_MO_THRESHOLD_MS:
 else:
     slow_mo_factor = 1.0
 
+# ───── Power Sequence biomech block (see biomech.py + spec) ─────
+try:
+    sequence_block = biomech.compute_sequence(
+        hip_vel=hip_vel,
+        shoulder_rotation=shoulder_rotation,
+        load_start=int(phases["load_start"]),
+        launch=int(phases["launch"]),
+        contact=int(phases["contact"]),
+        fps=float(fps),
+    )
+except Exception as _seq_exc:
+    # Biomech failure must not break the pipeline — fall back to empty block.
+    import traceback
+    print(f"⚠  Power Sequence biomech compute failed: {_seq_exc!r}")
+    traceback.print_exc()
+    sequence_block = {
+        "sequencing_lag_ms":         None,
+        "peak_hip_omega_deg_s":      None,
+        "front_side_stability_pct":  None,
+        "hip_peak_frame":            None,
+        "shoulder_peak_frame":       None,
+        "rating": {"sequencing_lag": None,
+                   "peak_hip_omega": None,
+                   "front_side_stability": None},
+    }
+
 # ---------- FINGERPRINT JSON (for cross-swing comparison) ----------
 fingerprint = {
     "video": os.path.basename(INPUT_VIDEO),
@@ -1000,6 +1027,7 @@ fingerprint = {
     "slow_mo_factor": float(slow_mo_factor),
     "phases_t": {name: float(times[idx]) for name, idx in phases.items()},
     "phases_frame": {name: int(idx) for name, idx in phases.items()},
+    "sequence": sequence_block,
     "timing_ms": {
         "load_duration":          float(t_load * 1000),
         "foot_plant_to_launch":   float(t_foot_plant_to_launch * 1000),

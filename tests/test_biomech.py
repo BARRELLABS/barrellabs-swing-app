@@ -314,3 +314,27 @@ class TestRatings:
         assert result["rating"]["sequencing_lag"] in {"good", "marginal", "poor"}
         assert result["rating"]["peak_hip_omega"] in {"good", "marginal", "poor"}
         assert result["rating"]["front_side_stability"] in {"good", "marginal", "poor"}
+
+
+class TestDetectPhasesIntegration:
+    """Loose integration test: confirms the sequence block survives a
+    detect_phases.py write-and-read cycle. Skipped when no cached
+    fingerprints exist."""
+
+    def test_recent_fingerprint_has_sequence_block(self):
+        """Any fingerprint in validation/results/ should have the block."""
+        from pathlib import Path
+        import json
+        project = Path(__file__).resolve().parent.parent
+        fps = sorted((project / "validation/results").glob("*_fingerprint.json"))
+        if not fps:
+            pytest.skip("no cached fingerprints to test against")
+        for fp_path in fps[:5]:
+            data = json.load(open(fp_path))
+            if "sequence" not in data:
+                pytest.skip(f"{fp_path.name} pre-dates Power Sequence — "
+                             "re-run detect_phases.py to refresh")
+            seq = data["sequence"]
+            assert "rating" in seq
+            for k in ("sequencing_lag", "peak_hip_omega", "front_side_stability"):
+                assert k in seq["rating"]
