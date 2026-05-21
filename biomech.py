@@ -96,10 +96,19 @@ def compute_sequence(
     else:
         peak_hip_omega_deg_s = None
 
+    # M3 — front-side stability (% shoulder rotation done at launch)
+    front_side_stability_pct: Optional[float] = None
+    if 0 <= int(launch) < n and 0 <= int(contact) < n:
+        total_to_contact = float(shoulder_rotation[int(contact)])
+        done_at_launch = float(shoulder_rotation[int(launch)])
+        if abs(total_to_contact) >= 5.0:
+            raw_pct = 100.0 * done_at_launch / total_to_contact
+            front_side_stability_pct = float(max(-50.0, min(150.0, raw_pct)))
+
     return {
         "sequencing_lag_ms":         sequencing_lag_ms,
         "peak_hip_omega_deg_s":      peak_hip_omega_deg_s,
-        "front_side_stability_pct":  None,
+        "front_side_stability_pct":  front_side_stability_pct,
         "hip_peak_frame":            hip_peak_frame,
         "shoulder_peak_frame":       sho_peak_frame,
         "rating": {"sequencing_lag": None,

@@ -169,3 +169,78 @@ class TestPeakHipOmega:
             load_start=40, launch=58, contact=70, fps=60.0,
         )
         assert result["peak_hip_omega_deg_s"] == 0.0
+
+
+class TestFrontSideStability:
+    """M3: % of shoulder rotation already complete at launch frame.
+
+    Good: ≤ 25%.  Marginal: 25-45%.  Poor: ≥ 45%.
+    Returns None when total shoulder rotation is < 5° (can't characterize).
+    """
+
+    def _shoulder_rot(self, *, n: int, launch_val: float, contact_val: float):
+        """Linear ramp from 0 → launch_val at the launch frame,
+        then launch_val → contact_val at the contact frame.
+        """
+        arr = np.zeros(n)
+        launch, contact = 58, 70
+        for i in range(n):
+            if i <= launch:
+                arr[i] = launch_val * (i / launch) if launch > 0 else 0
+            elif i <= contact:
+                arr[i] = launch_val + (contact_val - launch_val) * (i - launch) / (contact - launch)
+            else:
+                arr[i] = contact_val
+        return arr
+
+    def test_stays_closed_low_pct(self):
+        """Shoulders barely moved at launch (10°), then opened to 90° at contact
+        → 10/90 = 11%, good."""
+        from biomech import compute_sequence
+        n = 100
+        result = compute_sequence(
+            hip_vel=np.zeros(n),
+            shoulder_rotation=self._shoulder_rot(n=n, launch_val=10.0, contact_val=90.0),
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 8.0 <= result["front_side_stability_pct"] <= 14.0
+
+    def test_fly_out_high_pct(self):
+        """Shoulders already at 50° at launch, only get to 80° by contact
+        → 50/80 = 62%, poor."""
+        from biomech import compute_sequence
+        n = 100
+        result = compute_sequence(
+            hip_vel=np.zeros(n),
+            shoulder_rotation=self._shoulder_rot(n=n, launch_val=50.0, contact_val=80.0),
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 58.0 <= result["front_side_stability_pct"] <= 68.0
+
+    def test_negligible_rotation_returns_none(self):
+        """|shoulder_rotation[contact]| < 5° → None."""
+        from biomech import compute_sequence
+        n = 100
+        result = compute_sequence(
+            hip_vel=np.zeros(n),
+            shoulder_rotation=self._shoulder_rot(n=n, launch_val=1.0, contact_val=3.0),
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert result["front_side_stability_pct"] is None
+
+    def test_clamped_to_150_max(self):
+        """Pathological case: shoulder at 100° at launch but only 50° at
+        contact (recoiled) → 100/50 = 200%, clamped to 150."""
+        from biomech import compute_sequence
+        n = 100
+        arr = np.zeros(n)
+        arr[58] = 100.0
+        arr[70] = 50.0
+        for i in range(59, 70):
+            arr[i] = 100.0 + (50.0 - 100.0) * (i - 58) / 12.0
+        result = compute_sequence(
+            hip_vel=np.zeros(n),
+            shoulder_rotation=arr,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert result["front_side_stability_pct"] == 150.0
