@@ -78,6 +78,44 @@ def _friendly_label(label):
     return label
 
 
+def _synthesize_sequence_gaps(sequence_block: dict) -> list:
+    """Convert Power Sequence ratings into synthetic gap entries the
+    drill-plan generator already understands.
+
+    A marginal rating becomes a moderate gap; a poor rating becomes a
+    large gap. The label string carries enough information for
+    drills.classify_gap to route to the right category (sequencing,
+    rotational_speed, front_side_stability).
+    """
+    gaps: list = []
+    if not sequence_block:
+        return gaps
+    rating = (sequence_block.get("rating") or {})
+
+    # Severity → similarity (lower similarity = bigger gap; the drill
+    # generator sorts by similarity ascending).
+    SEVERITY = {"poor": 25.0, "marginal": 55.0, "good": None}
+
+    def _add(label: str, rating_key: str, value):
+        sev = SEVERITY.get(rating.get(rating_key))
+        if sev is None:
+            return
+        gaps.append({
+            "group":      "Power Sequence",
+            "label":      label,
+            "player":     value,
+            "reference":  None,
+            "similarity": sev,
+            "synthetic":  True,
+        })
+
+    _add("Sequencing lag",        "sequencing_lag",        sequence_block.get("sequencing_lag_ms"))
+    _add("Peak hip rotational speed", "peak_hip_omega",    sequence_block.get("peak_hip_omega_deg_s"))
+    _add("Stay closed (front-side stability)", "front_side_stability",
+         sequence_block.get("front_side_stability_pct"))
+    return gaps
+
+
 # ---- MAIN ENTRY POINT ----
 def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     """Run the full comparison and return a structured result dict.
@@ -392,8 +430,17 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # still dominate — the goal just breaks ties between equally-ranked
     # categories.
     narratives = build_narratives(gaps_ranked_raw, ref_name, top_n=2)
+
+    # Inject Power Sequence ratings into gaps_ranked so the drill
+    # generator routes to the new categories alongside metric-similarity gaps.
+    gaps_ranked = gaps_ranked_raw
+    sequence_gaps = _synthesize_sequence_gaps(sequence_block)
+    if sequence_gaps:
+        gaps_ranked = gaps_ranked + sequence_gaps
+        gaps_ranked.sort(key=lambda g: g.get("similarity", g.get("sim", 100)))
+
     drill_plan = build_drill_plan(
-        gaps_ranked_raw,
+        gaps_ranked,
         top_n_categories=2,
         preferred_goal=preferred_goal,
     )
