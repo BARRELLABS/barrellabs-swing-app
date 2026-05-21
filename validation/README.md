@@ -42,10 +42,28 @@ Reports land in `validation/reports/<UTC-timestamp>-report.md` (human) and
 ## Labeling tool walkthrough
 
 ```bash
-streamlit run scripts/validation/labeling_app.py
+python3 -m streamlit run scripts/validation/labeling_app.py
 ```
 
-What you'll see:
+### Adding swings: in-UI video upload
+
+When the manifest has no entries with bound videos, the labeling app opens
+directly onto an **Add a swing from a video file** form:
+
+- **File uploader** — drag/drop or browse for an MP4/MOV/M4V/MKV.
+- **Swing ID** — auto-populated from the filename (slug-cleaned). If the ID
+  matches an existing manifest entry, the video is **bound to that entry**;
+  otherwise a **new entry** is appended.
+- **Handedness / stride-style guess / camera view / real-time** — initial
+  values. You can refine `stride_style` while labeling.
+- **Save** — writes the uploaded bytes to `validation/videos/<id>.<ext>`,
+  appends/updates the manifest, atomic-renames into place, and auto-selects
+  the new swing for immediate labeling.
+
+Once you have at least one bound swing the form collapses (expand it any
+time to add more).
+
+### Labeling UI elements
 
 - **Sidebar:** a `Labeled X / N` progress meter and a swing picker (defaults to
   showing only unlabeled swings; toggle to see everything).

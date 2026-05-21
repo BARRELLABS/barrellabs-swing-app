@@ -36,11 +36,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.validation.manifest import (  # noqa: E402
-    load_manifest, write_manifest, Manifest, SwingEntry,
+    load_manifest, write_manifest, Manifest, SwingEntry, GroundTruth,
     VALID_STRIDE_STYLES, VALID_CAMERA_VIEWS,
 )
+from scripts.validation._text_utils import slugify  # noqa: E402
 
 MANIFEST_PATH = PROJECT_ROOT / "validation" / "manifest.json"
+VIDEOS_DIR = PROJECT_ROOT / "validation" / "videos"
+ACCEPTED_VIDEO_EXTS = ("mp4", "mov", "m4v", "mkv")
 
 
 # ---------------------------------------------------------------------------
@@ -49,9 +52,15 @@ MANIFEST_PATH = PROJECT_ROOT / "validation" / "manifest.json"
 
 
 @st.cache_resource(show_spinner=False)
-def _open_video(path_str: str):
-    """Open a video. Cached so reruns don't reopen the file. Returns
-    (capture_handle, n_frames, fps) — or (None, 0, 0) on failure."""
+def _open_video(path_str: str, _mtime: float = 0.0):
+    """Open a video. Cached so reruns don't reopen the file.
+
+    The `_mtime` arg is a cache buster — when the file at path_str is
+    overwritten (e.g. the user re-uploads under the same id), the cache
+    key changes and OpenCV reopens the new bytes.
+
+    Returns (capture_handle, n_frames, fps) — or (None, 0, 0) on failure.
+    """
     cap = cv2.VideoCapture(path_str)
     if not cap.isOpened():
         return None, 0, 0.0
@@ -130,6 +139,173 @@ for entry in manifest.swings:
         without_video.append(entry)
 
 
+# ---- Upload form: in-UI video → manifest entry ----
+# Defaults to OPEN when there are no labelable swings (the user lands on
+# this form first). Collapsed otherwise so it doesn't dominate the layout
+# once they're already labeling.
+with st.expander(
+    "➕ Add a swing from a video file",
+    expanded=not labelable,
+):
+    st.caption(
+        "Upload an MP4/MOV. The video is saved under `validation/videos/` "
+        "and a matching entry is appended to `validation/manifest.json`. "
+        "If you reuse the ID of an existing unlabeled entry, the video is "
+        "bound to that entry instead of creating a duplicate."
+    )
+    with st.form("upload_swing_form", clear_on_submit=False):
+        uploaded = st.file_uploader(
+            "Video file",
+            type=list(ACCEPTED_VIDEO_EXTS),
+            help=(
+                "Streamlit's default upload size limit is 200 MB. To raise "
+                "it, restart with `--server.maxUploadSize=1024` (megabytes)."
+            ),
+        )
+        # Suggest a default id from the filename if one was uploaded
+        default_id = ""
+        if uploaded is not None:
+            default_id = slugify(Path(uploaded.name).stem)
+        cols_u = st.columns([2, 1])
+        with cols_u[0]:
+            new_id = st.text_input(
+                "Swing ID",
+                value=default_id,
+                help=(
+                    "Letters, numbers, underscores. Reusing an existing ID "
+                    "binds the video to that entry. Otherwise creates a new entry."
+                ),
+            )
+        with cols_u[1]:
+            new_handedness = st.radio(
+                "Handedness",
+                ["AUTO", "RIGHT", "LEFT"],
+                horizontal=True,
+                help="AUTO lets detect_phases.py decide.",
+            )
+        cols_u2 = st.columns([1, 1, 1])
+        with cols_u2[0]:
+            new_stride_guess = st.radio(
+                "Initial stride_style guess",
+                VALID_STRIDE_STYLES,
+                help="Refine while labeling. Just an initial value.",
+            )
+        with cols_u2[1]:
+            new_camera_guess = st.radio(
+                "Camera view", VALID_CAMERA_VIEWS,
+            )
+        with cols_u2[2]:
+            new_realtime_guess = st.checkbox(
+                "Real-time playback", value=True,
+                help="Uncheck if this is a slow-motion clip.",
+            )
+        new_notes = st.text_area(
+            "Notes (optional)", value="", height=68,
+        )
+        submitted = st.form_submit_button(
+            "💾  Save video + add to manifest",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if submitted:
+        if uploaded is None:
+            st.error("Pick a video file first.")
+        elif not new_id.strip():
+            st.error("Swing ID is required.")
+        else:
+            cleaned_id = slugify(new_id)
+            ext = Path(uploaded.name).suffix.lstrip(".").lower() or "mp4"
+            if ext not in ACCEPTED_VIDEO_EXTS:
+                ext = "mp4"
+            VIDEOS_DIR.mkdir(parents=True, exist_ok=True)
+            target_video = VIDEOS_DIR / f"{cleaned_id}.{ext}"
+            try:
+                target_video.write_bytes(uploaded.getvalue())
+            except Exception as e:
+                st.error(f"Failed to save video bytes: {e!r}")
+            else:
+                rel_video_path = str(target_video.relative_to(PROJECT_ROOT))
+                existing = next(
+                    (s for s in manifest.swings if s.id == cleaned_id), None,
+                )
+                hand_to_save = (
+                    None if new_handedness == "AUTO" else new_handedness
+                )
+                if existing is not None:
+                    # Bind to existing entry; don't overwrite ground-truth frame
+                    # numbers (those come from the labeling pass).
+                    if _resolve_video(existing.video_path):
+                        st.warning(
+                            f"Swing `{cleaned_id}` already has a bound video at "
+                            f"`{existing.video_path}`. Overwriting the file "
+                            "but keeping the manifest entry."
+                        )
+                    existing.video_path = rel_video_path
+                    existing.handedness = hand_to_save
+                    existing.ground_truth.stride_style = new_stride_guess
+                    existing.ground_truth.camera_view = new_camera_guess
+                    existing.ground_truth.real_time = bool(new_realtime_guess)
+                    if new_notes.strip():
+                        existing.notes = new_notes
+                    action = "bound video to existing"
+                else:
+                    new_entry = SwingEntry(
+                        id=cleaned_id,
+                        video_path=rel_video_path,
+                        fingerprint_path=None,
+                        handedness=hand_to_save,
+                        ground_truth=GroundTruth(
+                            stride_style=new_stride_guess,
+                            final_plant_frame=None,
+                            contact_frame=None,
+                            rotation_onset_frame=None,
+                            camera_view=new_camera_guess,
+                            real_time=bool(new_realtime_guess),
+                        ),
+                        notes=new_notes,
+                    )
+                    manifest.swings.append(new_entry)
+                    action = "added new"
+                try:
+                    _save_manifest_atomic(manifest, MANIFEST_PATH)
+                    st.success(
+                        f"✓ {action} swing `{cleaned_id}` — refreshing so you "
+                        "can label it…"
+                    )
+                    st.session_state["_just_added_id"] = cleaned_id
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Save failed: {e!r}")
+
+
+# Recompute labelable AFTER the form may have added one
+labelable = []
+without_video = []
+for entry in manifest.swings:
+    video = _resolve_video(entry.video_path)
+    if video:
+        labelable.append((entry, video))
+    else:
+        without_video.append(entry)
+
+
+# If still no labelable swings, show a friendly empty state below the form
+if not labelable:
+    st.info(
+        "No swings with bound videos yet. Use the **Add a swing** form above "
+        "to upload your first clip and start labeling."
+    )
+    if without_video:
+        with st.expander(
+            f"Manifest contains {len(without_video)} entries awaiting a "
+            "video binding (e.g. the seeded MLB references)"
+        ):
+            for e in without_video[:50]:
+                st.write(f"- `{e.id}` ({e.ground_truth.stride_style})")
+    st.stop()
+
+
 # ---- Sidebar: progress + selection ----
 with st.sidebar:
     st.header("Progress")
@@ -140,19 +316,6 @@ with st.sidebar:
 
     st.divider()
     st.subheader("Swing selection")
-
-    if not labelable:
-        st.warning(
-            "No swings have a resolvable `video_path` yet.\n\n"
-            "Set `video_path` on at least one entry in "
-            "`validation/manifest.json` (relative to repo root or "
-            "absolute), then refresh this page."
-        )
-        if without_video:
-            st.write("Swings awaiting a video_path:")
-            for e in without_video[:20]:
-                st.write(f"- `{e.id}`")
-        st.stop()
 
     # Group labeled vs unlabeled in the dropdown
     labeled_options = [(i, e, v) for i, (e, v) in enumerate(labelable)
@@ -174,9 +337,21 @@ with st.sidebar:
         f"{'✓' if e.ground_truth.is_labeled else '○'} {e.id}"
         for _, e, _ in pool
     ]
+
+    # If we just added a swing via the upload form, auto-select it so the
+    # user lands directly on the new entry.
+    default_pool_idx = 0
+    just_added = st.session_state.pop("_just_added_id", None)
+    if just_added:
+        for i, (_, e, _) in enumerate(pool):
+            if e.id == just_added:
+                default_pool_idx = i
+                break
+
     sel_pool_idx = st.selectbox(
         "Pick a swing",
         range(len(pool)),
+        index=default_pool_idx,
         format_func=lambda i: options_labels[i],
     )
     _, entry, video_path = pool[sel_pool_idx]
@@ -189,7 +364,11 @@ with st.sidebar:
 
 
 # ---- Open video ----
-cap, n_frames, fps = _open_video(str(video_path))
+try:
+    _mtime = video_path.stat().st_mtime
+except OSError:
+    _mtime = 0.0
+cap, n_frames, fps = _open_video(str(video_path), _mtime)
 if cap is None:
     st.error(f"Failed to open video: `{video_path}`")
     st.stop()

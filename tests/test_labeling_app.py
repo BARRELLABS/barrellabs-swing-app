@@ -48,9 +48,20 @@ def test_module_imports_required_symbols():
     # Symbols we depend on from scripts.validation.manifest
     for required in (
         "load_manifest", "write_manifest", "Manifest", "SwingEntry",
-        "VALID_STRIDE_STYLES", "VALID_CAMERA_VIEWS",
+        "GroundTruth", "VALID_STRIDE_STYLES", "VALID_CAMERA_VIEWS",
     ):
         assert required in src, f"labeling_app references missing symbol: {required}"
+
+
+def test_slugify_normalizes_filenames():
+    """slugify() must produce safe, deterministic swing_ids from arbitrary input."""
+    from scripts.validation._text_utils import slugify
+    assert slugify("Mookie Betts!") == "mookie_betts"
+    assert slugify("  ---HELLO---  ") == "hello"
+    assert slugify("swing 001.mp4") == "swing_001_mp4"
+    assert slugify("/path/with/slashes") == "path_with_slashes"
+    assert slugify("") == "swing"           # fallback for empty input
+    assert slugify("---") == "swing"         # fallback for all-separators
 
 
 def test_manifest_symbols_actually_exist():
