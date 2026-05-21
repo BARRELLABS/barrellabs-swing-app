@@ -105,8 +105,8 @@ _PAGE_CSS = """
 }
 .srl-pagehead {
   display:flex; align-items:flex-end; justify-content:space-between;
-  padding: 1.1rem 0 0.8rem;
-  margin-bottom: 0.9rem;
+  padding: 0.9rem 0 0.7rem;
+  margin-bottom: 0.7rem;
   border-bottom: 1px solid var(--srl-line);
   gap: 2rem;
 }
@@ -139,8 +139,8 @@ _PAGE_CSS = """
   background: var(--srl-glass-1);
   border: 1px solid var(--srl-line);
   border-radius: var(--srl-radius);
-  padding: 0.8rem 1.1rem;
-  margin-bottom: 0.9rem;
+  padding: 0.75rem 1.05rem 0.85rem;
+  margin-bottom: 0.55rem;
 }
 .srl-filter-eyebrow {
   font-family: var(--srl-mono);
@@ -169,7 +169,7 @@ _PAGE_CSS = """
 
 .srl-results-strip {
   display:flex; align-items:center; justify-content:space-between;
-  margin-bottom: 0.65rem;
+  margin: 0.15rem 0 0.4rem;
   font-family: var(--srl-mono);
   font-size: 10.5px;
   letter-spacing: 0.18em;
@@ -178,11 +178,13 @@ _PAGE_CSS = """
 }
 .srl-results-strip strong { color: var(--srl-bone); }
 
-/* CARD */
+/* CARD — four columns; the redundant "Trend" column was removed (PB
+   already lives on the swing-# label, score delta already shows trend
+   via the delta pill, so a 5th cell saying "Saved" was dead weight). */
 .srl-card {
   display:grid;
-  grid-template-columns: 84px 1fr 1.1fr 1fr 1fr;
-  gap: 1.2rem;
+  grid-template-columns: 84px minmax(0, 1.4fr) minmax(0, 1.3fr) minmax(0, 0.9fr);
+  gap: 1.1rem;
   align-items: center;
   background: var(--srl-glass-1);
   border: 1px solid var(--srl-line);
@@ -302,7 +304,7 @@ section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 /* EMPTY STATE */
 .srl-empty {
   text-align: center;
-  padding: 3rem 1.5rem;
+  padding: 2rem 1.5rem;
   background: var(--srl-glass-1);
   border: 1px dashed var(--srl-line-hi);
   border-radius: var(--srl-radius-lg);
@@ -329,7 +331,7 @@ section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 }
 @media (max-width: 960px) {
   .srl-card { grid-template-columns: 80px 1fr 1fr; gap: 0.9rem; }
-  .srl-card-pdf-col, .srl-card-file-col { display: none; }
+  .srl-card-file-col { display: none; }
 }
 @media (max-width: 560px) {
   .srl-wrap { padding: 0.6rem 16px 2.5rem; }
@@ -613,19 +615,16 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
             f'    <div class="srl-col-label">Source</div>'
             f'    <div class="srl-col-val" style="font-size:1rem;font-family:var(--srl-mono);font-style:normal;letter-spacing:0;">{html.escape(filename)}</div>'
             f'  </div>'
-            f'  <div class="srl-card-pdf-col srl-card-cell-hide-mobile">'
-            f'    <div class="srl-col-label">Trend</div>'
-            f'    <div class="srl-col-val" style="font-size:1rem;">{("PB" if is_pb else "Saved")}</div>'
-            f'  </div>'
             f'</div>',
             unsafe_allow_html=True,
         )
 
         # Action row (real Streamlit widgets — they have to live outside
         # the card HTML because Streamlit doesn't allow widgets inside
-        # raw markdown).
+        # raw markdown). Tight 1.8-unit trailing spacer (was 4) so action
+        # buttons cluster on the left rather than floating in dead space.
         st.markdown('<div class="srl-actions">', unsafe_allow_html=True)
-        a_open, a_dl, a_del, _spacer = st.columns([1.3, 1.5, 1.1, 4])
+        a_open, a_dl, a_del, _spacer = st.columns([1.3, 1.5, 1.1, 1.8])
         with a_open:
             if st.button("Open Report →", key=f"srl_open_{rec_id}"):
                 st.session_state["view_swing_record"] = rec

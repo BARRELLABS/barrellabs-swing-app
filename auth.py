@@ -401,3 +401,190 @@ def update_profile(player_id: str, **fields) -> Optional[dict]:
     profile = _profile_from_row(rows[0])
     st.session_state["player"] = profile
     return profile
+
+
+# --------------------------------------------------------------------
+#  Email change
+# --------------------------------------------------------------------
+def request_email_change(new_email: str) -> str:
+    """Request a change of the logged-in user's email address.
+
+    Supabase sends a confirmation link to the user's CURRENT email
+    address (and, if double-opt-in is enabled, also to the new one).
+    The change only takes effect after the user clicks that link, so
+    we return a human-readable status string the UI can show.
+
+    Raises ValueError on validation or backend errors.
+    """
+    new_email = (new_email or "").strip().lower()
+    if not new_email or "@" not in new_email:
+        raise ValueError("Please enter a valid email address.")
+
+    current = current_profile() or {}
+    if (current.get("email") or "").lower() == new_email:
+        raise ValueError("That is already your account email.")
+
+    sb = get_client()
+    try:
+        sb.auth.update_user({"email": new_email})
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "already" in msg and ("registered" in msg or "exists" in msg or "use" in msg):
+            raise ValueError(
+                "That email is already attached to another BarrelLabs account."
+            ) from exc
+        raise ValueError(f"Could not start email change: {exc}") from exc
+
+    # We do NOT update public.players.email here — that mirror happens
+    # after the user confirms the change via the link. Until then, the
+    # auth-side email update is in a "pending" state and the next
+    # auth.refresh will surface the new email; we'll reconcile then.
+    return (
+        f"Confirmation link sent to {new_email}. "
+        "Your new email becomes active once you click the link "
+        "(check both inboxes — old and new)."
+    )
+
+
+def sync_email_after_confirm() -> Optional[str]:
+    """After the user has confirmed an email change at the auth provider,
+    pull the canonical email back down and mirror it to public.players.
+
+    Call this on login + on the settings page open so the mirror is
+    always fresh. Returns the new email (lower-cased) if a change was
+    detected, otherwise None.
+    """
+    user = get_current_user()
+    if not user:
+        return None
+    auth_email = (getattr(user, "email", None) or "").strip().lower()
+    if not auth_email:
+        return None
+
+    cached = st.session_state.get("player") or {}
+    if (cached.get("email") or "").lower() == auth_email:
+        return None  # already in sync
+
+    player_id = cached.get("id") or cached.get("slug")
+    if not player_id:
+        return None
+
+    sb = get_client()
+    try:
+        resp = (
+            sb.table("players")
+              .update({"email": auth_email,
+                       "updated_at": datetime.utcnow().isoformat()})
+              .eq("id", player_id)
+              .execute()
+        )
+        rows = resp.data or []
+        if rows:
+            st.session_state["player"] = _profile_from_row(rows[0])
+            return auth_email
+    except Exception:
+        # The mirror is best-effort; the auth.users email is canonical
+        # so a transient failure here doesn't lock the user out.
+        return None
+    return None
+
+
+# --------------------------------------------------------------------
+#  Account deletion
+# --------------------------------------------------------------------
+def delete_account(*, cancel_stripe: bool = True) -> dict:
+    """Permanently delete the logged-in player's BarrelLabs account.
+
+    What this DOES (in order, each step soft-fails so a partial wipe
+    still cleans the user's most-sensitive data first):
+
+    1. Cancel any active Stripe subscription so we don't keep billing
+       a deleted user. (Skipped if cancel_stripe=False or Stripe isn't
+       configured.)
+    2. Delete every row from public.swings owned by this player.
+    3. Delete the public.players row itself (the player profile).
+    4. Sign the user out (clears the session token).
+
+    What this does NOT do (yet, by design):
+    - Delete the auth.users row. Supabase requires a service-role key
+      to delete auth users, which is not safe to ship to a browser-
+      side anon-key client. The auth row is orphaned (no player row →
+      next login auto-recovers an empty profile, which the UI will
+      show as "new account"). A nightly admin script or an Edge
+      Function should reap orphaned auth rows on a schedule.
+
+    Returns a status dict the UI can use to show what happened:
+        {
+          "stripe_cancelled": bool,
+          "swings_deleted":   int,
+          "player_deleted":   bool,
+          "signed_out":       bool,
+          "errors":           [str, ...],   # non-fatal per-step issues
+        }
+    """
+    status = {
+        "stripe_cancelled": False,
+        "swings_deleted": 0,
+        "player_deleted": False,
+        "signed_out": False,
+        "errors": [],
+    }
+
+    profile = st.session_state.get("player") or current_profile() or {}
+    player_id = profile.get("id") or profile.get("slug")
+    user_id   = profile.get("user_id")
+    if not player_id:
+        status["errors"].append("No active player profile to delete.")
+        return status
+
+    # 1. Stripe — cancel the subscription so we don't keep billing.
+    if cancel_stripe:
+        try:
+            from stripe_client import cancel_active_subscription
+            cancelled = cancel_active_subscription(user_id or player_id)
+            status["stripe_cancelled"] = bool(cancelled)
+        except ImportError:
+            # No stripe module / not configured — skip silently.
+            pass
+        except Exception as exc:
+            status["errors"].append(f"Stripe cancellation failed: {exc}")
+
+    sb = get_client()
+
+    # 2. Wipe swing records.
+    try:
+        del_swings = (
+            sb.table("swings")
+              .delete()
+              .eq("player_id", player_id)
+              .execute()
+        )
+        status["swings_deleted"] = len(del_swings.data or [])
+    except Exception as exc:
+        status["errors"].append(f"Could not delete swing records: {exc}")
+
+    # 3. Delete the player row itself.
+    try:
+        del_player = (
+            sb.table("players")
+              .delete()
+              .eq("id", player_id)
+              .execute()
+        )
+        status["player_deleted"] = bool(del_player.data)
+    except Exception as exc:
+        status["errors"].append(f"Could not delete player row: {exc}")
+
+    # 4. Sign out. We do this even if earlier steps failed so the user
+    # is at least logged out on this device.
+    try:
+        sign_out()
+        # Wipe the cached profile and any in-progress swing state.
+        for _k in ("player", "user", "view_swing_record", "view_swing_path",
+                   "view_swing_report_id", "view", "page"):
+            st.session_state.pop(_k, None)
+        status["signed_out"] = True
+    except Exception as exc:
+        status["errors"].append(f"Sign-out failed: {exc}")
+
+    return status
