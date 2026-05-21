@@ -564,13 +564,16 @@ if cap is None or n_frames <= 0:
 # Persist the current frame across reruns. Reset when the user switches swings.
 frame_key = f"current_frame::{entry.id}"
 if frame_key not in st.session_state:
-    # Default to the existing final_plant_frame if labeled, else first frame
+    # Default to the existing final_plant_frame if labeled, else jump to
+    # roughly 40% of the clip (the swing usually happens in the middle —
+    # avoids landing on intro overlays / play-button thumbnails baked into
+    # YouTube-style sources).
     if entry.ground_truth.final_plant_frame is not None:
         st.session_state[frame_key] = max(
             0, min(n_frames - 1, entry.ground_truth.final_plant_frame)
         )
     else:
-        st.session_state[frame_key] = 0
+        st.session_state[frame_key] = max(0, int(n_frames * 0.4))
 
 # Slots that the "capture current frame" buttons fill
 plant_key = f"plant::{entry.id}"
@@ -601,7 +604,24 @@ st.caption(
 )
 
 
-# ---- Frame display ----
+# ---- Step A: playable preview (watch first) ----
+with st.expander("▶ Watch the swing at normal speed (preview only — does NOT affect marking)", expanded=True):
+    try:
+        st.video(str(video_path))
+    except Exception as e:  # noqa: BLE001
+        st.warning(f"Preview unavailable: {e!r} — the frame stepper below still works.")
+    st.caption(
+        "Identify the foot-plant + contact moments here, then collapse this "
+        "expander and use the frame stepper below to mark the exact frames."
+    )
+
+st.divider()
+st.markdown("## ▼  Mark frames below  ▼")
+
+# ---- Step B: precise frame view (mark here) ----
+# OpenCV-decoded still frame + scrub slider. THIS is the surface the
+# capture buttons read from — what you see here is what gets recorded
+# as foot_plant_frame / contact_frame.
 img = _read_frame(cap, st.session_state[frame_key])
 if img is None:
     st.error(f"Could not decode frame {st.session_state[frame_key]}")
@@ -609,15 +629,27 @@ else:
     cur = st.session_state[frame_key]
     st.image(
         img,
-        caption=f"Frame {cur}  •  t = {cur / fps:.3f}s",
+        caption=f"Frame {cur}  •  t = {cur / fps:.3f}s  •  drag the slider below to scrub",
         use_container_width=True,
     )
 
+# Big scrub slider, full width, right under the image — this is the
+# primary navigation control.
+scrub = st.slider(
+    "▶ Scrub through the swing",
+    min_value=0,
+    max_value=max(0, n_frames - 1),
+    value=st.session_state[frame_key],
+    key=f"scrub_main_{entry.id}",
+    label_visibility="collapsed",
+)
+if int(scrub) != st.session_state[frame_key]:
+    st.session_state[frame_key] = int(scrub)
+    st.rerun()
 
-# ---- Frame navigation ----
-st.divider()
-st.markdown("### Navigation")
-nav_cols = st.columns([1, 1, 1, 4, 1, 1, 1])
+
+# ---- Frame nudge buttons (precision controls under the scrub slider) ----
+nav_cols = st.columns([1, 1, 2, 1, 1])
 with nav_cols[0]:
     if st.button("⏮ −10", use_container_width=True, key="back10"):
         _set_frame(st.session_state[frame_key] - 10)
@@ -628,185 +660,124 @@ with nav_cols[1]:
         st.rerun()
 with nav_cols[2]:
     typed = st.number_input(
-        "Jump",
+        "Jump to exact frame",
         min_value=0,
         max_value=max(0, n_frames - 1),
         value=st.session_state[frame_key],
-        key="jump_input",
-        label_visibility="collapsed",
+        key=f"jump_input_{entry.id}",
     )
     if int(typed) != st.session_state[frame_key]:
         _set_frame(int(typed))
         st.rerun()
 with nav_cols[3]:
-    slid = st.slider(
-        "Scrub",
-        min_value=0,
-        max_value=max(0, n_frames - 1),
-        value=st.session_state[frame_key],
-        key=f"scrub_{entry.id}",
-        label_visibility="collapsed",
-    )
-    if int(slid) != st.session_state[frame_key]:
-        _set_frame(int(slid))
-        st.rerun()
-with nav_cols[4]:
     if st.button("+1 ▶", use_container_width=True, key="fwd1"):
         _set_frame(st.session_state[frame_key] + 1)
         st.rerun()
-with nav_cols[5]:
+with nav_cols[4]:
     if st.button("+10 ⏭", use_container_width=True, key="fwd10"):
         _set_frame(st.session_state[frame_key] + 10)
         st.rerun()
-with nav_cols[6]:
-    if st.button("End ⏵⏵", use_container_width=True, key="end"):
-        _set_frame(n_frames - 1)
-        st.rerun()
 
 
-# ---- Capture buttons (set the label slots to the current frame) ----
+# ---- Minimal label UI: 3 things per swing ----
+#   1. Mark FOOT PLANT frame  (where front foot finally settles)
+#   2. Mark CONTACT frame     (where bat meets ball)
+#   3. Toe-tap? Yes / No
+# Other fields (camera_view, real_time, rotation_onset, notes) are kept
+# at sensible defaults so the user only sees what matters.
 st.divider()
-st.markdown("### Capture current frame as…")
-cap_cols = st.columns(3)
+st.markdown("### Label this swing")
+
 cur = st.session_state[frame_key]
+plant_val = st.session_state[plant_key]
+contact_val = st.session_state[contact_key]
+
+cap_cols = st.columns(2)
 with cap_cols[0]:
+    st.markdown(
+        f"**Step 1 · FOOT PLANT** — frame where the front foot finally "
+        f"settles. For toe-tap swings: NOT the tap, the *final* plant."
+    )
     if st.button(
-        f"📌 Set **final_plant_frame** = {cur}",
+        f"📌  Set foot plant = frame {cur}",
         type="primary",
         use_container_width=True,
         key="cap_plant",
     ):
         st.session_state[plant_key] = cur
+        st.rerun()
+    if plant_val is not None:
+        st.success(f"✓ Foot plant marked at frame **{plant_val}**  "
+                   f"(t = {plant_val / fps:.3f}s)")
+    else:
+        st.caption("Not marked yet")
+
 with cap_cols[1]:
+    st.markdown(
+        "**Step 2 · CONTACT** — frame where the bat appears to meet the ball."
+    )
     if st.button(
-        f"📌 Set **contact_frame** = {cur}",
+        f"📌  Set contact = frame {cur}",
         type="primary",
         use_container_width=True,
         key="cap_contact",
     ):
         st.session_state[contact_key] = cur
-with cap_cols[2]:
-    if st.button(
-        f"📌 Set rotation_onset_frame = {cur}  (optional)",
-        use_container_width=True,
-        key="cap_rot",
-    ):
-        st.session_state[rot_key] = cur
+        st.rerun()
+    if contact_val is not None:
+        st.success(f"✓ Contact marked at frame **{contact_val}**  "
+                   f"(t = {contact_val / fps:.3f}s)")
+    else:
+        st.caption("Not marked yet")
 
+st.markdown("")
+# Step 3: Toe-tap binary
+existing_is_toe_tap = (entry.ground_truth.stride_style == "toe_tap")
+is_toe_tap = st.radio(
+    "**Step 3 · Is this a toe-tap?**",
+    ["No — regular stride / leg-kick / no-stride",
+     "Yes — front foot taps the ground before the final plant"],
+    index=1 if existing_is_toe_tap else 0,
+    horizontal=False,
+)
 
-# ---- Label form ----
-st.divider()
-st.markdown("### Labels")
-with st.form(key=f"label_form_{entry.id}"):
-    cols = st.columns(3)
-    with cols[0]:
-        new_stride_style = st.radio(
-            "Stride style",
-            VALID_STRIDE_STYLES,
-            index=VALID_STRIDE_STYLES.index(entry.ground_truth.stride_style),
-            help=(
-                "no_stride: foot never leaves the ground\n\n"
-                "standard_stride: single lift → single plant\n\n"
-                "toe_tap: lift → brief touch → lift → plant\n\n"
-                "leg_kick: large vertical lift (~50%+ of torso length)"
-            ),
-        )
-    with cols[1]:
-        try:
-            cam_idx = VALID_CAMERA_VIEWS.index(entry.ground_truth.camera_view)
-        except ValueError:
-            cam_idx = 0
-        new_camera_view = st.radio(
-            "Camera view", VALID_CAMERA_VIEWS, index=cam_idx,
-        )
-    with cols[2]:
-        new_real_time = st.checkbox(
-            "Real-time playback",
-            value=entry.ground_truth.real_time,
-            help="Uncheck if this clip is slow-motion (e.g. 240fps "
-                 "captured but played back at 30fps).",
-        )
-
-    cols2 = st.columns(3)
-    with cols2[0]:
-        new_plant = st.number_input(
-            "final_plant_frame *",
-            min_value=0, max_value=max(0, n_frames - 1),
-            value=st.session_state[plant_key] if st.session_state[plant_key] is not None else 0,
-            help="The frame where the front foot finally settles BEFORE "
-                 "rotation begins. NOT the toe-tap moment for toe_tap swings.",
-        )
-    with cols2[1]:
-        new_contact = st.number_input(
-            "contact_frame *",
-            min_value=0, max_value=max(0, n_frames - 1),
-            value=st.session_state[contact_key] if st.session_state[contact_key] is not None else 0,
-            help="The frame where the bat appears to meet the ball.",
-        )
-    with cols2[2]:
-        rot_default = (
-            st.session_state[rot_key] if st.session_state[rot_key] is not None else 0
-        )
-        new_rot = st.number_input(
-            "rotation_onset_frame (optional)",
-            min_value=0, max_value=max(0, n_frames - 1),
-            value=rot_default,
-        )
-
-    new_notes = st.text_area("Notes", value=entry.notes, height=80)
-    cols3 = st.columns([2, 1])
-    with cols3[0]:
-        new_labeled_by = st.text_input("Labeled by", value=entry.labeled_by)
-    with cols3[1]:
-        new_labeled_at = st.text_input(
-            "Labeled at (YYYY-MM-DD)",
-            value=entry.labeled_at or str(date.today()),
-        )
-
-    save_clicked = st.form_submit_button(
-        "💾  SAVE LABELS",
-        type="primary",
-        use_container_width=True,
-    )
+st.markdown("")
+# Save + auto-advance
+save_clicked = st.button(
+    "💾  SAVE + GO TO NEXT SWING  →",
+    type="primary",
+    use_container_width=True,
+    key=f"save_{entry.id}",
+)
 
 if save_clicked:
-    if new_plant <= 0 and new_contact <= 0:
-        st.warning(
-            "Both final_plant_frame and contact_frame are 0 — that's "
-            "almost certainly a mistake. Capture them from the video first."
-        )
-    elif new_contact <= new_plant:
+    if plant_val is None or contact_val is None:
+        st.error("⚠ Mark BOTH the foot plant and contact frames before saving.")
+    elif int(contact_val) <= int(plant_val):
         st.error(
-            f"contact_frame ({new_contact}) must come AFTER "
-            f"final_plant_frame ({new_plant})."
+            f"⚠ Contact (frame {contact_val}) must come AFTER foot plant "
+            f"(frame {plant_val}). Use the navigation to fix and re-mark."
         )
     else:
-        # Mutate in place; manifest is the in-memory object the loader
-        # returned.
-        entry.ground_truth.stride_style = new_stride_style
-        entry.ground_truth.camera_view = new_camera_view
-        entry.ground_truth.real_time = bool(new_real_time)
-        entry.ground_truth.final_plant_frame = int(new_plant)
-        entry.ground_truth.contact_frame = int(new_contact)
-        entry.ground_truth.rotation_onset_frame = (
-            int(new_rot) if int(new_rot) > 0 else None
+        # Mutate in place; commit to disk atomically
+        entry.ground_truth.final_plant_frame = int(plant_val)
+        entry.ground_truth.contact_frame = int(contact_val)
+        entry.ground_truth.stride_style = (
+            "toe_tap" if is_toe_tap.startswith("Yes") else "standard_stride"
         )
-        entry.notes = new_notes
-        entry.labeled_by = new_labeled_by
-        entry.labeled_at = new_labeled_at
+        # Defaults for fields we don't ask about in the simplified UI
+        entry.ground_truth.camera_view = (
+            entry.ground_truth.camera_view or "profile"
+        )
+        entry.ground_truth.real_time = (
+            entry.ground_truth.real_time
+            if entry.ground_truth.real_time is not None else True
+        )
+        if not entry.labeled_at:
+            entry.labeled_at = str(date.today())
         try:
             _save_manifest_atomic(manifest, MANIFEST_PATH)
-            st.success(f"✓ Saved labels for `{entry.id}`")
-            # Update session-state slots so the form shows the saved values
-            # immediately on the next interaction.
-            st.session_state[plant_key] = int(new_plant)
-            st.session_state[contact_key] = int(new_contact)
-            st.session_state[rot_key] = (
-                int(new_rot) if int(new_rot) > 0 else None
-            )
-            # Auto-advance: find the next swing that still needs labeling
-            # and jump to it. The sidebar selector picks it up via the
-            # `_just_added_id` session-state slot.
+            # Auto-advance to next unlabeled swing
             next_unlabeled = next(
                 (s for s in manifest.swings
                  if not s.ground_truth.is_labeled
@@ -815,13 +786,28 @@ if save_clicked:
                 None,
             )
             if next_unlabeled is not None:
+                # Clear per-swing scratch state on the next swing so it
+                # starts fresh
+                for k in (
+                    f"current_frame::{next_unlabeled.id}",
+                    f"plant::{next_unlabeled.id}",
+                    f"contact::{next_unlabeled.id}",
+                    f"rot::{next_unlabeled.id}",
+                ):
+                    st.session_state.pop(k, None)
                 st.session_state["_just_added_id"] = next_unlabeled.id
-                st.toast(f"Advancing to `{next_unlabeled.id}` →", icon="⏭️")
+                st.toast(
+                    f"✓ Saved `{entry.id}` — advancing to `{next_unlabeled.id}`",
+                    icon="⏭️",
+                )
                 st.rerun()
             else:
                 st.balloons()
-                st.info("🎉 No more unlabeled swings. Run the validation "
-                        "report with `python3 -m scripts.validation.run_validation`.")
+                st.success(
+                    f"✓ Saved `{entry.id}`. 🎉 All labelable swings are done — "
+                    "run `python3 -m scripts.validation.run_validation` to "
+                    "produce the v3-vs-v4 report."
+                )
         except Exception as e:
             st.error(f"Save failed: {e!r}")
 

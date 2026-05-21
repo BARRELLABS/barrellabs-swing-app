@@ -3,290 +3,885 @@
   "swings": [
     {
       "id": "mookie_betts",
-      "video_path": null,
-      "fingerprint_path": "references/mookie_betts.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "toe_tap",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/mookie_betts.json",
+      "handedness": "RIGHT",
       "notes": "Known toe-tap hitter. Existing v3 fingerprint shows foot_plant_to_launch = 25.7ms which is implausibly short and consistent with the v3 detector locking onto the tap. Re-process with DETECTOR_V4=true once a source video is available.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "aaron_judge",
-      "video_path": null,
-      "fingerprint_path": "references/aaron_judge.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "leg_kick",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/aaron_judge.json",
+      "handedness": "RIGHT",
       "notes": "Pronounced leg-kick load. Tests v4's lift_frac threshold path.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "ronald_acuna_jr",
-      "video_path": null,
-      "fingerprint_path": "references/ronald_acuna_jr.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "leg_kick",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/ronald_acuna_jr.json",
+      "handedness": "RIGHT",
       "notes": "High leg kick + slight tap variant.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "mike_trout",
-      "video_path": null,
-      "fingerprint_path": "references/mike_trout.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "toe_tap",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/mike_trout.json",
+      "handedness": "RIGHT",
       "notes": "Subtle toe-tap variant.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "shohei_ohtani",
-      "video_path": null,
-      "fingerprint_path": "references/shohei_ohtani.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "leg_kick",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/shohei_ohtani.json",
+      "handedness": "LEFT",
       "notes": "Pronounced leg-kick. Left-handed.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "kyle_tucker",
-      "video_path": null,
-      "fingerprint_path": "references/kyle_tucker.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "toe_tap",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/kyle_tucker.json",
+      "handedness": "LEFT",
       "notes": "Toe-tap variant.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "juan_soto",
-      "video_path": null,
-      "fingerprint_path": "references/juan_soto.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
-      "notes": "Standard stride hitter — expected: v4 should AGREE with v3.",
+      "video_path": null,
+      "fingerprint_path": "references/juan_soto.json",
+      "handedness": "LEFT",
+      "notes": "Standard stride hitter \u2014 expected: v4 should AGREE with v3.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "freddie_freeman",
-      "video_path": null,
-      "fingerprint_path": "references/freddie_freeman.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/freddie_freeman.json",
+      "handedness": "LEFT",
       "notes": "Standard stride hitter.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "alex_bregman",
-      "video_path": null,
-      "fingerprint_path": "references/alex_bregman.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/alex_bregman.json",
+      "handedness": "RIGHT",
       "notes": "Standard stride hitter.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "yandy_diaz",
-      "video_path": null,
-      "fingerprint_path": "references/yandy_diaz.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "no_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
-      "notes": "Very quiet feet — close to no_stride.",
+      "video_path": null,
+      "fingerprint_path": "references/yandy_diaz.json",
+      "handedness": "RIGHT",
+      "notes": "Very quiet feet \u2014 close to no_stride.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "francisco_lindor",
-      "video_path": null,
-      "fingerprint_path": "references/francisco_lindor.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
-      "notes": "Switch hitter — fingerprint is for one side.",
+      "video_path": null,
+      "fingerprint_path": "references/francisco_lindor.json",
+      "handedness": "RIGHT",
+      "notes": "Switch hitter \u2014 fingerprint is for one side.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "gunnar_henderson",
-      "video_path": null,
-      "fingerprint_path": "references/gunnar_henderson.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/gunnar_henderson.json",
+      "handedness": "LEFT",
       "notes": "Modern compact stride.",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "jose_ramirez",
-      "video_path": null,
-      "fingerprint_path": "references/jose_ramirez.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/jose_ramirez.json",
+      "handedness": "LEFT",
       "notes": "",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "kyle_schwarber",
-      "video_path": null,
-      "fingerprint_path": "references/kyle_schwarber.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/kyle_schwarber.json",
+      "handedness": "LEFT",
       "notes": "",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "manny_machado",
-      "video_path": null,
-      "fingerprint_path": "references/manny_machado.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/manny_machado.json",
+      "handedness": "RIGHT",
       "notes": "",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "spencer_torkelson",
-      "video_path": null,
-      "fingerprint_path": "references/spencer_torkelson.json",
-      "handedness": "RIGHT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/spencer_torkelson.json",
+      "handedness": "RIGHT",
       "notes": "",
       "labeled_by": "",
       "labeled_at": ""
     },
     {
       "id": "yordan_alvarez",
-      "video_path": null,
-      "fingerprint_path": "references/yordan_alvarez.json",
-      "handedness": "LEFT",
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": null,
         "contact_frame": null,
-        "rotation_onset_frame": null,
         "camera_view": "profile",
-        "real_time": false
+        "real_time": false,
+        "rotation_onset_frame": null
       },
+      "video_path": null,
+      "fingerprint_path": "references/yordan_alvarez.json",
+      "handedness": "LEFT",
       "notes": "",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "bobby_witt_jr_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/bobby_witt_jr_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "corbin_carroll_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/corbin_carroll_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "elly_de_la_cruz_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/elly_de_la_cruz_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "jackson_merrill_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/jackson_merrill_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "julio_rodriguez_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/julio_rodriguez_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "steven_kwan_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Desktop/steven_kwan_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Desktop/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_8436",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_8436.mov",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_8601",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_8601.MOV",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_8605",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_8605.MOV",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_8607",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_8607.MOV",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_8608",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_8608.mov",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "img_9005",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/Downloads/IMG_9005.MOV",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from Downloads/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "alex_bregman_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/alex_bregman_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "bryce_harper_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/bryce_harper_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "francisco_lindor_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/francisco_lindor_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "freddie_freeman_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/freddie_freeman_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "gunnar_henderson_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/gunnar_henderson_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "jose_ramirez_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/jose_ramirez_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "juan_soto_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/juan_soto_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "judge_swing_copy",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/judge_swing copy.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "judge_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/judge_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "kyle_schwarber_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/kyle_schwarber_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "kyle_tucker_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/kyle_tucker_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "manny_machado_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/manny_machado_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "mookie_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/mookie_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "ronald_acuna_jr_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/ronald_acuna_jr_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "shohei_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/shohei_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "spencer_torkelson_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/spencer_torkelson_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "swing_with_skeleton",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/swing_with_skeleton.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "trout_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/trout_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "mariotswing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/uploads_streamlit/MarioTSwing.mov",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from uploads_streamlit/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "my_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/uploads_streamlit/My swing.mov",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from uploads_streamlit/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "yandy_diaz_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/yandy_diaz_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
+      "labeled_by": "",
+      "labeled_at": ""
+    },
+    {
+      "id": "yordan_alvarez_swing",
+      "ground_truth": {
+        "stride_style": "standard_stride",
+        "final_plant_frame": null,
+        "contact_frame": null,
+        "camera_view": "profile",
+        "real_time": true,
+        "rotation_onset_frame": null
+      },
+      "video_path": "/Users/logancollins/baseball-swing-app/yordan_alvarez_swing.mp4",
+      "fingerprint_path": null,
+      "handedness": null,
+      "notes": "auto-imported from baseball-swing-app/",
       "labeled_by": "",
       "labeled_at": ""
     }
