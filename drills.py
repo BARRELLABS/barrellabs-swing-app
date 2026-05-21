@@ -643,11 +643,15 @@ _CATEGORY_NARRATORS = {
 }
 
 _CATEGORY_TITLES = {
-    "head_stability": "HEAD STABILITY",
-    "hip_rotation": "HIP ROTATION",
-    "hip_shoulder_separation": "HIP-SHOULDER SEPARATION",
-    "knee_extension": "FRONT-SIDE FIRMNESS",
-    "timing": "TIMING & TEMPO",
+    "head_stability":           "HEAD QUIET",
+    "hip_rotation":             "HIP TURN COMPLETION",
+    "hip_shoulder_separation":  "TORQUE STORAGE",
+    "knee_extension":           "LOWER-BODY DRIVE",
+    "timing":                   "TIMING & TEMPO",
+    # Power Sequence (new):
+    "sequencing":               "POWER SEQUENCE",
+    "rotational_speed":         "ROTATIONAL SPEED",
+    "front_side_stability":     "STAY CLOSED",
 }
 
 
@@ -874,7 +878,16 @@ def build_drill_plan(gaps_ranked, top_n_categories=2, *, preferred_goal=None):
 
 
 def classify_gap(result):
-    """Map a single gap result dict to a drill category key."""
+    """Map a single gap result dict to a drill category key.
+
+    Three new Power Sequence categories (Phase Power Sequence redesign):
+      - sequencing            (kinematic chain — pelvis → torso lag)
+      - rotational_speed      (peak hip angular velocity)
+      - front_side_stability  (early shoulder fly-out)
+
+    The new gaps are synthesized in analyzer.py from the `sequence`
+    block's rating fields — see _synthesize_sequence_gaps() there.
+    """
     group = result.get("group", "")
     label = result.get("label", "").lower()
 
@@ -888,6 +901,13 @@ def classify_gap(result):
         return "knee_extension"
     if group == "Timing":
         return "timing"
+    if group == "Power Sequence":
+        if "sequencing" in label or "lag" in label:
+            return "sequencing"
+        if "hip speed" in label or "omega" in label or "rotational speed" in label:
+            return "rotational_speed"
+        if "stay closed" in label or "fly-out" in label or "front-side" in label:
+            return "front_side_stability"
     return None
 
 
