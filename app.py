@@ -924,6 +924,26 @@ if st.session_state.get("page") == "pricing":
     render_pricing_page()
     st.stop()
 
+if st.session_state.get("page") == "legal_terms":
+    from pathlib import Path
+    if st.button("← Back", key="legal_terms_back"):
+        prev = st.session_state.get("_legal_return_to") or "auth"
+        st.session_state["page"] = prev
+        st.rerun()
+    md = Path("legal/TERMS.md").read_text()
+    st.markdown(md, unsafe_allow_html=False)
+    st.stop()
+
+if st.session_state.get("page") == "legal_privacy":
+    from pathlib import Path
+    if st.button("← Back", key="legal_privacy_back"):
+        prev = st.session_state.get("_legal_return_to") or "auth"
+        st.session_state["page"] = prev
+        st.rerun()
+    md = Path("legal/PRIVACY.md").read_text()
+    st.markdown(md, unsafe_allow_html=False)
+    st.stop()
+
 
 # ============================================================
 # ---------- AUTH GATE ----------
