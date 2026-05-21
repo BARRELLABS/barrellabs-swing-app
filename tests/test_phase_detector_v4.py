@@ -814,5 +814,203 @@ class TestPhase4aFix3ConfidenceCalibration:
         )
 
 
+class TestPhase4cTrustPhaseDebugFootPlant:
+    """Phase 4c Fix 1 — when phase_debug.selected_phases.foot_plant is
+    confident AND aligned with rotation_onset, v4 should adopt it
+    directly instead of re-deriving from foot_plant_candidates.
+
+    Phase 4b validation showed v4 regressing on 7/7 short-clip swings
+    where phase_debug already had the right answer (conf ≥ 0.6, within
+    ~70ms of rot_onset) but v4's candidate ranking landed 50-90 frames
+    earlier because the candidates list didn't contain the actual plant.
+    """
+
+    def _payload(self, *, candidates, pd_fp_frame, pd_fp_conf, rot_onset,
+                 pd_fp_reason="stable contact aligned with rotation onset"):
+        """Build a minimal analysis_debug shape that detect_phases_v4 reads."""
+        return {
+            "foot_plant_candidates": candidates,
+            "selected_phases": {
+                "rotation_onset": {"frame": rot_onset, "time_s": 0.0,
+                                    "confidence": 0.9, "reason": "synthetic"},
+                "foot_plant":     {"frame": pd_fp_frame, "time_s": 0.0,
+                                    "confidence": pd_fp_conf,
+                                    "reason": pd_fp_reason},
+            },
+        }
+
+    def test_short_clip_with_only_early_candidate_uses_phase_debug(self):
+        """img_8436 regression: only candidate is [0,27] (the early
+        stance), but phase_debug picked frame 52 with conf=1.0 because
+        the stable contact aligns with rot_onset=53. v4 must return 52,
+        not 0 (the start of the misleading candidate)."""
+        from phase_detector_v4 import detect_phases_v4
+        n = 120
+        fps = 29.7  # ≈ real img_8436 fps
+        ad = self._payload(
+            candidates=[
+                {"start_frame": 0, "end_frame": 27, "duration_ms": 943.0,
+                 "min_visibility": 0.95},
+            ],
+            pd_fp_frame=52, pd_fp_conf=1.0, rot_onset=53,
+        )
+        phases_v3 = {
+            "load_start": 30, "foot_plant": 52, "launch": 53,
+            "contact": 57, "peak_rotation": 60, "finish": 70,
+        }
+        res = detect_phases_v4(
+            times=np.arange(n) / fps, stride=np.zeros(n),
+            knee=np.full(n, 180.0),
+            analysis_debug=ad, phases_v3=phases_v3,
+            burst_lo=53, burst_hi=70, fps=fps,
+        )
+        assert res["phases"]["foot_plant"] == 52, (
+            f"Expected 52 (phase_debug's pick); got {res['phases']['foot_plant']}. "
+            "v4 must trust phase_debug when its pick is high-confidence and "
+            "near rotation_onset, NOT re-derive from the misleading [0,27] "
+            "candidate which lands at frame 0."
+        )
+        assert "phase_debug.foot_plant" in res["selection_reason"]
+        assert res["fallback_to_v3"] is False
+
+    def test_toe_tap_with_tap_candidate_uses_phase_debug_for_final_plant(self):
+        """img_8605 / img_8607 / swing regression: foot_plant_candidates
+        contains [tap, final_plant] but the duration credit makes the tap
+        win in candidate ranking. phase_debug picks the final plant
+        correctly (the "stable contact aligned with rotation onset" branch);
+        v4 should adopt that and not pick the earlier tap."""
+        from phase_detector_v4 import detect_phases_v4
+        n = 200
+        fps = 30.0
+        # Realistic toe-tap candidate layout: a long early tap [36, 48]
+        # plus a short final plant [78, 80]. Without the fix, candidate
+        # ranking picks frame 36 (the tap); with the fix, v4 takes
+        # phase_debug's pick of frame 78.
+        ad = self._payload(
+            candidates=[
+                {"start_frame": 36, "end_frame": 48, "duration_ms": 433.0,
+                 "min_visibility": 0.95},
+                {"start_frame": 78, "end_frame": 80, "duration_ms": 100.0,
+                 "min_visibility": 0.95},
+            ],
+            pd_fp_frame=78, pd_fp_conf=0.6, rot_onset=76,
+            pd_fp_reason="foot_plant→contact 67 ms out of range",
+        )
+        phases_v3 = {
+            "load_start": 50, "foot_plant": 78, "launch": 76,
+            "contact": 80, "peak_rotation": 85, "finish": 95,
+        }
+        res = detect_phases_v4(
+            times=np.arange(n) / fps, stride=np.zeros(n),
+            knee=np.full(n, 180.0),
+            analysis_debug=ad, phases_v3=phases_v3,
+            burst_lo=76, burst_hi=80, fps=fps,
+        )
+        assert res["phases"]["foot_plant"] == 78, (
+            f"Expected 78 (the final plant); got {res['phases']['foot_plant']}. "
+            "v4 must not pick the tap candidate at frame 36 — phase_debug "
+            "already identified 78 as the plant near rotation_onset."
+        )
+
+    def test_low_confidence_phase_debug_falls_through_to_candidate_ranking(self):
+        """When phase_debug.foot_plant.confidence is below
+        PHASE_DEBUG_TRUST_MIN_CONF, v4 should run its normal candidate
+        ranking instead of blindly trusting phase_debug. This keeps the
+        Phase 4b candidate-ranking path active for long-swing cases
+        where phase_debug is itself uncertain."""
+        from phase_detector_v4 import detect_phases_v4
+        n = 200
+        fps = 60.0
+        # phase_debug picked frame 100 with conf=0.4 — below trust threshold.
+        # A strong candidate exists that straddles rot_onset; ranking
+        # should pick THAT, not phase_debug's low-confidence guess.
+        ad = self._payload(
+            candidates=[
+                {"start_frame": 110, "end_frame": 140, "duration_ms": 500.0,
+                 "min_visibility": 0.95},
+            ],
+            pd_fp_frame=100, pd_fp_conf=0.4, rot_onset=120,
+            pd_fp_reason="brief contact (low confidence)",
+        )
+        phases_v3 = {
+            "load_start": 80, "foot_plant": 110, "launch": 120,
+            "contact": 130, "peak_rotation": 140, "finish": 150,
+        }
+        res = detect_phases_v4(
+            times=np.arange(n) / fps, stride=np.zeros(n),
+            knee=np.full(n, 180.0),
+            analysis_debug=ad, phases_v3=phases_v3,
+            burst_lo=120, burst_hi=130, fps=fps,
+        )
+        # Candidate ranking should pick frame 110 (the straddling
+        # candidate), NOT 100 (phase_debug's low-confidence guess).
+        assert res["phases"]["foot_plant"] == 110, (
+            f"Expected 110 (from candidate ranking); got {res['phases']['foot_plant']}."
+        )
+        assert "phase_debug.foot_plant" not in res["selection_reason"]
+
+    def test_far_phase_debug_falls_through_to_candidate_ranking(self):
+        """When phase_debug.foot_plant lands far from rotation_onset
+        (> PHASE_DEBUG_TRUST_GAP_MAX_MS), v4 should also fall through
+        to candidate ranking. A "far" phase_debug pick is suspect even
+        if its confidence is high."""
+        from phase_detector_v4 import detect_phases_v4
+        n = 200
+        fps = 60.0
+        # phase_debug picked frame 50 (conf=1.0) but rot_onset is at 130 —
+        # 80 frames / 1333ms away. Far above the 300ms trust gap.
+        ad = self._payload(
+            candidates=[
+                {"start_frame": 120, "end_frame": 145, "duration_ms": 417.0,
+                 "min_visibility": 0.95},
+            ],
+            pd_fp_frame=50, pd_fp_conf=1.0, rot_onset=130,
+        )
+        phases_v3 = {
+            "load_start": 90, "foot_plant": 120, "launch": 130,
+            "contact": 140, "peak_rotation": 150, "finish": 160,
+        }
+        res = detect_phases_v4(
+            times=np.arange(n) / fps, stride=np.zeros(n),
+            knee=np.full(n, 180.0),
+            analysis_debug=ad, phases_v3=phases_v3,
+            burst_lo=130, burst_hi=140, fps=fps,
+        )
+        # Candidate ranking takes over; should pick frame 120.
+        assert res["phases"]["foot_plant"] == 120, (
+            f"Expected 120; got {res['phases']['foot_plant']}. "
+            "Far-from-rot_onset phase_debug picks should be ignored "
+            "even when conf=1.0."
+        )
+
+    def test_phase_debug_pick_confidence_propagates(self):
+        """When v4 adopts phase_debug's pick, the returned confidence
+        should reflect phase_debug's confidence (rounded), not a
+        candidate-ranking score."""
+        from phase_detector_v4 import detect_phases_v4
+        n = 120
+        fps = 30.0
+        ad = self._payload(
+            candidates=[{"start_frame": 0, "end_frame": 27,
+                         "duration_ms": 900.0, "min_visibility": 0.95}],
+            pd_fp_frame=52, pd_fp_conf=0.85, rot_onset=53,
+        )
+        phases_v3 = {
+            "load_start": 30, "foot_plant": 52, "launch": 53,
+            "contact": 57, "peak_rotation": 60, "finish": 70,
+        }
+        res = detect_phases_v4(
+            times=np.arange(n) / fps, stride=np.zeros(n),
+            knee=np.full(n, 180.0),
+            analysis_debug=ad, phases_v3=phases_v3,
+            burst_lo=53, burst_hi=70, fps=fps,
+        )
+        assert res["confidence"] == 0.85
+        assert res["alternatives"] == [], (
+            "When trusting phase_debug, we don't surface candidate "
+            "alternatives because we didn't run candidate ranking."
+        )
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))
