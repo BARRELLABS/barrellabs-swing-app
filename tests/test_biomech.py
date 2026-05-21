@@ -120,3 +120,52 @@ class TestSequencingLag:
         assert -100 <= result["sequencing_lag_ms"] <= 100, (
             f"search window leaked; got {result['sequencing_lag_ms']}ms"
         )
+
+
+class TestPeakHipOmega:
+    """M2: peak |hip_vel| × fps, in deg/s.
+
+    Good band: ≥ 900 °/s.  Marginal: 600–900.  Poor: < 600.
+    """
+
+    def test_known_signal_yields_known_omega(self):
+        """If hip_vel maxes at 15 deg/frame at 60 fps, peak_omega = 900 deg/s."""
+        from biomech import compute_sequence
+        n = 200
+        x = np.arange(n, dtype=float)
+        hip_vel = 15.0 * np.exp(-((x - 60) ** 2) / (2.0 * 4.0 ** 2))
+        shoulder_rotation = np.cumsum(np.exp(-((x - 63) ** 2) / 32.0)) * 5.0
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 890.0 <= result["peak_hip_omega_deg_s"] <= 910.0
+
+    def test_omega_uses_search_window(self):
+        """Spike OUTSIDE the search window must not be picked."""
+        from biomech import compute_sequence
+        n = 300
+        x = np.arange(n, dtype=float)
+        # Real swing burst (10 deg/frame at 60 fps → 600 deg/s)
+        hip_vel = 10.0 * np.exp(-((x - 60) ** 2) / 32.0)
+        # MASSIVE post-contact spike (50 deg/frame → 3000 deg/s) — must be ignored
+        hip_vel += 50.0 * np.exp(-((x - 200) ** 2) / 32.0)
+        shoulder_rotation = np.cumsum(np.exp(-((x - 63) ** 2) / 32.0)) * 5.0
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        # If window works, omega ~600. If it leaks, omega ~3000.
+        assert result["peak_hip_omega_deg_s"] <= 700.0
+
+    def test_omega_zero_when_no_signal(self):
+        """All-zero hip_vel → 0 deg/s."""
+        from biomech import compute_sequence
+        n = 200
+        hip_vel = np.zeros(n)
+        shoulder_rotation = np.zeros(n)
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert result["peak_hip_omega_deg_s"] == 0.0

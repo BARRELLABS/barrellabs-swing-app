@@ -90,9 +90,15 @@ def compute_sequence(
     if hip_peak_frame is not None and sho_peak_frame is not None:
         sequencing_lag_ms = (sho_peak_frame - hip_peak_frame) * 1000.0 / fps
 
+    # M2 — peak hip angular velocity
+    if len(hip_window):
+        peak_hip_omega_deg_s = float(np.max(hip_window)) * fps
+    else:
+        peak_hip_omega_deg_s = None
+
     return {
         "sequencing_lag_ms":         sequencing_lag_ms,
-        "peak_hip_omega_deg_s":      None,
+        "peak_hip_omega_deg_s":      peak_hip_omega_deg_s,
         "front_side_stability_pct":  None,
         "hip_peak_frame":            hip_peak_frame,
         "shoulder_peak_frame":       sho_peak_frame,
