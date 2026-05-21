@@ -434,6 +434,15 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
     except Exception:
         pass
 
+    # Invalidate the swing-history cache so subsequent reads see this
+    # new row immediately. load_swing_history is @st.cache_data(ttl=60)
+    # so without this clear() the just-inserted swing would be invisible
+    # for up to a minute.
+    try:
+        load_swing_history.clear()
+    except Exception:
+        pass
+
     # Reshape into the dict the UI used to receive (with legacy keys
     # for backward compatibility).
     return _swing_row_to_legacy(inserted)
@@ -502,6 +511,7 @@ def _flag_session_expired() -> None:
         pass
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def load_swing_history(player_slug: str) -> list:
     """
     Return all swings for the given player_id (passed as `player_slug`
@@ -510,6 +520,18 @@ def load_swing_history(player_slug: str) -> list:
     JWT-expired errors are treated as a soft logged-out state: we silently
     return an empty list and flag st.session_state["_session_expired"] so
     the page header can render a single, clean 'please log back in' banner.
+
+    CACHING: results are cached per-(session, player_slug) for 60s. Audit
+    flagged this as called 10+ times per page render across dashboards,
+    historical_charts, development_tracker, player_settings, and
+    saved_reports_dashboard. The cache turns those repeated calls into
+    one Supabase round-trip per minute per session.
+
+    Callers MUST invalidate the cache after mutating swings:
+      load_swing_history.clear()
+    save_swing_record and delete_swing_record do this automatically. If
+    you write to the swings table by any other path, call .clear()
+    yourself.
     """
     sb = get_client()
     try:
@@ -536,13 +558,23 @@ def load_swing_history(player_slug: str) -> list:
 
 
 def delete_swing_record(swing_id: str) -> bool:
-    """Delete a single swing by id (RLS still enforces ownership)."""
+    """Delete a single swing by id (RLS still enforces ownership).
+
+    Invalidates the load_swing_history cache so subsequent reads
+    reflect the deletion immediately.
+    """
     sb = get_client()
     try:
         sb.table("swings").delete().eq("id", swing_id).execute()
-        return True
     except Exception:
         return False
+    # Invalidate the cache regardless of caller — soft-fail to avoid
+    # breaking the delete success path if the cache helper is unavailable.
+    try:
+        load_swing_history.clear()
+    except Exception:
+        pass
+    return True
 
 
 # --------------------------------------------------------------------
