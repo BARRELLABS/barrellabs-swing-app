@@ -17,7 +17,12 @@ from scripts.validation.manifest import Manifest, SwingEntry, GroundTruth
 from scripts.validation._text_utils import slugify
 
 
-ACCEPTED_VIDEO_EXTS = ("mp4", "mov", "m4v", "mkv")
+# Extensions we'll auto-discover. Mac screen recordings sometimes land as
+# .mov, .qt, or even .MP4 with uppercase suffix — be generous, OpenCV +
+# the labeling tool's auto-transcode handle codec problems downstream.
+ACCEPTED_VIDEO_EXTS = (
+    "mp4", "mov", "m4v", "mkv", "webm", "avi", "qt", "mts", "ts",
+)
 
 
 def resolve_scan_dirs(

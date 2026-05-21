@@ -23,17 +23,20 @@ scripts/validation/
 ## Quick start
 
 ```bash
-# 0. Launch the visual labeling tool (frame-by-frame video review)
-streamlit run scripts/validation/labeling_app.py
+# 0. Drop swing videos into validation/videos/ (any format Finder shows
+#    — including ProRes/HEVC screen recordings; we transcode on the fly)
 
-# 1. Validate the manifest schema
-python -m scripts.validation.run_validation --check
+# 1. Launch the labeling tool with a high upload cap
+./scripts/validation/launch_labeling.sh
 
-# 2. Run the full pipeline: batch process + score + report
-python -m scripts.validation.run_validation
+# 2. Validate the manifest schema (after labeling)
+python3 -m scripts.validation.run_validation --check
 
-# 3. Just score existing fingerprints (no batch processing)
-python -m scripts.validation.run_validation --no-batch
+# 3. Full pipeline: re-process labeled videos + score against ground truth
+python3 -m scripts.validation.run_validation
+
+# 4. Just score existing fingerprints (no re-processing)
+python3 -m scripts.validation.run_validation --no-batch
 ```
 
 Reports land in `validation/reports/<UTC-timestamp>-report.md` (human) and
@@ -75,8 +78,22 @@ the app twice with the same videos discovers nothing new on the second pass.
 ### Or: in-UI upload (single file fallback)
 
 For one-off videos from outside scan paths, expand the **"Or upload a
-single video from your machine"** form. Same UI as before — file uploader,
-swing ID, stride-style guess, etc.
+single video from your machine"** form. The file picker accepts **any**
+file (we don't filter by extension — browsers/macOS pickers can be flaky
+about uppercase `.MP4` and ProRes-MIME files). We validate decodability
+after upload.
+
+### Codec problems: auto-transcode for screen recordings
+
+Mac screen recordings and "convert to MP4" tools often produce containers
+OpenCV's bundled ffmpeg can't read (ProRes, HEVC). When you click into
+such a swing the labeling page shows an error panel with a one-click
+**🔁 Auto-transcode to H.264** button. It re-encodes to a
+`.transcoded.mp4` sibling file (the original is left alone), updates the
+manifest entry's `video_path` to point at the transcoded version, and
+reloads. Takes ~10–60 s per screen recording.
+
+Requires `ffmpeg` on `$PATH`. On macOS: `brew install ffmpeg`.
 
 ### Labeling UI elements
 

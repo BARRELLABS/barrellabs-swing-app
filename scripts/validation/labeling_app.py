@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import sys
 import os
+import shutil
+import subprocess
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -75,6 +77,39 @@ def _auto_import_videos(manifest: Manifest, scan_dirs: list[Path]) -> int:
 # ---------------------------------------------------------------------------
 # Video helpers
 # ---------------------------------------------------------------------------
+
+
+def _try_transcode(src: Path, dst: Path) -> tuple[bool, str]:
+    """Re-encode `src` to H.264 MP4 at `dst` using the system ffmpeg.
+
+    Returns (success, message). On success, `dst` exists and contains a
+    decodable MP4. On failure, the message tells the user what to do
+    next (install ffmpeg, run manually, etc.).
+    """
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return False, "ffmpeg not found on PATH. Install it (`brew install ffmpeg`)."
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        proc = subprocess.run(
+            [
+                ffmpeg, "-y", "-i", str(src),
+                "-c:v", "libx264", "-preset", "fast",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
+                "-an",                # drop audio — we only need video frames
+                str(dst),
+            ],
+            capture_output=True, text=True, timeout=600,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "ffmpeg timed out after 10 minutes."
+    except Exception as e:  # noqa: BLE001
+        return False, f"ffmpeg subprocess error: {e!r}"
+    if proc.returncode != 0 or not dst.exists() or dst.stat().st_size == 0:
+        tail = proc.stderr.strip().splitlines()[-5:] if proc.stderr else []
+        return False, "ffmpeg failed:\n" + "\n".join(tail)
+    return True, "ok"
 
 
 @st.cache_resource(show_spinner=False)
@@ -219,10 +254,15 @@ with st.expander(
     with st.form("upload_swing_form", clear_on_submit=False):
         uploaded = st.file_uploader(
             "Video file",
-            type=list(ACCEPTED_VIDEO_EXTS),
+            type=None,  # accept any file — browser pickers can be flaky
+                         # about uppercase extensions and Mac screen-recording
+                         # MIME types. We validate the bytes after upload.
             help=(
-                "Streamlit's default upload size limit is 200 MB. To raise "
-                "it, restart with `--server.maxUploadSize=1024` (megabytes)."
+                "Any video file (MP4, MOV, M4V, MKV, etc.). Streamlit's "
+                "default upload size limit is 200 MB; for larger files, "
+                "restart with `--server.maxUploadSize=4096` (MB). Or just "
+                "drop videos straight into `validation/videos/` — no upload "
+                "needed."
             ),
         )
         # Suggest a default id from the filename if one was uploaded
@@ -432,13 +472,91 @@ try:
 except OSError:
     _mtime = 0.0
 cap, n_frames, fps = _open_video(str(video_path), _mtime)
-if cap is None:
-    st.error(f"Failed to open video: `{video_path}`")
-    st.stop()
 
-if n_frames <= 0:
-    st.error(
-        f"Video has 0 frames (codec may be unsupported by OpenCV): `{video_path}`"
+# Decode-failure recovery: Mac screen recordings + many "convert to mp4"
+# tools produce containers OpenCV's bundled ffmpeg can't read (ProRes,
+# HEVC, etc). Surface a recoverable panel with a one-click transcode
+# rather than st.stop().
+if cap is None or n_frames <= 0:
+    st.error(f"OpenCV couldn't decode `{video_path.name}`.")
+    try:
+        size_mb = video_path.stat().st_size / 1e6
+    except OSError:
+        size_mb = 0.0
+    st.caption(
+        f"Path: `{video_path}`  •  Size: {size_mb:.1f} MB  •  "
+        "Common cause: ProRes / HEVC codec from a Mac screen recording "
+        "that was renamed to .mp4 but not actually re-encoded."
+    )
+
+    transcoded_path = video_path.with_suffix(".transcoded.mp4")
+    have_ffmpeg = shutil.which("ffmpeg") is not None
+
+    # Case 1: a transcoded version already exists from a previous attempt
+    if transcoded_path.exists():
+        st.info(
+            f"A previously-transcoded file exists at `{transcoded_path.name}`. "
+            "Binding the manifest entry to it…"
+        )
+        entry.video_path = str(
+            transcoded_path.relative_to(PROJECT_ROOT)
+            if transcoded_path.is_relative_to(PROJECT_ROOT)
+            else transcoded_path
+        )
+        _save_manifest_atomic(manifest, MANIFEST_PATH)
+        st.rerun()
+
+    # Case 2: ffmpeg is on PATH — offer an in-app one-click fix
+    elif have_ffmpeg:
+        st.markdown(
+            "**Fix:** transcode to H.264 MP4 in place. Takes ~10–60 s for "
+            "typical screen recordings. Click below — we'll write a "
+            "`.transcoded.mp4` sibling file and re-point this manifest entry "
+            "to it (the original file is left untouched)."
+        )
+        if st.button(
+            "🔁  Auto-transcode to H.264 (one-time fix per file)",
+            type="primary",
+            use_container_width=True,
+            key=f"transcode_{entry.id}",
+        ):
+            with st.spinner(f"Transcoding `{video_path.name}` → H.264…"):
+                ok, msg = _try_transcode(video_path, transcoded_path)
+            if ok:
+                rel = (
+                    transcoded_path.relative_to(PROJECT_ROOT)
+                    if transcoded_path.is_relative_to(PROJECT_ROOT)
+                    else transcoded_path
+                )
+                entry.video_path = str(rel)
+                _save_manifest_atomic(manifest, MANIFEST_PATH)
+                st.success("✓ Transcoded successfully. Reloading…")
+                st.rerun()
+            else:
+                st.error(f"Auto-transcode failed: {msg}")
+
+    # Case 3: ffmpeg isn't installed — show install + manual command
+    else:
+        st.warning(
+            "ffmpeg isn't on your PATH. The easiest fix on macOS is "
+            "`brew install ffmpeg`, then refresh this page."
+        )
+        st.markdown("**Or run this in your terminal right now:**")
+        st.code(
+            f'ffmpeg -y -i "{video_path}" -c:v libx264 -preset fast '
+            f'-pix_fmt yuv420p -movflags +faststart -an '
+            f'"{transcoded_path}"',
+            language="bash",
+        )
+        st.caption(
+            "After it finishes, refresh this page — the labeling app will "
+            "auto-pick up the .transcoded.mp4 sibling."
+        )
+
+    # Offer to pick a different swing instead
+    st.divider()
+    st.info(
+        "💡 Or pick a different swing in the sidebar while you sort this one out."
     )
     st.stop()
 
