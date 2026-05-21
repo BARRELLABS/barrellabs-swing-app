@@ -1678,6 +1678,40 @@ def _render_empty() -> None:
         """,
         unsafe_allow_html=True,
     )
+    st.markdown(
+        """
+        <style>
+        /* Empty-state CTA — primary editorial pill button */
+        [data-testid="stButton"]:has(button:contains("Upload your first swing")) button {
+            margin: 28px auto 0 auto !important;
+            display: block !important;
+            padding: 16px 36px !important;
+            font-family: 'Geist Mono', monospace !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.20em !important;
+            text-transform: uppercase !important;
+            background: #F4EFE6 !important;
+            color: #0A0B0E !important;
+            border: none !important;
+            border-radius: 100px !important;
+            box-shadow: 0 18px 40px -14px rgba(244,239,230,0.30) !important;
+            transition: background 0.22s ease, transform 0.22s ease, color 0.22s ease !important;
+        }
+        [data-testid="stButton"]:has(button:contains("Upload your first swing")) button:hover {
+            background: #E8C170 !important;
+            color: #1a1206 !important;
+            transform: translateY(-2px) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    _left, _mid, _right = st.columns([1, 1.5, 1])
+    with _mid:
+        if st.button("Upload your first swing →", key="bl_empty_upload_cta", type="primary"):
+            st.session_state["page"] = "upload"
+            st.rerun()
 
 
 # ---------------------------------------------------------------------------
