@@ -23,6 +23,9 @@ scripts/validation/
 ## Quick start
 
 ```bash
+# 0. Launch the visual labeling tool (frame-by-frame video review)
+streamlit run scripts/validation/labeling_app.py
+
 # 1. Validate the manifest schema
 python -m scripts.validation.run_validation --check
 
@@ -35,6 +38,69 @@ python -m scripts.validation.run_validation --no-batch
 
 Reports land in `validation/reports/<UTC-timestamp>-report.md` (human) and
 `<UTC-timestamp>-summary.json` (machine).
+
+## Labeling tool walkthrough
+
+```bash
+streamlit run scripts/validation/labeling_app.py
+```
+
+What you'll see:
+
+- **Sidebar:** a `Labeled X / N` progress meter and a swing picker (defaults to
+  showing only unlabeled swings; toggle to see everything).
+- **Main panel:** the current frame, with the frame index + timestamp under it.
+- **Navigation row:** −10 / −1 / type-frame / scrub-slider / +1 / +10 / End.
+- **Capture buttons:** `📌 Set final_plant_frame = <current>` and matching
+  buttons for `contact_frame` + `rotation_onset_frame`. These write to the
+  form below.
+- **Label form:** stride style radio, camera view radio, real-time checkbox,
+  numeric inputs for the three frame markers, notes, labeled-by, labeled-at,
+  and a **💾 SAVE LABELS** button that writes back to `validation/manifest.json`
+  via an atomic rename (a crash mid-save can't corrupt the file).
+
+### Labeling workflow per swing
+
+1. Watch the swing once at normal speed to identify the stride pattern.
+2. Choose `stride_style` (radio): `no_stride` / `standard_stride` / `toe_tap`
+   / `leg_kick`.
+3. Step backward from contact frame-by-frame (`−1`) until you find the moment
+   the bat first touches the ball. Click `📌 Set contact_frame = <current>`.
+4. Step backward again until the front foot has truly settled. **For toe-tap
+   swings, scrub past the toe-tap touch — the final plant comes after the
+   second lift.** Click `📌 Set final_plant_frame = <current>`.
+5. (Optional) Mark `rotation_onset_frame` — the first frame where you can
+   see the hips begin to fire.
+6. Add a note if anything was ambiguous.
+7. Click **💾 SAVE LABELS**. Confirmation balloons + green banner indicate the
+   manifest was written.
+8. Pick the next swing from the sidebar.
+
+### What if a swing has no video yet?
+
+The labeling tool only shows entries with a resolvable `video_path`. If you
+need to add swings, edit `validation/manifest.json` directly:
+
+```json
+{
+  "id": "my_swing_001",
+  "video_path": "uploads_streamlit/my_swing_001.mp4",
+  "handedness": "RIGHT",
+  "ground_truth": {
+    "stride_style": "toe_tap",
+    "final_plant_frame": null,
+    "contact_frame": null,
+    "rotation_onset_frame": null,
+    "camera_view": "profile",
+    "real_time": true
+  },
+  "notes": "",
+  "labeled_by": "",
+  "labeled_at": ""
+}
+```
+
+Then refresh the labeling tool — the new entry appears in the sidebar.
 
 ## Adding swings to the manifest
 
