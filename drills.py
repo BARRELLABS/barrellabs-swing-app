@@ -634,12 +634,80 @@ def _narrate_timing_cat(timing_gaps, ref_name):
     return [first, why, fix]
 
 
+def _narrate_sequencing(gaps_in_cat, ref_name):
+    """Power Sequence M1 narrative — hip → shoulder lag."""
+    first = (
+        f"Your kinematic chain isn't firing in order. The hips and the "
+        f"upper body need to fire on a delay — pelvis first, torso a "
+        f"split-second later — to transfer energy efficiently into the bat."
+    )
+    why = (
+        f"When the shoulders fire AT THE SAME TIME as the hips (or before "
+        f"them), the upper body never gets to amplify what the lower body "
+        f"started. {ref_name} sequences the chain — hips snap, then "
+        f"shoulders ride the snap. That's where the bat speed comes from."
+    )
+    fix = (
+        "What the fix feels like: hips lead, hands wait. Start the swing "
+        "with the back hip, then let the shoulders react to what the hips "
+        "did — not initiate alongside them."
+    )
+    return [first, why, fix]
+
+
+def _narrate_rotational_speed(gaps_in_cat, ref_name):
+    """Power Sequence M2 narrative — hip angular velocity."""
+    first = (
+        f"You're getting through the swing but not at top speed. The "
+        f"hips are rotating, just not violently enough to drive elite "
+        f"bat speed."
+    )
+    why = (
+        f"Peak hip rotational speed is the rotational analog of how hard "
+        f"you can throw a ball — it's a measurable physical quality you "
+        f"train. {ref_name} pulls the trigger faster, which is why the "
+        f"barrel arrives with the kind of speed defenses can't catch up to."
+    )
+    fix = (
+        "What the fix feels like: short and violent, not long and smooth. "
+        "Med-ball rotational throws teach the body to RECRUIT power into "
+        "the rotation rather than glide through it."
+    )
+    return [first, why, fix]
+
+
+def _narrate_front_side_stability(gaps_in_cat, ref_name):
+    """Power Sequence M3 narrative — early shoulder fly-out."""
+    first = (
+        f"Your front shoulder is opening up too early — before the front "
+        f"foot has finished planting. That kills the storage of torque "
+        f"between hips and shoulders."
+    )
+    why = (
+        f"When the shoulders pre-open, the entire upper-body \"slingshot\" "
+        f"effect is gone — the hips and shoulders end up firing together "
+        f"and the bat has to catch up to a swing that already happened. "
+        f"{ref_name} keeps the front shoulder pointed at the pitcher "
+        f"until AFTER the front foot is down."
+    )
+    fix = (
+        "What the fix feels like: chin to back shoulder, chest pointed at "
+        "the catcher until you can't help but turn. Closed-shoulder tee "
+        "work with a noodle across the chest gives the body the cue."
+    )
+    return [first, why, fix]
+
+
 _CATEGORY_NARRATORS = {
-    "head_stability": _narrate_head_stability,
-    "hip_rotation": _narrate_hip_rotation,
-    "hip_shoulder_separation": _narrate_separation,
-    "knee_extension": _narrate_knee,
-    "timing": _narrate_timing_cat,
+    "head_stability":           _narrate_head_stability,
+    "hip_rotation":             _narrate_hip_rotation,
+    "hip_shoulder_separation":  _narrate_separation,
+    "knee_extension":           _narrate_knee,
+    "timing":                   _narrate_timing_cat,
+    # Power Sequence (new):
+    "sequencing":               _narrate_sequencing,
+    "rotational_speed":         _narrate_rotational_speed,
+    "front_side_stability":     _narrate_front_side_stability,
 }
 
 _CATEGORY_TITLES = {
