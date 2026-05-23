@@ -75,6 +75,7 @@ def _profile_from_row(row: dict) -> dict:
         # Body / metadata
         "height_in":   row.get("height_in"),
         "weight_lb":   row.get("weight_lb"),
+        "birth_year":  row.get("birth_year"),
         "team":        row.get("team"),
         "position":    row.get("position"),
         "throws":      row.get("throws"),
@@ -386,7 +387,7 @@ def current_profile() -> Optional[dict]:
 #  Update profile
 # --------------------------------------------------------------------
 ALLOWED_PROFILE_UPDATES = {
-    "name", "handedness", "height_in", "weight_lb",
+    "name", "handedness", "height_in", "weight_lb", "birth_year",
     "team", "position", "throws", "level", "primary_goal",
     "profile_pic_path",
     "locked_mlb_slug",
