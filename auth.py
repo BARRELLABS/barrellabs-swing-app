@@ -42,6 +42,8 @@ def _fetch_player_row(user_id: str) -> Optional[dict]:
             sb.table("players")
               .select("*")
               .eq("user_id", user_id)
+              .is_("removed_at", "null")          # never restore a removed profile
+              .order("created_at", desc=False)    # deterministic: oldest = the owner
               .limit(1)
               .execute()
         )
@@ -342,6 +344,9 @@ def sign_in(email: str, password: str) -> dict:
 
     profile = _profile_from_row(row)
     st.session_state["player"] = profile
+    # A fresh login must re-evaluate the household picker, even if a stale
+    # _profile_picked lingered in this browser tab's session.
+    st.session_state.pop("_profile_picked", None)
     return profile
 
 

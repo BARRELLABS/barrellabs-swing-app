@@ -1192,7 +1192,8 @@ if st.session_state.get("_session_expired"):
             _clear_sess()
         except Exception:
             pass
-        for _k in ("user", "player", "supabase_session", "auth_user",
+        for _k in ("user", "player", "_profile_picked", "_action",
+                   "supabase_session", "auth_user",
                    "_session_expired", "page", "view",
                    "view_swing_path", "view_swing_record"):
             st.session_state.pop(_k, None)
@@ -3598,7 +3599,11 @@ def _go_logout():
         sign_out()
     except Exception:
         pass
-    st.session_state.pop("user", None)
+    # Clear the active profile + the picker flag too, so logging into a
+    # DIFFERENT household in the same browser re-shows "Who's training?"
+    # instead of inheriting the previous session's picked state.
+    for _k in ("user", "player", "_profile_picked", "_action"):
+        st.session_state.pop(_k, None)
 
 
 # Determine active item (used for highlight glow)
