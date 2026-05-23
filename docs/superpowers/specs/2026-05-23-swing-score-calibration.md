@@ -90,3 +90,27 @@ Age **percentiles** (v1 is compliance-only), "The Climb" history view, pro-libra
 ## Verification status
 - Full suite: **435 passed, 1 skipped** (`pytest tests/ -q`).
 - Headless render: new two-system report HTML builds cleanly (Match reveal + Swing Score pillars + confidence badge + filming guide + "what you did well").
+
+---
+
+## Addendum (2026-05-23) — Real-video calibration + reliability tune
+
+Ran 5 **real amateur swing clips** end-to-end (detect_phases → analyze), not just the frozen pro fingerprints. Findings drove a confidence-model tune.
+
+**Finding:** Sequence (hips-lead) and Stride (front-leg brace) read near-zero on real single-camera phone video even for decent swings — they are the intrinsically noisy metrics (per biomech verification). At full confidence they unfairly tanked the Swing Score.
+
+**Tune:** added `_PILLAR_RELIABILITY` structural ceilings in `analyzer.py` — Sequence & Stride capped at **0.5** confidence (count half as much), Stability & Timing stay **1.0**. A low/zero read on the noisy pillars now drags the score far less; the grade leans on what phone video measures reliably.
+
+**Effect (real clips, age 13), before → after:**
+
+| Clip | Before | After | Moves like (match%) |
+|------|:--:|:--:|------|
+| IMG_9005 | 76 | 79 | Kyle Tucker (35%) |
+| MarioTSwing | 68 | 79 | Kyle Schwarber (48%) |
+| IMG_8608 | 61 | 74 | Mookie Betts (51%) |
+| IMG_8436 | 49 | 64 | Aaron Judge (14%) |
+| My_swing | 43 | 52 | Aaron Judge (13%) |
+
+Genuinely strong swings barely move (76→79); the clip with a real timing weakness stays lowest (52). Age-fairness confirmed live: IMG_8436 scores 70 @ age 9 → 64 @ age 15 on identical mechanics.
+
+**Residual:** these are real *amateur* clips, not verified-age youth; the absolute ceiling (0.5) is a tunable judgment call. Sequence/Stride remain the metrics to improve (or sensor-source) long-term.
