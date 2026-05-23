@@ -1,14 +1,15 @@
 """family_storage — Household / Family Pro data layer.
 
 These tests run without a real Supabase connection. The module must
-fall back to None / empty / False when the schema doesn't exist or
-when the Supabase client isn't configured — that's the v1 contract
-that lets us ship the dashboard before the migration is applied.
+fall back to None / empty / False when auth is unavailable or when the
+user is on a single-seat plan — that's the v1 contract that lets us
+ship the dashboard before the migration is applied.
 """
 
 from __future__ import annotations
 
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -17,31 +18,83 @@ PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT))
 
 
-class TestSafeFallback:
-    """If the schema isn't migrated yet, queries gracefully return empty."""
+def _make_auth_stub(seats=1, players=None):
+    """Build a minimal auth stub for monkeypatching."""
+    return types.SimpleNamespace(
+        current_household_seats=lambda: seats,
+        list_household_players=lambda uid: players or [],
+        create_household_player=lambda name, handedness="RIGHT", position=None, is_minor=True: {
+            "ok": True, "player": {"id": "new-p", "name": name}
+        },
+        remove_household_player=lambda pid: {"ok": True},
+    )
 
-    def test_load_family_for_user_returns_none_when_unmigrated(self, monkeypatch):
+
+class TestSafeFallback:
+    """Single-seat plans and empty user IDs return None / empty / False."""
+
+    def test_load_family_for_user_returns_none_for_single_seat(self, monkeypatch):
         import family_storage
-        monkeypatch.setattr(family_storage, "_supabase_query_safe",
-                            lambda *a, **k: ("schema_missing", None))
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=1))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
         assert family_storage.load_family_for_user("any-uuid") is None
 
-    def test_list_members_returns_empty_when_unmigrated(self, monkeypatch):
+    def test_load_family_for_user_returns_dict_for_multi_seat(self, monkeypatch):
         import family_storage
-        monkeypatch.setattr(family_storage, "_supabase_query_safe",
-                            lambda *a, **k: ("schema_missing", None))
-        assert family_storage.list_members("any-family-id") == []
-
-    def test_is_family_pro_member_false_when_unmigrated(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=4))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
         import family_storage
-        monkeypatch.setattr(family_storage, "_supabase_query_safe",
-                            lambda *a, **k: ("schema_missing", None))
-        assert family_storage.is_family_pro_member("any-uuid") is False
+        result = family_storage.load_family_for_user("uid-123")
+        assert result is not None
+        assert result["max_seats"] == 4
+        assert result["id"] == "uid-123"
 
     def test_load_family_empty_user_id(self):
         import family_storage
         assert family_storage.load_family_for_user("") is None
         assert family_storage.load_family_for_user(None) is None
+
+    def test_is_family_pro_member_false_when_single_seat(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=1))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
+        assert family_storage.is_family_pro_member("any-uuid") is False
+
+    def test_is_family_pro_member_true_when_multi_seat(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=4))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
+        assert family_storage.is_family_pro_member("uid-123") is True
+
+    def test_list_members_maps_profiles_to_member_dicts(self, monkeypatch):
+        players = [
+            {"id": "p1", "name": "Jake", "position": "SS", "handedness": "RIGHT"},
+            {"id": "p2", "name": "Mia", "position": "CF", "handedness": "LEFT"},
+        ]
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=4, players=players))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
+        members = family_storage.list_members("uid-123")
+        assert len(members) == 2
+        # First profile is owner
+        assert members[0]["role"] == "owner"
+        assert members[1]["role"] == "member"
+        assert members[0]["display_name"] == "Jake"
+        assert members[1]["display_name"] == "Mia"
+        assert members[0]["invite_status"] == "active"
+
+    def test_list_members_returns_empty_when_no_profiles(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "auth", _make_auth_stub(seats=4, players=[]))
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
+        assert family_storage.list_members("uid-123") == []
 
 
 class TestComputeMemberSummary:
@@ -121,67 +174,70 @@ class TestComputeMemberSummary:
 
 
 class TestAddMember:
-    """Adding a member: seat cap, email validation, token generation."""
+    """Adding a member delegates to auth.create_household_player."""
 
-    def test_invalid_email_rejected(self):
+    def test_add_member_delegates_to_auth(self, monkeypatch):
+        called = {}
+
+        def _create(name, handedness="RIGHT", position=None, is_minor=True):
+            called["name"] = name
+            called["is_minor"] = is_minor
+            return {"ok": True, "player": {"id": "new-p", "name": name}}
+
+        auth_stub = types.SimpleNamespace(
+            current_household_seats=lambda: 4,
+            list_household_players=lambda uid: [],
+            create_household_player=_create,
+            remove_household_player=lambda pid: {"ok": True},
+        )
+        monkeypatch.setitem(sys.modules, "auth", auth_stub)
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
         import family_storage
-        result = family_storage.add_member("f1", "")
-        assert result["ok"] is False
-
-        result = family_storage.add_member("f1", "no-at-sign")
-        assert result["ok"] is False
-
-    def test_seat_cap_surfaced_from_rpc_error(self, monkeypatch):
-        """Seat cap is enforced server-side by invite_subscription_seat
-        (reads plans.seats). When the RPC raises the 'seats are in use'
-        error, add_member maps it to a friendly message."""
-        import family_storage
-
-        class _FakeRpc:
-            def execute(self):
-                raise RuntimeError("invite_subscription_seat: all 4 seats are in use")
-
-        class _FakeClient:
-            def rpc(self, *a, **k):
-                return _FakeRpc()
-
-        monkeypatch.setattr(family_storage, "_get_client", lambda: _FakeClient())
-        result = family_storage.add_member("sub1", "new@example.com")
-        assert result["ok"] is False
-        assert "full" in result["error"].lower()
-
-    def test_under_cap_succeeds_in_stub_mode(self, monkeypatch):
-        """With no Supabase client, add_member returns a stub success
-        with the invite token (so the dashboard can show it inline)."""
-        import family_storage
-        monkeypatch.setattr(family_storage, "_get_client", None)
-        result = family_storage.add_member("sub1", "kid@example.com")
+        result = family_storage.add_member("uid-123", name="Jake", is_minor=True)
         assert result["ok"] is True
-        assert len(result["invite_token"]) >= 32
+        assert called["name"] == "Jake"
+        assert called["is_minor"] is True
+
+    def test_add_member_uses_display_name_when_name_empty(self, monkeypatch):
+        called = {}
+
+        def _create(name, handedness="RIGHT", position=None, is_minor=True):
+            called["name"] = name
+            return {"ok": True}
+
+        auth_stub = types.SimpleNamespace(
+            current_household_seats=lambda: 4,
+            list_household_players=lambda uid: [],
+            create_household_player=_create,
+            remove_household_player=lambda pid: {"ok": True},
+        )
+        monkeypatch.setitem(sys.modules, "auth", auth_stub)
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
+        import family_storage
+        family_storage.add_member("uid-123", name="", display_name="Mia")
+        assert called["name"] == "Mia"
 
 
 class TestRemoveMember:
-    def test_missing_id_returns_error(self):
-        import family_storage
-        result = family_storage.remove_member("")
-        assert result["ok"] is False
+    def test_remove_member_delegates_to_auth(self, monkeypatch):
+        called = {}
 
-    def test_stub_mode_success(self, monkeypatch):
+        def _remove(pid):
+            called["pid"] = pid
+            return {"ok": True}
+
+        auth_stub = types.SimpleNamespace(
+            current_household_seats=lambda: 4,
+            list_household_players=lambda uid: [],
+            create_household_player=lambda *a, **k: {"ok": True},
+            remove_household_player=_remove,
+        )
+        monkeypatch.setitem(sys.modules, "auth", auth_stub)
+        if "family_storage" in sys.modules:
+            del sys.modules["family_storage"]
         import family_storage
-        monkeypatch.setattr(family_storage, "_get_client", None)
-        result = family_storage.remove_member("fm1")
+        result = family_storage.remove_member("p-abc")
         assert result["ok"] is True
-
-
-class TestClaimInvite:
-    def test_missing_args_returns_error(self):
-        import family_storage
-        assert family_storage.claim_invite("", "uid")["ok"] is False
-        assert family_storage.claim_invite("token", "")["ok"] is False
-
-    def test_stub_mode_no_db_returns_error(self, monkeypatch):
-        """Claim requires a real DB — stub mode is read-only error."""
-        import family_storage
-        monkeypatch.setattr(family_storage, "_get_client", None)
-        result = family_storage.claim_invite("tok123", "user1")
-        assert result["ok"] is False
+        assert called["pid"] == "p-abc"
