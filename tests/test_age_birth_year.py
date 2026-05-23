@@ -10,7 +10,7 @@ def test_typical_birth_year():
 def test_uses_current_year_by_default():
     # Just assert it returns a plausible int, not the exact value (clock-dependent).
     out = age_from_birth_year(2010)
-    assert isinstance(out, int) and 5 <= out <= 30
+    assert isinstance(out, int) and 5 <= out <= 25
 
 def test_none_returns_none():
     assert age_from_birth_year(None, today_year=2026) is None
@@ -28,3 +28,12 @@ def test_implausible_year_returns_none():
     # A 4-digit year that yields an absurd age is rejected (typo guard).
     assert age_from_birth_year(1500, today_year=2026) is None
     assert age_from_birth_year(2030, today_year=2026) is None  # future
+
+def test_boundary_ages_inclusive():
+    # age == 4 and age == 25 are the inclusive valid edges.
+    assert age_from_birth_year(2022, today_year=2026) == 4
+    assert age_from_birth_year(2001, today_year=2026) == 25
+
+def test_just_outside_boundaries_rejected():
+    assert age_from_birth_year(2023, today_year=2026) is None  # age 3
+    assert age_from_birth_year(2000, today_year=2026) is None  # age 26
