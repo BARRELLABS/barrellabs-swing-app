@@ -28,7 +28,16 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-from bl_theme import inject_global_theme
+from bl_theme import (
+    inject_global_theme,
+    BL_RED,
+    BL_GOLD,
+    BL_POSITIVE,
+    BL_NEGATIVE,
+    BL_SECONDARY,
+    BL_FONT_SANS,
+    BL_FONT_MONO,
+)
 from bl_edge_chrome import render_edge_masthead
 from player_storage import load_swing_history
 
@@ -47,7 +56,7 @@ _HC_LOCAL_CSS = """
     padding: 2.2rem 2.4rem 2.4rem;
     border-radius: var(--bl-radius-xl);
     background: linear-gradient(160deg,
-                rgba(255,59,48,0.08) 0%,
+                rgba(230,69,48,0.08) 0%,
                 rgba(255,255,255,0.025) 38%,
                 rgba(255,255,255,0.015) 100%);
     border: 1px solid var(--bl-line);
@@ -59,7 +68,7 @@ _HC_LOCAL_CSS = """
     position: absolute;
     top: -120px; right: -160px;
     width: 420px; height: 420px;
-    background: radial-gradient(circle, rgba(255,59,48,0.18), transparent 65%);
+    background: radial-gradient(circle, rgba(230,69,48,0.18), transparent 65%);
     filter: blur(60px);
     pointer-events: none;
 }
@@ -77,12 +86,13 @@ _HC_LOCAL_CSS = """
     margin-bottom: 0.85rem;
 }
 .hc-title {
-    font-family: var(--bl-sans);
-    font-size: 2.2rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-family: var(--bl-serif);
+    font-style: italic;
+    font-size: 2.8rem;
+    font-weight: 400;
+    letter-spacing: -0.015em;
     color: var(--bl-ink-100);
-    line-height: 1.05;
+    line-height: 1.04;
     margin-bottom: 0.65rem;
 }
 .hc-sub {
@@ -98,8 +108,8 @@ _HC_LOCAL_CSS = """
     font-weight: 600;
     letter-spacing: 0.22em;
     color: var(--bl-red);
-    background: rgba(255,59,48,0.08);
-    border: 1px solid rgba(255,59,48,0.22);
+    background: rgba(230,69,48,0.08);
+    border: 1px solid rgba(230,69,48,0.22);
     border-radius: 999px;
     padding: 0.42rem 0.85rem;
     text-transform: uppercase;
@@ -135,25 +145,25 @@ _HC_LOCAL_CSS = """
     background: currentColor;
 }
 .hc-badge.is-pb {
-    color: #FFD479;
-    background: rgba(255,212,121,0.06);
-    border-color: rgba(255,212,121,0.32);
-    box-shadow: 0 0 18px -8px rgba(255,212,121,0.5);
+    color: var(--bl-gold);
+    background: rgba(232,193,112,0.06);
+    border-color: rgba(232,193,112,0.32);
+    box-shadow: 0 0 18px -8px rgba(232,193,112,0.5);
 }
 .hc-badge.is-up {
-    color: #46d160;
-    background: rgba(70,209,96,0.06);
-    border-color: rgba(70,209,96,0.32);
+    color: var(--bl-gold);
+    background: rgba(232,193,112,0.06);
+    border-color: rgba(232,193,112,0.32);
 }
 .hc-badge.is-above {
     color: var(--bl-red);
-    background: rgba(255,59,48,0.06);
-    border-color: rgba(255,59,48,0.30);
+    background: rgba(230,69,48,0.06);
+    border-color: rgba(230,69,48,0.30);
 }
 .hc-badge.is-streak {
-    color: #6cc1ff;
-    background: rgba(108,193,255,0.06);
-    border-color: rgba(108,193,255,0.30);
+    color: var(--bl-ink-80);
+    background: rgba(200,196,187,0.06);
+    border-color: rgba(200,196,187,0.30);
 }
 
 /* ===========  KPI STRIP  =========== */
@@ -196,8 +206,8 @@ _HC_LOCAL_CSS = """
     line-height: 1.05;
 }
 .hc-stat-value.is-red   { color: var(--bl-red); }
-.hc-stat-value.is-gold  { color: #FFD479; }
-.hc-stat-value.is-up    { color: #46d160; }
+.hc-stat-value.is-gold  { color: var(--bl-gold); }
+.hc-stat-value.is-up    { color: var(--bl-gold); }
 .hc-stat-value.is-down  { color: var(--bl-red); }
 .hc-stat-foot {
     margin-top: 0.5rem;
@@ -274,7 +284,7 @@ _HC_LOCAL_CSS = """
 .hc-controls-card [data-testid="stCheckbox"] [data-baseweb="checkbox"][aria-checked="true"] div[role="checkbox"] {
     background: var(--bl-red) !important;
     border-color: var(--bl-red) !important;
-    box-shadow: 0 0 8px rgba(255,59,48,0.4) !important;
+    box-shadow: 0 0 8px rgba(230,69,48,0.4) !important;
 }
 
 /* ===========  CHART CARD  =========== */
@@ -317,8 +327,8 @@ _HC_LOCAL_CSS = """
     color: var(--bl-ink-60);
     white-space: nowrap;
 }
-.hc-chart-trend.is-up   { color: #46d160; border-color: rgba(70,209,96,0.32); background: rgba(70,209,96,0.06); }
-.hc-chart-trend.is-down { color: var(--bl-red); border-color: rgba(255,59,48,0.32); background: rgba(255,59,48,0.06); }
+.hc-chart-trend.is-up   { color: var(--bl-gold); border-color: rgba(232,193,112,0.32); background: rgba(232,193,112,0.06); }
+.hc-chart-trend.is-down { color: var(--bl-red); border-color: rgba(230,69,48,0.32); background: rgba(230,69,48,0.06); }
 
 /* ===========  INSIGHTS CARD  =========== */
 .hc-insights {
@@ -342,9 +352,9 @@ _HC_LOCAL_CSS = """
     border-radius: 999px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 0.95rem; font-weight: 700;
-    background: rgba(255,59,48,0.08);
+    background: rgba(230,69,48,0.08);
     color: var(--bl-red);
-    border: 1px solid rgba(255,59,48,0.25);
+    border: 1px solid rgba(230,69,48,0.25);
 }
 .hc-insight-text {
     flex: 1;
@@ -397,7 +407,7 @@ _HC_LOCAL_CSS = """
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
-.hc-table-num.is-up   { color: #46d160; }
+.hc-table-num.is-up   { color: var(--bl-gold); }
 .hc-table-num.is-down { color: var(--bl-red); }
 .hc-table-num.is-strong { color: var(--bl-ink-100); font-weight: 600; }
 
@@ -421,8 +431,8 @@ _HC_LOCAL_CSS = """
     transition: border-color .25s ease, background .25s ease;
 }
 .hc-milestone.is-done {
-    border-color: rgba(70,209,96,0.32);
-    background: linear-gradient(180deg, rgba(70,209,96,0.04), rgba(255,255,255,0.012) 70%);
+    border-color: rgba(232,193,112,0.32);
+    background: linear-gradient(180deg, rgba(232,193,112,0.04), rgba(255,255,255,0.012) 70%);
 }
 .hc-milestone-icon {
     width: 40px; height: 40px;
@@ -434,9 +444,9 @@ _HC_LOCAL_CSS = """
     font-size: 1.05rem;
 }
 .hc-milestone.is-done .hc-milestone-icon {
-    background: rgba(70,209,96,0.10);
-    border-color: rgba(70,209,96,0.42);
-    color: #46d160;
+    background: rgba(232,193,112,0.10);
+    border-color: rgba(232,193,112,0.42);
+    color: var(--bl-gold);
 }
 .hc-milestone-body { min-width: 0; }
 .hc-milestone-title {
@@ -463,9 +473,9 @@ _HC_LOCAL_CSS = """
     text-transform: uppercase;
 }
 .hc-milestone.is-done .hc-milestone-status {
-    color: #46d160;
-    background: rgba(70,209,96,0.07);
-    border-color: rgba(70,209,96,0.32);
+    color: var(--bl-gold);
+    background: rgba(232,193,112,0.07);
+    border-color: rgba(232,193,112,0.32);
 }
 
 /* ===========  QUICK-OPEN REPORT ROWS  =========== */
@@ -517,9 +527,9 @@ _HC_LOCAL_CSS = """
     transition: all .25s ease !important;
 }
 .hc-back .stButton > button:hover {
-    border-color: rgba(255,59,48,0.35) !important;
+    border-color: rgba(230,69,48,0.35) !important;
     color: var(--bl-red) !important;
-    background: rgba(255,59,48,0.05) !important;
+    background: rgba(230,69,48,0.05) !important;
     transform: translateX(-2px);
 }
 
@@ -645,7 +655,7 @@ def _style_plotly(fig: go.Figure, y_title: str) -> go.Figure:
         height=460,
         margin=dict(l=10, r=10, t=10, b=40),
         font=dict(
-            family="Inter, -apple-system, system-ui, sans-serif",
+            family=BL_FONT_SANS,
             color="rgba(255,255,255,0.78)",
             size=12,
         ),
@@ -663,8 +673,8 @@ def _style_plotly(fig: go.Figure, y_title: str) -> go.Figure:
         ),
         hoverlabel=dict(
             bgcolor="rgba(10,10,12,0.95)",
-            bordercolor="rgba(255,59,48,0.35)",
-            font=dict(family="Inter, system-ui, sans-serif", color="#fafafa", size=12),
+            bordercolor="rgba(230,69,48,0.35)",
+            font=dict(family=BL_FONT_SANS, color="#fafafa", size=12),
         ),
         showlegend=True,
         legend=dict(
@@ -993,10 +1003,10 @@ def render_historical_charts():
             x=chart_df["Analysis #"],
             y=chart_df[selected_metric],
             mode="lines+markers",
-            line=dict(color="rgba(255,59,48,0.95)", width=2.5, shape="spline", smoothing=0.7),
-            marker=dict(color="#FF3B30", size=8, line=dict(color="#0a0a0c", width=2)),
+            line=dict(color="rgba(230,69,48,0.95)", width=2.5, shape="spline", smoothing=0.7),
+            marker=dict(color=BL_RED, size=8, line=dict(color="#0a0a0c", width=2)),
             fill="tozeroy" if len(chart_df) >= 2 else None,
-            fillcolor="rgba(255,59,48,0.10)",
+            fillcolor="rgba(230,69,48,0.10)",
             hovertemplate=("<b>Analysis %{x}</b><br>" + f"{selected_metric}: " + "%{y:.2f}<extra></extra>"),
             name=selected_metric,
         ))
@@ -1009,12 +1019,12 @@ def render_historical_charts():
             fig.add_trace(go.Scatter(
                 x=[pb_x], y=[pb_y],
                 mode="markers+text",
-                marker=dict(color="#FFD479", size=14, symbol="star",
+                marker=dict(color=BL_GOLD, size=14, symbol="star",
                             line=dict(color="#0a0a0c", width=2)),
                 text=["PB"],
                 textposition="top center",
-                textfont=dict(size=10, color="#FFD479",
-                              family="JetBrains Mono, ui-monospace, monospace"),
+                textfont=dict(size=10, color=BL_GOLD,
+                              family=BL_FONT_MONO),
                 hovertemplate=f"<b>Personal Best</b><br>{selected_metric}: {pb_y:.2f}<extra></extra>",
                 name="Personal Best",
                 showlegend=False,
@@ -1042,18 +1052,18 @@ def render_historical_charts():
                 x=cmp_df["Analysis #"],
                 y=cmp_df[compare_metric],
                 mode="lines+markers",
-                line=dict(color="rgba(108,193,255,0.85)", width=2, shape="spline", smoothing=0.5),
-                marker=dict(color="#6cc1ff", size=6, line=dict(color="#0a0a0c", width=1.5)),
+                line=dict(color="rgba(200,196,187,0.85)", width=2, shape="spline", smoothing=0.5),
+                marker=dict(color=BL_SECONDARY, size=6, line=dict(color="#0a0a0c", width=1.5)),
                 hovertemplate=("<b>Analysis %{x}</b><br>" + f"{compare_metric}: " + "%{y:.2f}<extra></extra>"),
                 yaxis="y2",
                 name=compare_metric,
             ))
             fig.update_layout(yaxis2=dict(
                 overlaying="y", side="right",
-                gridcolor="rgba(108,193,255,0.05)",
-                zerolinecolor="rgba(108,193,255,0.1)",
-                title=dict(text=compare_metric.upper(), font=dict(size=10, color="rgba(108,193,255,0.55)")),
-                tickfont=dict(size=11, color="rgba(108,193,255,0.6)"),
+                gridcolor="rgba(200,196,187,0.05)",
+                zerolinecolor="rgba(200,196,187,0.1)",
+                title=dict(text=compare_metric.upper(), font=dict(size=10, color="rgba(200,196,187,0.55)")),
+                tickfont=dict(size=11, color="rgba(200,196,187,0.6)"),
             ))
 
     _style_plotly(fig, selected_metric)
@@ -1065,7 +1075,7 @@ def render_historical_charts():
         last_v = _fmt_value(last_val)
         delta_v = _fmt_value(delta_val)
         sign = "+" if (delta_val is not None and delta_val >= 0) else ""
-        delta_color = "color:#46d160;" if (delta_val is not None and delta_val >= 0) else "color:#FF3B30;"
+        delta_color = f"color:{BL_POSITIVE};" if (delta_val is not None and delta_val >= 0) else f"color:{BL_NEGATIVE};"
         summary_row = (
             '<div style="display:flex;gap:2.2rem;flex-wrap:wrap;padding:0.3rem 0.2rem 0.4rem;">'
             '<div>'
@@ -1360,7 +1370,44 @@ def render_historical_charts():
     with st.expander("View Raw Data Table", expanded=False):
         # Drop the internal _dt parsing column from the user-facing table.
         display_df = df.drop(columns=["_dt"]) if "_dt" in df.columns else df
-        st.dataframe(display_df, width="stretch")
+        # Show the most-recent 25 analyses (mirrors the comparison table cap).
+        display_df = display_df.tail(25).iloc[::-1]
+
+        def _fmt_cell(v) -> str:
+            if v is None or (isinstance(v, float) and pd.isna(v)):
+                return "—"
+            if isinstance(v, (int, float)):
+                return _fmt_value(v)
+            return str(v)
+
+        cols = list(display_df.columns)
+        head_cells = "".join(
+            f'<th style="padding:0.7rem 1.1rem;text-align:left;white-space:nowrap;'
+            f'font-family:var(--bl-mono);font-size:0.56rem;font-weight:600;'
+            f'letter-spacing:0.18em;color:var(--bl-ink-40);text-transform:uppercase;">'
+            f'{c}</th>'
+            for c in cols
+        )
+        body_rows = []
+        for _, rec in display_df.iterrows():
+            cells = "".join(
+                f'<td style="padding:0.65rem 1.1rem;white-space:nowrap;'
+                f'font-family:var(--bl-sans);font-size:0.88rem;color:var(--bl-ink-80);'
+                f'font-variant-numeric:tabular-nums;border-top:1px solid var(--bl-line);">'
+                f'{_fmt_cell(rec[c])}</td>'
+                for c in cols
+            )
+            body_rows.append(f'<tr>{cells}</tr>')
+
+        raw_table_html = (
+            '<div class="hc-table-wrap" style="overflow-x:auto;margin-bottom:0;">'
+            '<table style="width:100%;border-collapse:collapse;">'
+            f'<thead><tr style="background:rgba(255,255,255,0.015);">{head_cells}</tr></thead>'
+            f'<tbody>{"".join(body_rows)}</tbody>'
+            '</table>'
+            '</div>'
+        )
+        st.markdown(raw_table_html, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)  # close .bl-page

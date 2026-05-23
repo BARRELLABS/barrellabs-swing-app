@@ -2,18 +2,13 @@
 
 Why this file exists
 --------------------
-The live Premium Swing Report (`swing_report_v2.py`) ships a self-contained
-`bld2-*` visual language that no longer matches the BarrelLabs Edge dashboard.
-This module is a **preview-only** alternative renderer that visually
-matches the Edge design system so we can do design approval BEFORE
-touching the production report route.
+The earlier Premium Swing Report renderer shipped a self-contained
+`bld2-*` visual language that no longer matched the BarrelLabs Edge dashboard.
+This module is the renderer that visually matches the Edge design system.
 
 It is intentionally:
-  * Side-by-side with v2 — does NOT replace it.
-  * Wired only behind `?page=swing_report_preview` (or session_state
-    page key of the same name). Production Open Report is unaffected.
   * A pure presentational layer — it reuses data extraction helpers
-    from `swing_report` / `swing_report_v2` and never touches the
+    from `swing_report` / `swing_metrics` and never touches the
     analyzer, scoring, billing, or auth pipelines.
   * Self-contained CSS under the `srd-*` namespace (swing-report-dashboard)
     so it cannot leak into `bld2-*` or `bl-*` rules.
@@ -49,7 +44,7 @@ from swing_report import (
     swing_progress,
     enrich_fixes_with_history,
 )
-from swing_report_v2 import (
+from swing_metrics import (
     _flatten_metric_table,
     _find_metric_row,
     _compute_key_metrics,
