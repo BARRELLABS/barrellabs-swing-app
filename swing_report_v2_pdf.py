@@ -1,14 +1,14 @@
 """BarrelLabs Swing Report — v2 PDF renderer.
 
-Mirrors the on-screen v2 layout (`swing_report_v2.py`) in a dark-theme
+Mirrors the on-screen v2 layout in a dark-theme
 ReportLab PDF: hero with score ring + coach blurb, MLB comp card, 4 key
 metric tiles with mini sparklines, 5-axis radar, detailed mechanic
 breakdown, top priorities, drill plan, score-history line chart, next
 step CTA, and full coach notes.
 
-Imported and dispatched from `swing_report.build_swing_report_pdf` when
-`USE_V2_PDF` is True. The legacy light-theme v1 body remains in
-`swing_report.py` as a safety fallback.
+Imported and dispatched from `swing_report.build_swing_report_pdf`,
+which now delegates here unconditionally (the legacy light-theme v1
+PDF body has been retired).
 """
 
 from __future__ import annotations
@@ -31,8 +31,8 @@ from swing_report import (
     _initials,
 )
 
-# v2 web module provides the key-metric tile definitions + flatteners
-from swing_report_v2 import (
+# Shared metric helpers provide the key-metric tile definitions + flatteners
+from swing_metrics import (
     _V2_TILES,
     _flatten_metric_table,
     _find_metric_row,
@@ -68,7 +68,7 @@ def build_swing_report_pdf_v2(
     # section starts at the same distance from its header.
     SECTION_GAP = 20
 
-    # Dark palette — mirrors the bld2-* CSS variables in swing_report_v2.py
+    # Dark palette — mirrors the bld2-* CSS variables from the v2 web layout
     BG          = colors.HexColor("#0a0a0c")
     SURFACE_0   = colors.HexColor("#0f0f12")
     SURFACE_1   = colors.HexColor("#15151a")

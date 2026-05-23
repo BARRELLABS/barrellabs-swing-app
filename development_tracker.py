@@ -5391,11 +5391,11 @@ def _hero_metrics(saved_swing: dict, gm_state: dict | None,
     except Exception:
         pass
 
-    # ---- MLB match % (the underlying similarity calc lives in dashboard) ----
+    # ---- MLB match % (the underlying similarity calc lives in player_compare_utils) ----
     match_pct: str | int = "—"
     ref_name = ""
     try:
-        from dashboard import _similarity_pct, _pretty_player_name
+        from player_compare_utils import _similarity_pct, _pretty_player_name
         sim = _similarity_pct(saved_swing or {}) or 0
         if sim:
             match_pct = int(round(float(sim)))

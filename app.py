@@ -27,12 +27,9 @@ from reportlab.pdfgen import canvas
 
 from analyzer import analyze
 from bl_theme import inject_global_theme
-from dashboard import render_dashboard
-from dashboard_v2 import render_dashboard_v2
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
 from pricing import render_pricing_page
-from saved_reports import render_saved_reports  # noqa: F401  (legacy — kept for fallback)
 from saved_reports_dashboard import render_saved_reports_dashboard
 from swing_report import render_swing_report, build_swing_report_pdf
 from player_storage import (
@@ -2255,214 +2252,6 @@ def render_swing_practice_log(record: dict, player_id: str) -> None:
             status_col.error(f"Couldn't save: {e}")
 
 
-def render_saved_swing_report(record):
-    """Render an old saved swing report from JSON."""
-    # ============================================================
-    # SAVED REPORT PAGE — premium top strip
-    #
-    # Design intent:
-    #   The premium swing-report hero (rendered by render_swing_report
-    #   below) already shows the score ring, "SWING #N · DATE" eyebrow,
-    #   and "vs. {MLB comp}" title. So this preamble only has to:
-    #     1. Show the player the file/source they're viewing
-    #     2. Give navigation back to Dashboard / History / New Swing
-    #     3. Offer Download PDF + Print
-    #   Anything else creates duplicate header noise — which is what
-    #   the previous "## Swing #N Report" + caption combo did.
-    # ============================================================
-
-    # ---- 1. Slim context strip ----
-    swing_num = record.get("swing_number")
-    swing_eyebrow = f"SAVED REPORT · SWING #{swing_num}" if swing_num else "SAVED REPORT"
-    date_str = record.get("date", "Unknown date")
-    filename = record.get("filename", "Unknown file")
-
-    st.markdown(
-        f"""
-<style>
-  .bl-saved-strip {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: .9rem 1.2rem;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,.06);
-    background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.012));
-    margin: .25rem 0 1.1rem;
-  }}
-  .bl-saved-strip-left {{
-    display: flex;
-    flex-direction: column;
-    gap: .25rem;
-    min-width: 0;
-  }}
-  .bl-saved-strip-eyebrow {{
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: .62rem;
-    font-weight: 700;
-    letter-spacing: .22em;
-    color: #FF3B30;
-    text-transform: uppercase;
-  }}
-  .bl-saved-strip-detail {{
-    font-size: .82rem;
-    color: #9ca3af;
-    letter-spacing: -.005em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }}
-  .bl-saved-strip-detail code {{
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: .78rem;
-    background: rgba(255,255,255,.04);
-    color: #d4d4d4;
-    padding: .12rem .42rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,.06);
-    margin: 0 .15rem;
-  }}
-  .bl-saved-strip-pill {{
-    flex-shrink: 0;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: .58rem;
-    font-weight: 700;
-    letter-spacing: .2em;
-    text-transform: uppercase;
-    color: #fbbf24;
-    padding: .3rem .65rem;
-    border-radius: 999px;
-    border: 1px solid rgba(251,191,36,.32);
-    background: rgba(251,191,36,.06);
-  }}
-</style>
-<div class="bl-saved-strip">
-  <div class="bl-saved-strip-left">
-    <div class="bl-saved-strip-eyebrow">{swing_eyebrow}</div>
-    <div class="bl-saved-strip-detail">{date_str} · File <code>{filename}</code></div>
-  </div>
-  <div class="bl-saved-strip-pill">Analyzer Frozen</div>
-</div>
-        """.strip(),
-        unsafe_allow_html=True,
-    )
-
-    # ---- 2. Navigation row ----
-    nav1, nav2, nav3 = st.columns([1.2, 1.2, 1.4])
-
-    if nav1.button("← Back to Dashboard", width="stretch"):
-        st.session_state.pop("view_swing_path", None)
-        st.session_state.pop("view_swing_record", None)
-        st.session_state["page"] = "dashboard"
-        st.rerun()
-
-    if nav2.button("View Swing History", width="stretch"):
-        st.session_state.pop("view_swing_path", None)
-        st.session_state.pop("view_swing_record", None)
-        st.session_state["page"] = "saved_reports"
-        st.rerun()
-
-    if nav3.button("Analyze New Swing", width="stretch"):
-        st.session_state.pop("view_swing_path", None)
-        st.session_state.pop("view_swing_record", None)
-        st.session_state.upload_reset_id = st.session_state.get("upload_reset_id", 0) + 1
-        st.rerun()
-
-    # ---- 3. PDF history (silent fallback if anything goes wrong) ----
-    try:
-        _user_for_pdf = st.session_state.get("user")
-        _history_for_pdf = load_swing_history(_user_for_pdf["slug"]) if _user_for_pdf and _user_for_pdf.get("slug") else None
-    except Exception:
-        _history_for_pdf = None
-
-    # PDF export is a Pro feature. We still BUILD the bytes for Pro users
-    # but skip the expensive build for Free users (saves a few hundred ms
-    # per saved-report view). load_my_plan() is session-cached so it's
-    # effectively free to re-call here.
-    from entitlements import can_export_pdf as _can_export_pdf  # local import (page-scoped)
-    _pdf_allowed_live = bool(_can_export_pdf(load_my_plan()))
-    pdf_bytes = build_swing_report_pdf(record, history=_history_for_pdf) if _pdf_allowed_live else None
-
-    # ---- 4. Export bar — Download + Print sitting side by side ----
-    st.markdown(
-        '<div class="bl-export-bar" style="margin-top:.8rem;"></div>',
-        unsafe_allow_html=True,
-    )
-    exp_col1, exp_col2, _ = st.columns([1.4, 1.4, 3])
-    with exp_col1:
-        if _pdf_allowed_live and pdf_bytes is not None:
-            st.download_button(
-                "⬇  Download PDF Report",
-                data=pdf_bytes,
-                file_name=f"swing_report_{record.get('timestamp', 'saved')}.pdf",
-                mime="application/pdf",
-                width="stretch",
-                key=f"saved_report_dl_{record.get('id') or record.get('timestamp')}",
-            )
-        else:
-            if st.button(
-                "🔒  PDF — Upgrade",
-                width="stretch",
-                key=f"saved_report_dl_locked_{record.get('id') or record.get('timestamp')}",
-                help="PDF report export is a Pro feature.",
-            ):
-                st.toast(
-                    "PDF export is a Pro feature. Upgrade to Solo Pro "
-                    "(or redeem a beta code) to download reports.",
-                    icon="🔒",
-                )
-    with exp_col2:
-        # Print = trigger window.print() via a tiny JS payload injected
-        # as a Streamlit HTML component. Renders as a styled red ghost
-        # button matching the Download CTA.
-        st.markdown(
-            """
-            <button class="bl-print-btn" onclick="window.print();return false;">
-              🖨  Print Report
-            </button>
-            <style>
-            .bl-print-btn {
-                width: 100%;
-                background: transparent;
-                color: #fafafa;
-                border: 1px solid rgba(255,59,48,0.35);
-                border-radius: 999px;
-                padding: 0.62rem 1rem;
-                font-family: 'Inter', system-ui, sans-serif;
-                font-weight: 500;
-                font-size: 0.92rem;
-                letter-spacing: -0.005em;
-                cursor: pointer;
-                transition: background .22s ease, transform .22s ease, box-shadow .22s ease;
-            }
-            .bl-print-btn:hover {
-                background: rgba(255,59,48,0.08);
-                transform: translateY(-1px);
-                box-shadow: 0 6px 20px -10px rgba(255,59,48,0.6);
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    # Pull player history so the renderer can show the "vs. last swing"
-    # mini comparison. Falls back to None if anything goes sideways.
-    try:
-        _user = st.session_state.get("user")
-        _history = load_swing_history(_user["slug"]) if _user and _user.get("slug") else None
-    except Exception:
-        _history = None
-
-    _chart_path = record.get("_phase_chart_path")
-
-    render_swing_report(
-        record,
-        history=_history,
-        phase_chart_path=_chart_path,
-    )
-
-
 def _plan_feature_list(plan_id: str) -> list:
     """
     Return a list of (title, description) tuples describing what a plan
@@ -2911,7 +2700,7 @@ def _render_subscription_section():
                     from pricing import _streamlit_base_url
                     with st.spinner("Opening Stripe billing portal…"):
                         portal_url = create_portal_session(
-                            return_url=f"{_streamlit_base_url()}?view=settings",
+                            return_url=f"{_streamlit_base_url()}?page=player_settings",
                         )
                 except ValueError as ve:
                     st.error(str(ve))
@@ -2975,263 +2764,6 @@ def _render_subscription_section():
                     st.error("Something went wrong redeeming that code. Please try again.")
 
 
-def render_settings_page():
-    """
-    Full-page profile / settings editor. Activated by setting
-    st.session_state.view = "settings". Replaces the cramped sidebar
-    expander with proper room to breathe.
-    """
-    # ---- Header with back button + branded title ----
-    head_cols = st.columns([1, 5, 1])
-    if head_cols[0].button("← Back", width="stretch", key="settings_back_top"):
-        st.session_state.pop("view", None)
-        st.rerun()
-
-    head_cols[1].markdown(
-        """
-        <div style="text-align:center; padding:.2rem 0;">
-            <div style="color:#ef4444;font-size:.72rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:.4rem;">
-                Account &amp; Profile
-            </div>
-            <div style="font-size:2.1rem;font-weight:950;letter-spacing:-.04em;line-height:1.1;">
-                Player Settings
-            </div>
-            <div style="color:#9ca3af;font-size:.92rem;margin-top:.45rem;">
-                Update your info. These details help the analyzer build sharper MLB comparisons.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("<div style='margin-top:1.2rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SECTION: Profile picture
-    # ============================================================
-    with st.container(border=True):
-        st.markdown("#### Profile picture")
-        st.caption("Shown in the sidebar and on shared reports.")
-
-        pic_cols = st.columns([1, 2])
-
-        with pic_cols[0]:
-            profile_pic = get_profile_pic_path(user["slug"])
-            if profile_pic:
-                st.image(str(profile_pic), width=170)
-            else:
-                st.markdown(
-                    """
-                    <div style="width:170px;height:170px;border-radius:999px;background:#0f131b;border:1px solid #272a33;display:flex;align-items:center;justify-content:center;font-size:3.2rem;">
-                        👤
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-        with pic_cols[1]:
-            st.markdown(
-                "<div style='color:#9ca3af;font-size:.92rem;margin-top:.4rem;margin-bottom:.65rem;'>"
-                "PNG or JPG. A clean head-and-shoulders shot looks best."
-                "</div>",
-                unsafe_allow_html=True,
-            )
-            uploaded_pic = st.file_uploader(
-                "Choose a photo",
-                type=["png", "jpg", "jpeg"],
-                key="settings_profile_pic",
-                label_visibility="collapsed",
-            )
-            if uploaded_pic is not None:
-                ext = uploaded_pic.name.split(".")[-1].lower()
-                pic_path = PROFILE_PIC_DIR / f"{user['slug']}.{ext}"
-                with open(pic_path, "wb") as f:
-                    f.write(uploaded_pic.getbuffer())
-                st.success("Profile picture updated.")
-                st.rerun()
-
-    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SECTION: Identity
-    # ============================================================
-    with st.container(border=True):
-        st.markdown("#### Identity")
-        st.caption("Your name shows on swing reports. Your email is your login.")
-
-        id_cols = st.columns(2)
-        new_name = id_cols[0].text_input(
-            "Full name",
-            value=user.get("name", ""),
-            key="settings_name",
-        )
-        id_cols[1].text_input(
-            "Email",
-            value=user.get("email", ""),
-            disabled=True,
-            help="Email is locked — it's how you log in. (Add an email-change flow later.)",
-            key="settings_email_display",
-        )
-
-    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SECTION: Physical info
-    # ============================================================
-    with st.container(border=True):
-        st.markdown("#### Physical info")
-        st.caption("Helps the analyzer factor in build (tall/lanky vs compact swings differ).")
-
-        phys_cols = st.columns([1, 1, 1])
-        new_ft = phys_cols[0].number_input(
-            "Height (ft)", min_value=3, max_value=8,
-            value=(user.get("height_in") or 70) // 12, step=1,
-            key="settings_ft",
-        )
-        new_in = phys_cols[1].number_input(
-            "Height (in)", min_value=0, max_value=11,
-            value=(user.get("height_in") or 70) % 12, step=1,
-            key="settings_in",
-        )
-        new_wt = phys_cols[2].number_input(
-            "Weight (lb)", min_value=50, max_value=400,
-            value=user.get("weight_lb") or 160, step=1,
-            key="settings_wt",
-        )
-
-        hand_label = "Right-handed" if user.get("handedness") == "RIGHT" else "Left-handed"
-        st.markdown(
-            f"""
-            <div style="margin-top:.9rem; padding:.7rem .95rem; background:#0a0d13; border:1px solid #272a33; border-radius:10px; max-width:420px;">
-                <div style="color:#8b909c;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800;">
-                    Batting hand
-                </div>
-                <div style="font-size:1.05rem;font-weight:800;margin-top:.2rem;">{hand_label}</div>
-                <div style="color:#8b909c;font-size:.78rem;margin-top:.25rem;">
-                    Set at signup. Changing it would invalidate past swing comparisons, so it's locked here.
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SECTION: Baseball profile
-    # ============================================================
-    with st.container(border=True):
-        st.markdown("#### Baseball profile")
-        st.caption("Optional context that helps you (and any coach reviewing your swings).")
-
-        bb_cols_1 = st.columns(2)
-        new_team = bb_cols_1[0].text_input(
-            "Team",
-            value=user.get("team", "") or "",
-            placeholder="e.g. 16U Tigers",
-            key="settings_team",
-        )
-        new_position = bb_cols_1[1].text_input(
-            "Position",
-            value=user.get("position", "") or "",
-            placeholder="e.g. SS / OF / C",
-            key="settings_position",
-        )
-
-        bb_cols_2 = st.columns(2)
-        throws_options = ["Not set", "Right", "Left"]
-        current_throws = user.get("throws", "Not set") or "Not set"
-        if current_throws not in throws_options:
-            current_throws = "Not set"
-        new_throws = bb_cols_2[0].selectbox(
-            "Throws",
-            throws_options,
-            index=throws_options.index(current_throws),
-            key="settings_throws",
-        )
-
-        level_options = ["Not set", "Youth", "Middle School", "High School", "College", "Adult", "Pro"]
-        current_level = user.get("level", "Not set") or "Not set"
-        if current_level not in level_options:
-            current_level = "Not set"
-        new_level = bb_cols_2[1].selectbox(
-            "Level",
-            level_options,
-            index=level_options.index(current_level),
-            key="settings_level",
-        )
-
-        goal_options = [
-            "Not set",
-            "Improve overall swing",
-            "More power",
-            "Better contact",
-            "Fix timing",
-            "Improve bat path",
-            "Find MLB comparison",
-        ]
-        current_goal = user.get("primary_goal", "Not set") or "Not set"
-        if current_goal not in goal_options:
-            current_goal = "Not set"
-        new_goal = st.selectbox(
-            "Primary goal",
-            goal_options,
-            index=goal_options.index(current_goal),
-            key="settings_goal",
-        )
-
-    st.markdown("<div style='margin-top:1.4rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SECTION: Subscription pointer
-    # ============================================================
-    # Full subscription management (Manage in Stripe portal, beta-code
-    # redemption, plan features) lives on the dedicated Billing page now.
-    # This is just a status card + jump link so Settings stays focused on
-    # player profile fields.
-    _render_settings_billing_pointer()
-
-    st.markdown("<div style='margin-top:1.4rem;'></div>", unsafe_allow_html=True)
-
-    # ============================================================
-    # SAVE / CANCEL
-    # ============================================================
-    save_cols = st.columns([2, 1])
-    save_clicked = save_cols[0].button(
-        "Save changes",
-        type="primary",
-        width="stretch",
-        key="settings_save",
-    )
-    cancel_clicked = save_cols[1].button(
-        "Cancel",
-        width="stretch",
-        key="settings_cancel",
-    )
-
-    if save_clicked:
-        updated = update_profile(
-            user["slug"],
-            name=new_name.strip() or user.get("name"),
-            height_in=int(new_ft) * 12 + int(new_in),
-            weight_lb=int(new_wt),
-            team=new_team.strip(),
-            position=new_position.strip(),
-            throws=None if new_throws == "Not set" else new_throws,
-            level=None if new_level == "Not set" else new_level,
-            primary_goal=None if new_goal == "Not set" else new_goal,
-        )
-        if updated:
-            st.session_state.user = updated
-            st.success("Profile saved.")
-        else:
-            st.error("Could not save profile. Please try again.")
-
-    if cancel_clicked:
-        st.session_state.pop("view", None)
-        st.rerun()
-
-
 # ---------- HEADER ----------
 # Skip the legacy upload-flow header on pages that render their own hero
 # (dashboard, saved report viewer, account/settings pages, launch progress,
@@ -3250,11 +2782,8 @@ _pages_with_own_hero = {
     "launch_progress",
     "player_settings",
 }
-# `view == "settings"` is the account/profile page — also has its own hero.
-_viewing_settings = st.session_state.get("view") == "settings"
 if (
     not _viewing_saved_swing
-    and not _viewing_settings
     and st.session_state.get("page") not in _pages_with_own_hero
 ):
     # Top nav first — this is the upload/landing page (every other page
@@ -3593,12 +3122,6 @@ def _go_page(p):
     return _f
 
 
-def _go_settings():
-    st.session_state["view"] = "settings"
-    st.session_state.pop("page", None)
-    _clear_saved_report_view()
-
-
 def _go_logout():
     try:
         from auth import sign_out
@@ -3629,8 +3152,6 @@ elif st.session_state.get("page") == "billing":
 elif st.session_state.get("page") == "launch_progress":
     _active_key = "launch"
 elif st.session_state.get("page") == "player_settings":
-    _active_key = "settings"
-elif st.session_state.get("view") == "settings":
     _active_key = "settings"
 
 
@@ -3704,14 +3225,9 @@ if st.session_state.get("page") == "dashboard":
     except Exception:
         pass
 
-    # v3 is the DEFAULT.  Disable with ?v3=0 to fall back to v2.
-    if st.session_state.get("use_dashboard_v3", True):
-        from dashboard_v3 import render_dashboard_v3
-        render_dashboard_v3(user)
-    elif st.session_state.get("use_dashboard_v2", True):
-        render_dashboard_v2(user)
-    else:
-        render_dashboard(user)
+    # v3 is the only dashboard now (the v1/v2 renderers were retired).
+    from dashboard_v3 import render_dashboard_v3
+    render_dashboard_v3(user)
     st.stop()
 
 
@@ -4189,12 +3705,6 @@ if st.session_state.get("page") == "launch_progress":
     st.stop()
 
 
-# ---------- SETTINGS PAGE ----------
-if st.session_state.get("view") == "settings":
-    render_settings_page()
-    st.stop()
-
-
 # ---------- PLAYER SETTINGS PAGE (new dashboard-styled route) ----------
 # Triggered by clicking the avatar circle in the Edge masthead. The page
 # itself lives in player_settings_page.py — full edit surface for the
@@ -4304,32 +3814,21 @@ if _should_open_report:
         saved_record = load_saved_swing_record(st.session_state.view_swing_path)
 
     if saved_record:
-        # Legacy escape hatch — `?legacy=1` keeps the old saved-report
-        # renderer for diagnostics. New default path uses the dedicated
-        # swing_report_page module which renders ONE focused swing
+        # The dedicated swing_report_page module renders ONE focused swing
         # report (NOT the dashboard) plus the redesigned comparison.
-        _use_legacy = "1" in (st.query_params.get("legacy") or "")
-        if _use_legacy:
-            render_saved_swing_report(saved_record)
-            saved_history = load_swing_history(user["slug"])
-            render_swing_progress_compare(saved_history)
-        else:
-            try:
-                from swing_report_page import render_swing_report_page
-                # Load the player's full history so the redesigned
-                # comparison can find the previous swing.
-                hist = load_swing_history(user["slug"]) or []
-                render_swing_report_page(user, saved_record, history=hist)
-            except Exception as _srp_err:
-                # If the new page errors, fall back to the legacy
-                # render path rather than show a blank screen.
-                st.warning(
-                    f"Could not render the new report page: {_srp_err}. "
-                    "Falling back to the legacy renderer."
-                )
-                render_saved_swing_report(saved_record)
-                saved_history = load_swing_history(user["slug"])
-                render_swing_progress_compare(saved_history)
+        try:
+            from swing_report_page import render_swing_report_page
+            # Load the player's full history so the redesigned
+            # comparison can find the previous swing.
+            hist = load_swing_history(user["slug"]) or []
+            render_swing_report_page(user, saved_record, history=hist)
+        except Exception as _srp_err:
+            # If the new page errors, surface a graceful message rather
+            # than show a blank screen or a stack trace.
+            st.error(
+                f"Could not render the report page: {_srp_err}. "
+                "Please retry."
+            )
 
         st.stop()
     else:
@@ -4819,7 +4318,7 @@ if not _swing_check.allowed:
         st.rerun()
     if _up_r.button("Go to Account Settings", width="stretch",
                     key="paywall_swing_settings"):
-        st.session_state["view"] = "settings"
+        st.session_state["page"] = "player_settings"
         st.rerun()
     st.stop()
 
@@ -5046,7 +4545,7 @@ except Exception as _post_analyze_render_err:
 # ============================================================
 # ---------- POST-ANALYSIS UPGRADE NUDGE (Free tier only) ----------
 # ============================================================
-# Conversion-funnel audit quick-win: the old swing_report_v2 had a
+# Conversion-funnel audit quick-win: the old report renderer had a
 # text-only red strip with no CTA after every analysis. Now that the
 # post-analyze path renders the new editorial design, surface a real
 # clickable nudge with price + value prop directly under the report.
