@@ -696,6 +696,22 @@ def render_edge_masthead(
                                    "view_swing_report_id", "view"):
                             st.session_state.pop(_k, None)
                     st.rerun()
+        # Switch Profile button — visible only for multi-profile households.
+        # Sets _action so app.py drops the active profile and re-shows picker.
+        try:
+            import auth as _auth_chrome
+            _show_switch = _auth_chrome.current_household_seats() > 1
+        except Exception:
+            _show_switch = False
+        if _show_switch:
+            if st.button(
+                "Switch profile",
+                key="bl_switch_profile",
+                type="secondary",
+            ):
+                st.session_state["_action"] = "switch_profile"
+                st.rerun()
+
         # User chip: streak (markdown) + clickable avatar (st.button).
         # The avatar is a real button so clicking it triggers an in-session
         # rerun (auth preserved) and routes to the Player Settings page.
