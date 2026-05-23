@@ -149,3 +149,38 @@ def test_match_stats_cache_retries_after_failed_load(monkeypatch, tmp_path):
     monkeypatch.setattr(az, "_MATCH_STATS_PATH", str(good_path))
 
     assert az._load_match_stats() == good
+
+
+def test_age_known_true_when_fingerprint_has_age(player_fp_path, tmp_path):
+    import json
+    fp = json.load(open(player_fp_path))
+    fp["age"] = 11
+    p = tmp_path / "fp_age.json"
+    p.write_text(json.dumps(fp))
+    result = analyze(str(p), "mike_trout")
+    assert result["age_known"] is True
+    assert result["age_bracket"] == "11-12"
+
+def test_age_known_false_when_age_absent(player_fp_path, tmp_path):
+    import json
+    fp = json.load(open(player_fp_path))
+    fp.pop("age", None)
+    p = tmp_path / "fp_noage.json"
+    p.write_text(json.dumps(fp))
+    result = analyze(str(p), "mike_trout")
+    assert result["age_known"] is False
+    assert result["age_bracket"] == "13-14"  # default
+
+def test_stride_gate_reads_fingerprint(player_fp_path, tmp_path):
+    import json
+    base = json.load(open(player_fp_path))
+    base["knee_deg"] = dict(base.get("knee_deg") or {}, re_extension=18.0,
+                            at_foot_plant=150.0, min_during_load=140.0)
+    toward = dict(base); toward["stride"] = {"toward_pitcher": True, "dx_norm": 0.2}
+    away = dict(base); away["stride"] = {"toward_pitcher": False, "dx_norm": -0.1}
+    pa = tmp_path / "toward.json"; pa.write_text(json.dumps(toward))
+    pb = tmp_path / "away.json"; pb.write_text(json.dumps(away))
+    ra = analyze(str(pa), "mike_trout")
+    rb = analyze(str(pb), "mike_trout")
+    # Stride pillar compliance must be lower (or equal) when not striding to pitcher.
+    assert rb["pillars"]["stride"]["compliance"] <= ra["pillars"]["stride"]["compliance"]

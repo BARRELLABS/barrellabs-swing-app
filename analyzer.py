@@ -690,6 +690,15 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # can stamp it onto the fingerprint; when it's genuinely absent we fall
     # back to the middle "13-14" bracket (see age_bracket()).
     bracket = age_bracket(player.get("age"))
+    # Did we resolve a real age, or fall back to the default bracket? Drives
+    # the report's honest "set your birth year" nudge.
+    def _age_is_known(_a) -> bool:
+        try:
+            int(_a)
+            return True
+        except (TypeError, ValueError):
+            return False
+    age_known = _age_is_known(player.get("age"))
 
     seq_lag = (sequence_block or {}).get("sequencing_lag_ms")
     total_drift = _get(player,
@@ -706,7 +715,11 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # overwhelmingly common case — players step toward the pitcher); a later
     # task can persist the stride vector and feed it in. See detect_phases.py
     # stride_px logic (2026-05-23).
-    stride_toward_pitcher = True
+    # Stride direction comes from the fingerprint (detect_phases serializes it
+    # as `stride.toward_pitcher`). Default True for older fingerprints that
+    # predate the field so they keep their prior (lenient) brace scoring.
+    _stride_blk = player.get("stride") or {}
+    stride_toward_pitcher = bool(_stride_blk.get("toward_pitcher", True))
 
     pose_vis = _pose_visibility(player)
 
@@ -893,6 +906,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
         # reports that predate them.
         "swing_score": swing_score,        # int 0-100, or None if unmeasurable
         "age_bracket": bracket,            # which age-fair bracket was used
+        "age_known": age_known,            # False → report shows the age nudge
         "pillars": pillars,                # {sequence|stability|timing|stride}
         "mlb_match": mlb_match,            # {pro_name, slug, movement_match_pct, confident, locked}
         "what_you_did_well": what_you_did_well,
