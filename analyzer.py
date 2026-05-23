@@ -23,6 +23,8 @@ from drills import (
     build_drill_plan,
     build_narratives,
     classify_gap,
+    gaps_from_pillars,
+    pro_relative_line,
 )
 from reference_library import find_best_match, list_references, load_reference
 from swing_score import (
@@ -581,19 +583,23 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # categories.
     narratives = build_narratives(gaps_ranked_raw, ref_name, top_n=2)
 
-    # Inject Power Sequence ratings into gaps_ranked so the drill
-    # generator routes to the new categories alongside metric-similarity gaps.
-    gaps_ranked = gaps_ranked_raw
+    # Inject Power Sequence ratings into gaps_ranked_legacy so the legacy
+    # path still works (e.g. strengths display). This is kept for back-compat
+    # but the DRILL PLAN is now sourced from the Score pillars, not pro-difference.
+    gaps_ranked_legacy = gaps_ranked_raw
     sequence_gaps = _synthesize_sequence_gaps(sequence_block)
     if sequence_gaps:
-        gaps_ranked = gaps_ranked + sequence_gaps
-        gaps_ranked.sort(key=lambda g: g.get("similarity", g.get("sim", 100)))
+        gaps_ranked_legacy = gaps_ranked_raw + sequence_gaps
+        gaps_ranked_legacy.sort(key=lambda g: g.get("similarity", g.get("sim", 100)))
 
-    drill_plan = build_drill_plan(
-        gaps_ranked,
-        top_n_categories=2,
-        preferred_goal=preferred_goal,
-    )
+    # ----- PILLAR-SOURCED DRILL PLAN (new) -----
+    # The drill plan is now built from the Score pillars, not pro-difference gaps.
+    # pillars is computed below in the SWING SCORE block, so we need to do a
+    # two-pass approach: compute pillars first, then build the drill plan.
+    # We defer to after the pillars block — the actual call is below.
+    # (drill_plan is assigned after pillars are computed.)
+
+    # ----- METRIC TABLE (for expanders) -----
 
     # ----- METRIC TABLE (for expanders) -----
     # Group metrics by group so the UI can show them in collapsible sections.
@@ -771,6 +777,36 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # pillar is confident, fall back to a line tied to their MLB match so the
     # field is never empty.
     what_you_did_well = _build_what_you_did_well(pillars, mlb_match["pro_name"])
+
+    # ----- PILLAR-SOURCED DRILL PLAN -----
+    # Build the drill plan from the Score pillars (weakest confident pillar
+    # drives the top drill category). This replaces the former pro-difference
+    # gap source. The legacy gap fields are still present on the result for
+    # backward-compat but the drill plan is now pillar-sourced.
+    pillar_gaps = gaps_from_pillars(pillars)
+    drill_plan = build_drill_plan(
+        pillar_gaps,
+        top_n_categories=2,
+        preferred_goal=preferred_goal,
+    )
+    # Inject the pro-relative motivation line into each fix card.
+    # Each category maps back to a pillar via _PILLAR_TO_CATEGORY (inverted).
+    _CAT_TO_PILLAR = {
+        "sequencing":    "sequence",
+        "head_stability": "stability",
+        "timing":        "timing",
+        "knee_extension": "stride",
+        # secondary fold-in categories default to their closest pillar
+        "hip_shoulder_separation": "sequence",
+        "hip_rotation":             "sequence",
+        "rotational_speed":         "sequence",
+        "front_side_stability":     "stride",
+    }
+    for cat_entry in drill_plan.get("categories", []):
+        pillar_key = _CAT_TO_PILLAR.get(cat_entry["category"], "sequence")
+        cat_entry["pro_relative_line"] = pro_relative_line(
+            pillar_key, mlb_match["pro_name"]
+        )
 
     # ----- FINAL RESULT DICT -----
     return {

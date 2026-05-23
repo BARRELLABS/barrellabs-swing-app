@@ -24,7 +24,8 @@ DRILL_DB = {
             "Excessive head movement disconnects your eyes from the ball, "
             "leaks power out of your rotation, and makes consistent contact "
             "much harder. Elite hitters keep the head almost still through "
-            "contact."
+            "contact — your eyes need a steady platform to track the pitch "
+            "all the way in."
         ),
         "drills": [
             {
@@ -69,8 +70,8 @@ DRILL_DB = {
     "hip_rotation": {
         "title": "Drive the Hips",
         "why_it_matters": (
-            "Power in a swing comes from the ground up: legs → hips → torso → "
-            "arms → bat. If your hips don't fully rotate through contact, "
+            "Power in a swing comes from the ground up — legs, hips, torso, "
+            "arms, then the bat. If your hips don't fully rotate through contact, "
             "you're hitting with arms only and leaving big-time bat speed "
             "(and exit velocity) on the table."
         ),
@@ -119,11 +120,11 @@ DRILL_DB = {
     },
 
     "hip_shoulder_separation": {
-        "title": "Build Hip-Shoulder Separation (X-Factor)",
+        "title": "Build the Stretch Between Hips and Shoulders",
         "why_it_matters": (
-            "The gap between your hips firing forward and your shoulders "
+            "The stretch between your hips firing forward and your shoulders "
             "still loaded is where your bat speed comes from. Big-league "
-            "hitters create 40°+ of separation. Without it, you're 'spinning' "
+            "hitters create 40°+ of that stretch. Without it, you're 'spinning' "
             "with the whole upper body and losing the elastic snap."
         ),
         "drills": [
@@ -174,7 +175,9 @@ DRILL_DB = {
         "why_it_matters": (
             "Your front leg is the brake that stops your weight transfer and "
             "redirects it into rotational power. A soft front knee at contact "
-            "leaks energy and pulls your head off the ball."
+            "leaks energy and pulls your head off the ball. When the front leg "
+            "straightens back up into contact, it creates a firm post your "
+            "whole swing can drive against."
         ),
         "drills": [
             {
@@ -209,9 +212,9 @@ DRILL_DB = {
     "sequencing": {
         "title": "Power Sequence — Fire in Order",
         "why_it_matters": (
-            "The kinematic chain only delivers full power when it fires in "
-            "sequence: pelvis first, torso a split-second later. When the "
-            "upper body fires alongside the hips, the elastic snap that "
+            "The order your body fires — hips, then chest, then hands — is "
+            "the only way to get full power into the bat. When the upper "
+            "body fires alongside the hips, the elastic snap that "
             "drives bat speed is gone before it starts."
         ),
         "drills": [
@@ -247,10 +250,9 @@ DRILL_DB = {
     "rotational_speed": {
         "title": "Rotational Speed — Pull the Trigger Faster",
         "why_it_matters": (
-            "Peak hip rotational speed is the rotational analog of how hard "
-            "you throw a ball — it's a trainable physical quality. More hip "
-            "velocity at the trigger point means more barrel speed at contact, "
-            "full stop."
+            "How fast your hips snap is like how hard you can throw a ball — "
+            "it's a trainable physical quality. More hip speed at the trigger "
+            "point means more barrel speed at contact, full stop."
         ),
         "drills": [
             {
@@ -287,9 +289,10 @@ DRILL_DB = {
         "title": "Stay Closed — Front Side First",
         "why_it_matters": (
             "When the front shoulder opens before the front foot is planted, "
-            "the upper-body slingshot effect is gone — hips and shoulders fire "
+            "the slingshot effect is gone — hips and shoulders fire "
             "together and the bat has to chase a swing that already happened. "
-            "A closed front side stores torque until the lower body is ready."
+            "Keeping the front side closed stores power until the lower body "
+            "is ready to fire."
         ),
         "drills": [
             {
@@ -421,25 +424,24 @@ def _narrate_gap(gap, ref_name):
     if group == "Head" and "total" in label:
         ratio = abs(p) / max(abs(r), 0.01)
         return [
-            f"Your head moves {abs(p):.2f} torso-lengths total during the swing — "
-            f"{_intensity(ratio)} more than {ref_name}'s {abs(r):.2f}T.",
+            f"Your head moves {abs(p):.2f} body-lengths total during the swing — "
+            f"{_intensity(ratio)} more than {ref_name}'s {abs(r):.2f}.",
 
-            "Why it costs you: every fraction of a torso-length your head moves is "
-            "ball-tracking error. Your eyes are reading the pitch from a moving "
+            "Why it costs you: every inch of head movement is ball-tracking "
+            "error. Your eyes are reading the pitch from a moving "
             "platform, which shows up as inconsistent contact, mis-hits on the same "
             "pitch you crushed yesterday, and getting fooled on offspeed.",
 
-            "What the fix feels like: the swing should rotate AROUND your head, "
-            "not drag it forward. Chin stays anchored at setup; the body spins "
-            "underneath. If you can see the contact zone the entire swing, "
-            "you're doing it right.",
+            "What the fix feels like: keep your eyes glued to the contact spot "
+            "so you can read the ball the whole way. The body spins "
+            "underneath the eyes — the head stays steady.",
         ]
 
     if group == "Head" and "Δx" in gap["label"]:
         direction = "toward the pitcher" if p > 0 else "away from the pitcher"
         return [
-            f"Your head drifts {abs(p):.2f} torso-lengths {direction} during the "
-            f"swing while {ref_name} stays at {abs(r):.2f}T.",
+            f"Your head drifts {abs(p):.2f} body-lengths {direction} during the "
+            f"swing while {ref_name} stays at {abs(r):.2f}.",
 
             "Why it costs you: that forward lurch tells your brain the ball is "
             "arriving faster than it really is, which is why you'll feel late on "
@@ -447,43 +449,42 @@ def _narrate_gap(gap, ref_name):
             "leverage — you can't drive a ball when your weight has already "
             "gone past it.",
 
-            "What the fix feels like: stay 'tall' through contact. The hips can "
-            "move forward, but the head should stay stacked over the back hip "
-            "until well after the bat passes the zone.",
+            "What the fix feels like: keep your eyes glued to the contact spot "
+            "so you can read the ball the whole way. The hips can "
+            "move forward, but the head stays stacked.",
         ]
 
     if group == "Head" and "Δy" in gap["label"]:
         direction = "downward" if p > 0 else "upward"
         return [
-            f"Your head moves {abs(p):.2f} torso-lengths {direction} through the "
-            f"swing — {ref_name} stays nearly level ({abs(r):.2f}T).",
+            f"Your head moves {abs(p):.2f} body-lengths {direction} through the "
+            f"swing — {ref_name} stays nearly level ({abs(r):.2f}).",
 
             "Why it costs you: vertical head movement is the #1 reason hitters "
             "mis-time pitch HEIGHT. When your eyes drop, high pitches look like "
             "strikes; when they lift, low pitches look hittable. It's also a "
             "sign the spine angle is collapsing — leaking power.",
 
-            "What the fix feels like: the spine angle you set at foot plant "
-            "should not change until your follow-through is complete. Imagine "
-            "a string from the top of your head holding you upright through "
-            "the entire rotation.",
+            "What the fix feels like: keep your eyes glued to the contact spot "
+            "so you can read the ball the whole way. The spine angle you set "
+            "at foot plant stays steady all the way through contact.",
         ]
 
     # ---- ROTATION ----
     if group == "Rotation" and "separation" in label and "peak" in label:
         return [
-            f"Your peak hip-shoulder separation tops out at {p:+.0f}° while "
+            f"Your peak stretch between hips and shoulders tops out at {p:+.0f}° while "
             f"{ref_name} reaches {r:+.0f}°.",
 
-            "Why it costs you: the gap between hips firing forward and shoulders "
+            "Why it costs you: the stretch between hips firing forward and shoulders "
             "staying loaded is where bat speed actually comes from — it's the "
-            "elastic stretch that snaps the barrel through. With less separation "
+            "elastic snap that whips the barrel through. With less of that stretch "
             "you're 'spinning' the whole upper body, which feels strong but "
             "produces weak contact.",
 
-            "What the fix feels like: hips fire while the back shoulder feels "
-            "'stuck' for an extra beat. If it feels like your hands are late, "
-            "you're probably doing it right.",
+            "What the fix feels like: make the bat stay back until the last "
+            "second, then whip the barrel straight at the ball. The hips go "
+            "first; the hands react.",
         ]
 
     if group == "Rotation" and "contact" in label:
@@ -492,12 +493,12 @@ def _narrate_gap(gap, ref_name):
             f"{ref_name}'s {r:+.0f}°.",
 
             "Why it costs you: incomplete hip rotation means you're hitting with "
-            "mostly arms. The kinetic chain (legs → hips → torso → arms) stops "
-            "short, and you lose the biggest source of free bat speed.",
+            "mostly arms. The order your body fires — hips, then torso, then arms "
+            "— stops short, and you lose the biggest source of free bat speed.",
 
-            "What the fix feels like: belly button finishes pointing at the "
-            "pitcher. The back foot pivots clean off the ground at finish — if "
-            "it doesn't, the hips didn't fire through.",
+            "What the fix feels like: land soft, then push the ground away "
+            "so the bat launches up and out. Belly button finishes pointing at the "
+            "pitcher — the back foot pivots clean off the ground at the finish.",
         ]
 
     if group == "Rotation":
@@ -520,12 +521,12 @@ def _narrate_gap(gap, ref_name):
             f"{ref_name}'s {r:+.1f}°.",
 
             "Why it costs you: the front leg is your brake. If it's soft or "
-            "re-extending, energy that should rebound up into the swing leaks "
-            "out the bottom — like jumping on a soft mattress.",
+            "not bracing into contact, energy that should rebound up into the "
+            "swing leaks out the bottom — like jumping on a soft mattress.",
 
-            "What the fix feels like: at contact, the front leg should feel "
-            "'posted' — firm but not locked. The chest stacks over a stable "
-            "base.",
+            "What the fix feels like: land soft, then push the ground away "
+            "so the bat launches up and out. At contact the front leg should "
+            "feel 'posted' — firm, braced, not collapsing forward.",
         ]
 
     # ---- TIMING (rare — usually filtered) ----
@@ -537,8 +538,9 @@ def _narrate_gap(gap, ref_name):
             "Why it costs you: a slow swing arrives late and leaves you guessing; "
             "a rushed swing gets fooled. Tempo is everything.",
 
-            "What the fix feels like: short, direct path from load to contact. "
-            "No wasted motion.",
+            "What the fix feels like: keep your front shoulder pointed at "
+            "the pitcher until the ball's almost there, then fire the barrel "
+            "through the line — short, direct, no wasted motion.",
         ]
 
     # ---- FALLBACK ----
@@ -606,11 +608,9 @@ def _narrate_head_stability(head_gaps, ref_name):
     )
 
     fix = (
-        "What the fix feels like: the swing should rotate AROUND your "
-        "head, not drag it forward or up. Chin stays anchored where it "
-        "started; the body spins underneath it. If you can keep your eyes "
-        "locked on the contact point through the entire swing, you're "
-        "doing it right."
+        "What the fix feels like: keep your eyes glued to the contact spot "
+        "so you can read the ball the whole way. The body spins underneath "
+        "the eyes — the head doesn't go along for the ride."
     )
 
     return [first, why, fix]
@@ -642,16 +642,17 @@ def _narrate_hip_rotation(rotation_gaps, ref_name):
 
     why = (
         "Why it costs you: power in a swing comes from the ground up — "
-        "legs to hips to torso to arms to the bat. If the hips don't fully "
+        "legs, hips, torso, arms, then the bat. If the hips don't fully "
         "rotate through contact, you're swinging with mostly arms and "
         "leaving big-time bat speed on the table. That shows up as soft "
         "contact even on balls you square up."
     )
 
     fix = (
-        "What the fix feels like: belly button finishes pointing at the "
-        "pitcher. The back foot pivots clean off the ground at finish — "
-        "if it doesn't, the hips never fully fired."
+        "What the fix feels like: land soft, then push the ground away "
+        "so the bat launches up and out through the zone. Belly button "
+        "finishes pointing at the pitcher — the back foot pivots clean "
+        "off the ground at the finish."
     )
 
     return [first, why, fix]
@@ -676,17 +677,16 @@ def _narrate_separation(sep_gaps, ref_name):
         )
 
     why = (
-        "Why it costs you: the gap between your hips firing forward and "
-        "your shoulders staying loaded is the elastic stretch that snaps "
-        "the barrel through the zone. With less separation you're "
-        "'spinning' the whole upper body at once — feels strong, produces "
-        "weak contact."
+        "Why it costs you: the stretch between your hips firing forward and "
+        "your shoulders staying loaded is what snaps the barrel through "
+        "the zone. With less of that stretch you're 'spinning' the whole "
+        "upper body at once — feels strong, produces weak contact."
     )
 
     fix = (
-        "What the fix feels like: hips fire while the back shoulder feels "
-        "stuck for an extra beat. If it feels like your hands are late, "
-        "you're probably doing it right."
+        "What the fix feels like: make the bat stay back until the last "
+        "second, then whip the barrel straight at the ball. The hips go "
+        "first; the hands react to what the hips did."
     )
 
     return [first, why, fix]
@@ -700,7 +700,7 @@ def _narrate_knee(knee_gaps, ref_name):
 
     if "re-extension" in label or "re_extension" in label:
         first = (
-            f"Your front knee re-extends {p:+.0f}° between load and contact "
+            f"Your front leg straightens back up {p:+.0f}° between load and contact "
             f"vs {ref_name}'s {r:+.0f}°."
         )
     else:
@@ -717,9 +717,9 @@ def _narrate_knee(knee_gaps, ref_name):
     )
 
     fix = (
-        "What the fix feels like: at contact the front leg should feel "
-        "'posted' — firm, slightly bent, but not collapsing forward. "
-        "Your chest stacks over a stable base."
+        "What the fix feels like: land soft, then push the ground away "
+        "so the bat launches up and out. At contact the front leg should "
+        "feel 'posted' — firm, braced, not collapsing forward."
     )
 
     return [first, why, fix]
@@ -743,8 +743,9 @@ def _narrate_timing_cat(timing_gaps, ref_name):
     )
 
     fix = (
-        "What the fix feels like: short, direct path from load to contact. "
-        "No wasted motion, no looping the bat."
+        "What the fix feels like: keep your front shoulder pointed at "
+        "the pitcher until the ball's almost there, then fire the barrel "
+        "through the line — short, direct, no wasted motion."
     )
 
     return [first, why, fix]
@@ -753,20 +754,20 @@ def _narrate_timing_cat(timing_gaps, ref_name):
 def _narrate_sequencing(gaps_in_cat, ref_name):
     """Power Sequence M1 narrative — hip → shoulder lag."""
     first = (
-        f"Your kinematic chain isn't firing in order. The hips and the "
-        f"upper body need to fire on a delay — pelvis first, torso a "
-        f"split-second later — to transfer energy efficiently into the bat."
+        f"The order your body fires — hips, then chest, then hands — "
+        f"isn't happening on a delay. The upper body and the hips need to "
+        f"fire separately to transfer full power into the bat."
     )
     why = (
-        f"When the shoulders fire AT THE SAME TIME as the hips (or before "
+        f"When the shoulders fire at the same time as the hips (or before "
         f"them), the upper body never gets to amplify what the lower body "
-        f"started. {ref_name} sequences the chain — hips snap, then "
-        f"shoulders ride the snap. That's where the bat speed comes from."
+        f"started. {ref_name} fires in the right order — hips snap, then "
+        f"the shoulders ride the snap. That's where the bat speed comes from."
     )
     fix = (
-        "What the fix feels like: hips lead, hands wait. Start the swing "
-        "with the back hip, then let the shoulders react to what the hips "
-        "did — not initiate alongside them."
+        "What the fix feels like: make the bat stay back until the last "
+        "second, then whip the barrel straight at the ball. The hips go "
+        "first; the hands react to what the hips did — they don't initiate."
     )
     return [first, why, fix]
 
@@ -775,18 +776,18 @@ def _narrate_rotational_speed(gaps_in_cat, ref_name):
     """Power Sequence M2 narrative — hip angular velocity."""
     first = (
         f"You're getting through the swing but not at top speed. The "
-        f"hips are rotating, just not violently enough to drive elite "
+        f"hips are rotating, just not fast enough to drive elite "
         f"bat speed."
     )
     why = (
-        f"Peak hip rotational speed is the rotational analog of how hard "
-        f"you can throw a ball — it's a measurable physical quality you "
-        f"train. {ref_name} pulls the trigger faster, which is why the "
-        f"barrel arrives with the kind of speed defenses can't catch up to."
+        f"How fast your hips snap is like how hard you can throw a ball — "
+        f"it's a physical quality you can train. {ref_name} pulls the "
+        f"trigger faster, which is why the barrel arrives with the kind "
+        f"of speed defenses can't catch up to."
     )
     fix = (
         "What the fix feels like: short and violent, not long and smooth. "
-        "Med-ball rotational throws teach the body to RECRUIT power into "
+        "Med-ball rotational throws teach the body to recruit power into "
         "the rotation rather than glide through it."
     )
     return [first, why, fix]
@@ -796,20 +797,21 @@ def _narrate_front_side_stability(gaps_in_cat, ref_name):
     """Power Sequence M3 narrative — early shoulder fly-out."""
     first = (
         f"Your front shoulder is opening up too early — before the front "
-        f"foot has finished planting. That kills the storage of torque "
+        f"foot has finished planting. That kills the stored power "
         f"between hips and shoulders."
     )
     why = (
-        f"When the shoulders pre-open, the entire upper-body \"slingshot\" "
+        f"When the shoulders fly open early, the entire slingshot "
         f"effect is gone — the hips and shoulders end up firing together "
         f"and the bat has to catch up to a swing that already happened. "
         f"{ref_name} keeps the front shoulder pointed at the pitcher "
         f"until AFTER the front foot is down."
     )
     fix = (
-        "What the fix feels like: chin to back shoulder, chest pointed at "
-        "the catcher until you can't help but turn. Closed-shoulder tee "
-        "work with a noodle across the chest gives the body the cue."
+        "What the fix feels like: keep your front shoulder pointed at "
+        "the pitcher until the ball's almost there, then fire the barrel "
+        "through the line. The front side stays closed while the lower "
+        "body loads up — then everything fires."
     )
     return [first, why, fix]
 
@@ -1123,6 +1125,118 @@ def classify_gap(result):
         if "stay closed" in label or "fly-out" in label or "front-side" in label:
             return "front_side_stability"
     return None
+
+
+# ---- PILLAR → CATEGORY MAPPING ----
+# Maps the four swing-score pillars to drill categories per the spec.
+# (sequence → sequencing, stability → head_stability, timing → timing,
+#  stride → knee_extension).
+
+_PILLAR_TO_CATEGORY = {
+    "sequence":  "sequencing",
+    "stability": "head_stability",
+    "timing":    "timing",
+    "stride":    "knee_extension",
+}
+
+# Verbs per pillar for the pro-relative motivation line.
+_PILLAR_VERBS = {
+    "sequence":  "sequences",
+    "stability": "stays quiet on the ball",
+    "timing":    "stays on time",
+    "stride":    "lands and braces",
+}
+
+
+def gaps_from_pillars(pillars: dict) -> list:
+    """Convert the Score pillars dict into a gap list that classify_gap /
+    build_drill_plan already understand.
+
+    Parameters
+    ----------
+    pillars
+        The ``result["pillars"]`` dict from analyzer.analyze():
+        {sequence|stability|timing|stride: {compliance, confidence, label}}.
+
+    Returns
+    -------
+    list of gap dicts sorted by weakest CONFIDENT pillar first (lowest
+    compliance among pillars with confidence > 0). Pillars with
+    confidence == 0 or compliance is None are skipped entirely.
+
+    Each gap entry has the minimal shape classify_gap requires:
+      {"group": str, "label": str, "p": float, "r": float, "units": str,
+       "similarity": float, "pillar": str}
+    """
+    # Collect confident pillars.
+    entries = []
+    for pillar_name, pillar in pillars.items():
+        compliance = pillar.get("compliance")
+        confidence = pillar.get("confidence", 0.0)
+        if confidence <= 0 or compliance is None:
+            continue
+        category = _PILLAR_TO_CATEGORY.get(pillar_name)
+        if category is None:
+            continue
+        entries.append({
+            "pillar":     pillar_name,
+            "compliance": compliance,
+            "confidence": confidence,
+            "category":   category,
+        })
+
+    # Sort by weakest compliance first (ascending).
+    entries.sort(key=lambda e: e["compliance"])
+
+    # Convert to the gap dict shape classify_gap / build_drill_plan expect.
+    # We set similarity = compliance * 100 (so lowest compliance → lowest
+    # similarity → ranks first in the drill plan). group + label must route
+    # correctly through classify_gap.
+    gaps = []
+    for entry in entries:
+        cat = entry["category"]
+        # Build a group/label pair that routes through classify_gap correctly.
+        if cat == "sequencing":
+            group, label = "Power Sequence", "Sequencing lag"
+        elif cat == "head_stability":
+            group, label = "Head", "Total head drift (torso-rel)"
+        elif cat == "timing":
+            group, label = "Timing", "Foot plant → launch"
+        elif cat == "knee_extension":
+            group, label = "Front Knee", "Re-extension"
+        else:
+            group, label = "Power Sequence", cat
+
+        gaps.append({
+            "group":     group,
+            "label":     label,
+            "p":         entry["compliance"],
+            "r":         1.0,        # "ideal" reference compliance
+            "units":     "",
+            "similarity": entry["compliance"] * 100,
+            "pillar":    entry["pillar"],
+            "synthetic": True,
+        })
+
+    return gaps
+
+
+def pro_relative_line(pillar: str, pro_name: str) -> str:
+    """Return the one short pro-relative motivation line for a fix card.
+
+    Template (from spec):
+        "This one tightens the move that gets you closer to how {pro} {verb}."
+
+    Verbs per pillar:
+        sequence  → "sequences"
+        stability → "stays quiet on the ball"
+        timing    → "stays on time"
+        stride    → "lands and braces"
+
+    The line is NEVER phrased as a fault.
+    """
+    verb = _PILLAR_VERBS.get(pillar, "plays")
+    return f"This one tightens the move that gets you closer to how {pro_name} {verb}."
 
 
 def recommend_drills(gaps_ranked, top_n_categories=2):
