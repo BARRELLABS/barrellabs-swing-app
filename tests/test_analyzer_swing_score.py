@@ -184,3 +184,41 @@ def test_stride_gate_reads_fingerprint(player_fp_path, tmp_path):
     rb = analyze(str(pb), "mike_trout")
     # Stride pillar compliance must be lower (or equal) when not striding to pitcher.
     assert rb["pillars"]["stride"]["compliance"] <= ra["pillars"]["stride"]["compliance"]
+
+
+def test_pillar_reliability_ceiling_caps_noisy_pillars():
+    from analyzer import _pillar_confidence, _PILLAR_RELIABILITY
+    # Sequence & Stride are structurally capped below 1.0 on phone video.
+    assert _PILLAR_RELIABILITY["sequence"] < 1.0
+    assert _PILLAR_RELIABILITY["stride"] < 1.0
+    assert _PILLAR_RELIABILITY["stability"] == 1.0
+    assert _PILLAR_RELIABILITY["timing"] == 1.0
+    # A clean signal for a capped pillar yields confidence == its ceiling
+    # (no rotation/visibility penalty active).
+    conf = _pillar_confidence(0.5, rotation_dependent=False,
+                              rotation_view_sensitive=False, pose_visibility=1.0,
+                              reliability_ceiling=_PILLAR_RELIABILITY["stride"])
+    assert conf == _PILLAR_RELIABILITY["stride"]
+    # None still drops out entirely.
+    assert _pillar_confidence(None, rotation_dependent=False,
+                              rotation_view_sensitive=False, pose_visibility=1.0,
+                              reliability_ceiling=0.5) == 0.0
+
+
+def test_noisy_pillar_zero_drags_less_than_before(player_fp_path, tmp_path):
+    # A swing strong on Stability+Timing but zero on Sequence+Stride should now
+    # score clearly above 50 (the trustworthy pillars dominate), not be dragged
+    # to the midpoint by full-weight zero reads.
+    import json
+    fp = json.load(open(player_fp_path))
+    fp["age"] = 13
+    # Force the pillar inputs: strong stability (tiny head drift) + strong timing
+    # (big gather, short fire), zero stride (no knee re-extension), casting seq.
+    fp["head_movement_normalized_foot_plant_to_contact"] = {"total_drift_torso": 0.05, "dx_torso": 0.03, "dy_torso": 0.02}
+    fp["timing_ms"] = dict(fp.get("timing_ms") or {}, load_duration=500.0, launch_to_contact=150.0)
+    fp["timing_ms_corrected"] = dict(fp.get("timing_ms_corrected") or {}, load_duration=500.0, launch_to_contact=150.0)
+    fp["knee_deg"] = dict(fp.get("knee_deg") or {}, re_extension=0.0, at_foot_plant=150.0, min_during_load=148.0)
+    fp["sequence"] = dict(fp.get("sequence") or {}, sequencing_lag_ms=-200.0)
+    p = tmp_path / "fp.json"; p.write_text(json.dumps(fp))
+    r = analyze(str(p), "mike_trout")
+    assert r["swing_score"] is not None and r["swing_score"] >= 55

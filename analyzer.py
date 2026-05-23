@@ -147,6 +147,19 @@ _PILLAR_LABELS = {
     "stride":    "Front-Side Brace",
 }
 
+# Structural reliability ceilings per pillar. The app's input is always
+# single-camera phone video, where hips-lead sequencing and front-leg-brace
+# (knee re-extension) are intrinsically noisy (see biomech verification
+# 2026-05-23). Cap their confidence so a low/zero read — which may be a
+# measurement artifact rather than a real flaw — drags the Swing Score less.
+# Head Stability and gross Timing are robust on phone video → no cap.
+_PILLAR_RELIABILITY = {
+    "sequence":  0.5,
+    "stability": 1.0,
+    "timing":    1.0,
+    "stride":    0.5,
+}
+
 
 def age_from_birth_year(birth_year, today_year: Optional[int] = None) -> Optional[int]:
     """Compute a player's current age from a 4-digit birth year.
@@ -271,7 +284,8 @@ def _build_what_you_did_well(pillars: dict, pro_name) -> str:
 
 def _pillar_confidence(signal, *, rotation_dependent: bool,
                        rotation_view_sensitive: bool,
-                       pose_visibility: float) -> float:
+                       pose_visibility: float,
+                       reliability_ceiling: float = 1.0) -> float:
     """Per-pillar confidence in [0,1].
 
     Rules (kept deliberately simple but real, reusing the camera flags the
@@ -282,6 +296,10 @@ def _pillar_confidence(signal, *, rotation_dependent: bool,
         read is view-sensitive (mixed method or large camera-view delta).
       - scaled by lower-body pose visibility when that's poor (legs/feet not
         well tracked → less trust in the head/brace reads).
+      - capped by reliability_ceiling: a structural ceiling per pillar that
+        reflects how trustworthy a metric is on single-camera phone video.
+        Sequence and Stride are intrinsically noisy on phone clips; their
+        ceiling keeps a zero/low read from unfairly tanking the Swing Score.
     """
     if signal is None:
         return 0.0
@@ -293,6 +311,7 @@ def _pillar_confidence(signal, *, rotation_dependent: bool,
     # roughly half as much.
     if pose_visibility < 0.8:
         conf *= max(0.25, pose_visibility / 0.8)
+    conf *= reliability_ceiling
     return max(0.0, min(1.0, conf))
 
 
@@ -730,6 +749,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
             rotation_dependent=rotation_dependent,
             rotation_view_sensitive=rotation_view_sensitive,
             pose_visibility=pose_vis,
+            reliability_ceiling=_PILLAR_RELIABILITY.get(name, 1.0),
         )
         pillars[name] = {
             "compliance": compliance,
