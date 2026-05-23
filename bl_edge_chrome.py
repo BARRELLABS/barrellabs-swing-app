@@ -403,6 +403,76 @@ iframe {
 }
 
 /* ====================================================================
+   PRIMARY ACTION — "+ Analyze new swing".
+   A standalone st.button (its own keyed container so it never inherits
+   the segmented-nav tab styling) restyled into the masthead's headline
+   CTA: warm gold→red wash, mono uppercase like the tabs but visually
+   "lifted" so it reads as the primary thing to do, not another tab.
+   Sits between the brand and the nav slot.
+   ==================================================================== */
+.st-key-bl_edge_analyze {
+  flex: 0 0 auto !important;
+}
+.st-key-bl_edge_analyze > div,
+.st-key-bl_edge_analyze > div > div[data-testid="stVerticalBlock"] {
+  display: contents !important;
+}
+.st-key-bl_edge_analyze [data-testid="stElementContainer"],
+.st-key-bl_edge_analyze [data-testid="stButton"] {
+  flex: 0 0 auto !important; width: auto !important; margin: 0 !important;
+}
+.st-key-bl_edge_analyze button {
+  background: linear-gradient(180deg,
+              rgba(232,193,112,0.16),
+              rgba(230,69,48,0.10)) !important;
+  border: 1px solid rgba(232,193,112,0.34) !important;
+  color: #F8F2E0 !important;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: 0.14em !important; text-transform: uppercase !important;
+  padding: 9px 18px !important; border-radius: 9px !important;
+  min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
+  width: auto !important; white-space: nowrap !important;
+  -webkit-font-smoothing: antialiased;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 1px 2px rgba(0,0,0,0.35),
+    0 0 18px -6px rgba(232,193,112,0.5) !important;
+  transition:
+    color 220ms cubic-bezier(.32,.72,0,1),
+    background-color 220ms cubic-bezier(.32,.72,0,1),
+    border-color 220ms cubic-bezier(.32,.72,0,1),
+    box-shadow 220ms cubic-bezier(.32,.72,0,1),
+    transform 260ms cubic-bezier(.34,1.4,.64,1);
+}
+.st-key-bl_edge_analyze button p,
+.st-key-bl_edge_analyze button div,
+.st-key-bl_edge_analyze button span {
+  font: inherit !important; letter-spacing: inherit !important;
+  color: inherit !important; margin: 0 !important;
+}
+.st-key-bl_edge_analyze button:hover {
+  color: #FFFAEB !important;
+  border-color: rgba(232,193,112,0.55) !important;
+  transform: translateY(-0.5px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    0 1px 2px rgba(0,0,0,0.35),
+    0 0 24px -6px rgba(232,193,112,0.7) !important;
+}
+.st-key-bl_edge_analyze button:active {
+  transform: translateY(0) scale(0.985) !important;
+  transition-duration: 100ms !important;
+}
+.st-key-bl_edge_analyze button:focus { outline: none !important; }
+.st-key-bl_edge_analyze button:focus-visible {
+  outline: none !important;
+  box-shadow:
+    0 0 0 2px rgba(232,193,112,0.50),
+    0 0 0 4px rgba(232,193,112,0.12) !important;
+}
+
+/* ====================================================================
    USER CHIP — streak + clickable avatar button.
    The avatar is a real st.button (auth-safe in-session rerun) restyled
    into a perfect circle showing the player's initials. Clicking it
@@ -674,6 +744,28 @@ def render_edge_masthead(
             _nav_to_render.append(_entry)
             if _entry[1] == "saved_reports" and _show_fam:
                 _nav_to_render.append(_FAMILY_NAV_ENTRY)
+
+        # Primary action — "Analyze new swing". This is the single entry
+        # point into the upload flow now that the left sidebar (which
+        # used to host this CTA) is gone. Styled type="primary" so it
+        # reads as the masthead's headline action, distinct from the
+        # secondary nav tabs. Routes through the same _ps_intercept
+        # leave-guard the nav tabs use so unsaved Player Settings edits
+        # still prompt before navigating away.
+        with st.container(key="bl_edge_analyze"):
+            if st.button(
+                "+ Analyze new swing",
+                key="_ble_analyze_btn",
+                type="primary",
+            ):
+                if _ps_intercept:
+                    st.session_state["ps_pending_nav_to"] = "upload"
+                    st.rerun()
+                st.session_state["page"] = "upload"
+                for _k in ("view_swing_record", "view_swing_path",
+                           "view_swing_report_id", "view"):
+                    st.session_state.pop(_k, None)
+                st.rerun()
 
         with st.container(key="bl_edge_navbar"):
             for label, page_key, _alts in _nav_to_render:

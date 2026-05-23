@@ -1229,6 +1229,7 @@ _ALLOWED_PAGES_FROM_URL = {
     "dashboard", "saved_reports", "swing_report", "compare_swings",
     "development_tracker", "historical_charts", "billing",
     "launch_progress", "pricing", "upload", "family",
+    "player_settings",  # Stripe billing-portal return URL routes here
 }
 try:
     _url_page = st.query_params.get("page")
@@ -3652,121 +3653,22 @@ def _nav_btn(icon: str, label: str, key: str, action, primary: bool = False):
         st.rerun()
 
 
-with st.sidebar:
-    logo_path = PROJECT_ROOT / "barrellabs_logo.png"
-
-    # ---- Brand block: refined, exclusive — small icon-style logo ----
-    # Embed as inline base64 to bypass Streamlit's image cache and any
-    # browser-level caching that was making the boxed logo persist.
-    if logo_path.exists():
-        import base64 as _b64
-        with open(logo_path, "rb") as _f:
-            _logo_b64 = _b64.b64encode(_f.read()).decode("ascii")
-        _logo_size = "40px" if _sb_collapsed else "112px"
-        _v = int(logo_path.stat().st_mtime)
-        st.markdown(
-            f'''<div class="bl-sb-brand" data-v="{_v}">
-                <img src="data:image/png;base64,{_logo_b64}"
-                     alt="BarrelLabs"
-                     style="width:{_logo_size};height:auto;
-                            background:transparent;opacity:.96;"/>
-            </div>''',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown('<div class="bl-sb-brand"></div>', unsafe_allow_html=True)
-
-    # ---- Collapse / expand toggle (tiny chevron) ----
-    st.markdown('<div class="bl-sb-toggle">', unsafe_allow_html=True)
-    _toggle_icon = "›" if _sb_collapsed else "‹"
-    if st.button(
-        _toggle_icon,
-        key="bl_sb_toggle",
-        help="Expand sidebar" if _sb_collapsed else "Collapse sidebar",
-    ):
-        st.session_state["sidebar_collapsed"] = not _sb_collapsed
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="bl-sb-divider"></div>', unsafe_allow_html=True)
-
-    # ===================== NAV =====================
-    # Primary CTA — Analyze New Swing
-    _nav_btn("+", "Analyze new swing", "new_swing", _go_upload, primary=True)
-
-    # --- Workspace ---
-    if not _sb_collapsed:
-        st.markdown('<div class="bl-sb-group-label">Workspace</div>', unsafe_allow_html=True)
-    _nav_btn("◇", "Dashboard",           "dashboard", _go_dashboard)
-    _nav_btn("↗", "Development tracker", "tracker",   _go_page("development_tracker"))
-    _nav_btn("≡", "Performance trends",  "history",   _go_page("historical_charts"))
-    _nav_btn("⇄", "Compare swings",      "compare",   _go_page("compare_swings"))
-    _nav_btn("☰", "Saved reports",       "saved",     _go_page("saved_reports"))
-
-    # --- Account ---
-    if not _sb_collapsed:
-        st.markdown('<div class="bl-sb-group-label">Account</div>', unsafe_allow_html=True)
-    _nav_btn("⚙", "Settings",        "settings", _go_settings)
-    _nav_btn("◈", "Billing",         "billing",  _go_page("billing"))
-    _nav_btn("✓", "Launch progress", "launch",   _go_page("launch_progress"))
-    _nav_btn("↩", "Log out",         "logout",   _go_logout)
-
-    # ===================== ANALYSIS OPTIONS =====================
-    # These variables are consumed by the upload flow downstream — they
-    # must always be defined regardless of sidebar state.
-    profile_hand_label = "Right-handed" if user["handedness"] == "RIGHT" else "Left-handed"
-    HAND_MAP = {
-        f"Use profile ({profile_hand_label})": user["handedness"],
-        "Right-handed": "RIGHT",
-        "Left-handed":  "LEFT",
-        "Auto-detect":  "AUTO",
-    }
-    hand_override = f"Use profile ({profile_hand_label})"
-    refs = list_library_references()
-    ref_options = ["Auto-pick best match"] + [
-        f"{r['name']}  ({r['handedness'][0]}H)" for r in refs
-    ]
-    ref_choice = ref_options[0]
-
-    if not _sb_collapsed:
-        with st.expander("Analysis options", expanded=False):
-            hand_override = st.radio(
-                "Batting hand for this clip",
-                options=[f"Use profile ({profile_hand_label})", "Right-handed",
-                         "Left-handed", "Auto-detect"],
-                index=0,
-                help="Defaults to your profile. Override only if pose detection misreads.",
-            )
-            ref_choice = st.selectbox(
-                "Compare to",
-                ref_options,
-                index=0,
-                help="Auto-pick uses your camera angle + handedness to choose the closest reference.",
-            )
-
-    # ===================== USER CHIP (bottom) =====================
-    if not _sb_collapsed:
-        # Get plan badge
-        try:
-            _plan_info = load_my_plan() or {}
-            _plan_label = (_plan_info.get("plan_id") or "free").upper()
-        except Exception:
-            _plan_label = "FREE"
-
-        # First initial for avatar
-        _initial = (user["name"] or "?").strip()[:1].upper() or "?"
-        _first_name = (user["name"] or "").split(" ")[0] or user["email"].split("@")[0]
-
-        st.markdown(
-            f'''<div class="bl-sb-userchip">
-                <div class="bl-sb-userchip-avatar">{_initial}</div>
-                <div class="bl-sb-userchip-body">
-                    <div class="bl-sb-userchip-name">{_first_name}</div>
-                    <div class="bl-sb-userchip-plan">{_plan_label} plan</div>
-                </div>
-            </div>''',
-            unsafe_allow_html=True,
-        )
+# ---------- LEFT SIDEBAR (removed) ----------
+# The left st.sidebar nav was removed in favor of a single navigation
+# system: the top Edge masthead (bl_edge_chrome.render_edge_masthead),
+# which is now rendered on every destination including the upload and
+# billing pages. What used to live here:
+#   - nav buttons (Dashboard, Development tracker, etc.) → now masthead
+#     nav tabs; "Analyze new swing" is the masthead's primary CTA.
+#   - logout / billing / launch-progress → still reachable: logout +
+#     "Manage billing" live in Player Settings; launch via
+#     ?page=launch_progress.
+#   - the "Analysis options" expander (hand_override / ref_choice) →
+#     relocated to the upload page body next to the file uploader; its
+#     default-assignment logic runs unconditionally on the upload path
+#     so the analysis flow always has these values.
+# The Streamlit sidebar element itself is hidden via global CSS
+# (bl_theme.BL_GLOBAL_CSS) so no empty rail or collapse arrow remains.
 
 
 # ---------- DASHBOARD PAGE ----------
@@ -3872,6 +3774,12 @@ if st.session_state.get("page") == "billing":
     # Full premium Billing page — hero status banner, plan-aware primary
     # actions (Manage Subscription / Compare Plans / Upgrade), "what's
     # included" feature checklist, and beta-code redemption.
+    # Carry the unified Edge masthead so Billing isn't stranded without
+    # nav now that the left sidebar is gone. active_page="billing" isn't
+    # a nav tab, so no tab highlights — which is correct (billing is
+    # reached from Settings, not a top-level tab).
+    from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
+    _render_edge_masthead(user, active_page="billing")
     _render_billing_page()
     st.stop()
 
@@ -4430,6 +4338,36 @@ if _should_open_report:
 
 
 # ---------- UPLOAD ----------
+# Unified Edge masthead — the upload/landing page is now reachable only
+# via the masthead's "+ Analyze new swing" CTA (the left sidebar that
+# used to host nav + this page's entry point has been removed), so the
+# page must carry the same top nav as every other page. active_page=
+# "upload" isn't a nav tab, so no tab highlights — that's intended.
+from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
+_render_edge_masthead(user, active_page="upload")
+
+# ===================== ANALYSIS OPTIONS (defaults) =====================
+# Relocated out of the old left sidebar. These variables are consumed by
+# the analysis flow downstream (HAND_MAP[hand_override] at pose
+# detection; ref_choice / ref_options / refs at MLB-comp selection), so
+# they MUST be defined unconditionally on every upload-page render —
+# before the user even uploads a clip. The interactive override widgets
+# (batting-hand radio + "Compare to" selectbox) render in the page body
+# next to the uploader below and rebind these names when shown.
+profile_hand_label = "Right-handed" if user["handedness"] == "RIGHT" else "Left-handed"
+HAND_MAP = {
+    f"Use profile ({profile_hand_label})": user["handedness"],
+    "Right-handed": "RIGHT",
+    "Left-handed":  "LEFT",
+    "Auto-detect":  "AUTO",
+}
+hand_override = f"Use profile ({profile_hand_label})"
+refs = list_library_references()
+ref_options = ["Auto-pick best match"] + [
+    f"{r['name']}  ({r['handedness'][0]}H)" for r in refs
+]
+ref_choice = ref_options[0]
+
 if "upload_reset_id" not in st.session_state:
     st.session_state.upload_reset_id = 0
 
@@ -4722,6 +4660,26 @@ upload = st.file_uploader(
     key=f"swing_upload_{st.session_state.upload_reset_id}",
     label_visibility="collapsed",
 )
+
+# ===================== ANALYSIS OPTIONS (override widgets) =====================
+# Relocated from the old left sidebar to the upload page body. Defaults
+# for hand_override / ref_choice were already assigned unconditionally at
+# the top of this UPLOAD section; these widgets rebind them when the user
+# opens the expander. Semantics/values are unchanged — only the location.
+with st.expander("Analysis options", expanded=False):
+    hand_override = st.radio(
+        "Batting hand for this clip",
+        options=[f"Use profile ({profile_hand_label})", "Right-handed",
+                 "Left-handed", "Auto-detect"],
+        index=0,
+        help="Defaults to your profile. Override only if pose detection misreads.",
+    )
+    ref_choice = st.selectbox(
+        "Compare to",
+        ref_options,
+        index=0,
+        help="Auto-pick uses your camera angle + handedness to choose the closest reference.",
+    )
 
 reset_l, _, _ = st.columns([1.3, 1, 3])
 with reset_l:

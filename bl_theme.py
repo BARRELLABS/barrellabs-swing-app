@@ -122,6 +122,18 @@ BL_GLOBAL_CSS = """
     --bl-cta-shadow:  0 12px 30px -10px rgba(230,69,48,0.42);
 }
 
+/* ===========  LEFT SIDEBAR — REMOVED  ===========
+   The app collapsed to a single navigation system (the top Edge
+   masthead). The legacy left st.sidebar is gone; hide the Streamlit
+   sidebar element AND its collapsed-state expand arrow so no empty
+   rail or stray collapse control ever paints. */
+section[data-testid="stSidebar"],
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    display: none !important;
+}
+
 /* ===========  GLOBAL BACKGROUND  =========== */
 [data-testid="stAppViewContainer"] {
     background: var(--ink) !important;
