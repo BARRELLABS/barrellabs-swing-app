@@ -7,10 +7,12 @@ Acceptance criteria under test
 ------------------------------
   C1  Dashboard "Sessions" nav opens the Saved Reports page WITHOUT
       losing session state (the auth-wipe regression).
-  C2  Opening a saved swing routes through render_dashboard_v3 with a
-      force_record (NOT the old renderer, NOT a dashboard redirect).
-  C3  The forced swing renders in the new Edge editorial template, and
-      it is THAT specific swing (not history[-1]).
+  C2  Opening a saved swing routes through the DEDICATED swing_report_page
+      (NOT the old renderer, NOT the deprecated render_dashboard_v3
+      force_record re-skin, NOT a dashboard fall-through).
+  C3  render_dashboard_v3(force_record=...) — the function still supports
+      the force_record kwarg — renders the forced swing in the Edge
+      template, and it is THAT specific swing (not history[-1]).
   C4  app.py boots cleanly inside Streamlit (no import/runtime break).
 
 No browser, no Supabase, no auth automation — Streamlit's official
@@ -133,7 +135,9 @@ def test_sessions_nav_routes_and_preserves_state():
     assert at.exception == [], f"dashboard render raised: {at.exception}"
     assert "V3_IFRAME_RENDERED" in _md(at), "Edge dashboard did not render"
 
-    nav = [b for b in at.button if b.key == "_v3nav_saved_reports"]
+    # Nav consolidation (merge 36f8c12) moved the nav into the editorial
+    # masthead (bl_edge_chrome), renaming the keys _v3nav_* -> _ble_nav_*.
+    nav = [b for b in at.button if b.key == "_ble_nav_saved_reports"]
     assert nav, f"Sessions nav button missing; keys={[b.key for b in at.button]}"
     nav[0].click()
     at.run(timeout=RUN_TIMEOUT)
@@ -187,22 +191,35 @@ def test_force_record_renders_that_specific_swing():
 
 
 # --------------------------------------------------------------------------
-# C2 — app.py routing structurally sends Open Report through v3, not the
-# old renderer / not a dashboard fall-through.
+# C2 — app.py routing structurally sends Open Report to the DEDICATED
+# swing_report_page, not the old renderer, not the deprecated
+# render_dashboard_v3(force_record=...) re-skin, not a dashboard fall-through.
+#
+# The nav consolidation / Open-Report rework (merge 36f8c12) replaced the
+# old "re-skin the whole dashboard with force_record" behavior with a
+# focused swing_report_page. This mirrors the canonical contract locked by
+# tests/test_nav_routing_smoke.py::AppRoutingTest.
 # --------------------------------------------------------------------------
 def test_apppy_routing_structure():
     src = APP.read_text()
-    i = src.index('if "view_swing_record" in st.session_state or "view_swing_path"')
-    # Slice to the end of this routing block (the `else:` that handles a
-    # missing record, then its st.stop()). 3.2k chars covers it.
-    block = src[i:i + 3200]
-    assert "render_dashboard_v3(user, force_record=saved_record)" in block, \
-        "Open Report does not route to render_dashboard_v3(force_record=...)"
-    assert "use_dashboard_v3" in block, "v3 routing not guarded by use_dashboard_v3"
+    i = src.index("_should_open_report = (")
+    # Slice from the guard definition through the dispatch block. The block
+    # ends at the next top-level page section ("UPLOAD"); fall back to a
+    # generous fixed slice if that marker ever moves.
+    end = src.find("# ---------- UPLOAD", i)
+    block = src[i:end] if end != -1 else src[i:i + 3200]
+
+    assert "from swing_report_page import render_swing_report_page" in block, \
+        "Open Report does not import the dedicated swing_report_page"
+    assert "render_swing_report_page(user, saved_record, history=hist)" in block, \
+        "Open Report does not route to render_swing_report_page(...)"
     assert "st.stop()" in block, "no st.stop() — risk of dashboard fall-through"
-    # Old renderer must only be the except/legacy fallback, never the
-    # primary path.
+
+    # The deprecated force_record re-skin and the old renderer must NOT be
+    # on the primary open-report path (only ever an except/legacy fallback).
     primary = block.split("except Exception")[0]
+    assert "force_record=" not in primary, \
+        "deprecated render_dashboard_v3(force_record=...) is on the PRIMARY path"
     assert "render_saved_swing_report" not in primary, \
         "old render_saved_swing_report is on the PRIMARY open-report path"
 
