@@ -3257,6 +3257,11 @@ if (
     and not _viewing_settings
     and st.session_state.get("page") not in _pages_with_own_hero
 ):
+    # Top nav first — this is the upload/landing page (every other page
+    # renders its own Edge masthead). Without this the nav painted BELOW
+    # the welcome hero, stranding it mid-page.
+    from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
+    _render_edge_masthead(user, active_page="upload")
     st.markdown(f"""
 <div class="bl-hero">
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;position:relative;z-index:1;">
@@ -4338,13 +4343,9 @@ if _should_open_report:
 
 
 # ---------- UPLOAD ----------
-# Unified Edge masthead — the upload/landing page is now reachable only
-# via the masthead's "+ Analyze new swing" CTA (the left sidebar that
-# used to host nav + this page's entry point has been removed), so the
-# page must carry the same top nav as every other page. active_page=
-# "upload" isn't a nav tab, so no tab highlights — that's intended.
-from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
-_render_edge_masthead(user, active_page="upload")
+# The Edge masthead for this page is rendered earlier (alongside the welcome
+# hero, gated by the same condition) so the nav sits at the very top of the
+# page rather than below the hero.
 
 # ===================== ANALYSIS OPTIONS (defaults) =====================
 # Relocated out of the old left sidebar. These variables are consumed by
