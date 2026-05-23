@@ -145,7 +145,7 @@ WK = {
     "pos_sec":  "ps_pos_sec",
     "bats":     "ps_bats",        # segmented_control value
     "throws":   "ps_throws",
-    "age":      "ps_age",
+    "birth_year": "ps_birth_year",
     "ft":       "ps_ft",
     "in":       "ps_in",
     "wt":       "ps_wt",
@@ -349,7 +349,7 @@ def _saved_defaults(user: Dict[str, Any]) -> Dict[str, Any]:
         "pos_sec": sec_label,
         "bats":    bats_label,
         "throws":  throws_label,
-        "age":     str(extras.get("age", "") or ""),
+        "birth_year": str(user.get("birth_year") or ""),
         "ft":      int(cur_ft) if cur_ft else 5,
         "in":      int(cur_in) if cur_in is not None else 10,
         "wt":      int(user.get("weight_lb") or 160),
@@ -386,7 +386,7 @@ def _current_field_values(user: Dict[str, Any]) -> Dict[str, Any]:
         except (TypeError, ValueError):
             out[n] = 0
     # String fields
-    for s in ("first", "last", "display", "age", "grad", "team"):
+    for s in ("first", "last", "display", "birth_year", "grad", "team"):
         out[s] = (str(out[s] or "")).strip()
     return out
 
@@ -402,7 +402,7 @@ _DIRTY_FIELDS: List[Tuple[str, str]] = [
     ("pos_sec", "Secondary position"),
     ("bats",    "Bats"),
     ("throws",  "Throws"),
-    ("age",     "Age"),
+    ("birth_year", "Birth year"),
     ("ft",      "Height · ft"),
     ("in",      "Height · in"),
     ("wt",      "Weight"),
@@ -1505,8 +1505,15 @@ def render_player_settings_page(
 
             c5, c6 = st.columns(2)
             with c5:
-                st.text_input("Age", value=saved["age"],
-                               placeholder="e.g. 16", key=WK["age"])
+                st.text_input("Birth year", value=saved["birth_year"],
+                               placeholder="e.g. 2014", key=WK["birth_year"],
+                               help="Used for an age-accurate Swing Score. "
+                                    "Updates automatically each year.")
+                from analyzer import age_from_birth_year as _afby
+                _age_hint = _afby(st.session_state.get(WK["birth_year"])
+                                  or saved["birth_year"])
+                if _age_hint is not None:
+                    st.caption(f"Age {_age_hint}")
             with c6:
                 h1, h2 = st.columns(2)
                 with h1:
@@ -1906,6 +1913,13 @@ def _do_save(user: Dict[str, Any]) -> bool:
     from auth import update_profile
     cur = _current_field_values(user)
 
+    def _parse_birth_year(v):
+        try:
+            y = int(str(v).strip())
+            return y if 1990 <= y <= 2025 else None
+        except (TypeError, ValueError):
+            return None
+
     db_bats = {"Right": "RIGHT", "Left": "LEFT",
                 "Switch": "SWITCH"}.get(cur["bats"], "RIGHT")
     # Resolve pos label back to slug, then to a clean DB string.
@@ -1926,6 +1940,7 @@ def _do_save(user: Dict[str, Any]) -> bool:
         handedness=db_bats,
         height_in=int(cur["ft"]) * 12 + int(cur["in"]),
         weight_lb=int(cur["wt"]),
+        birth_year=_parse_birth_year(cur["birth_year"]),
         team=(cur["team"] or "").strip(),
         position=pos_db,
         throws=cur["throws"],
@@ -1936,7 +1951,6 @@ def _do_save(user: Dict[str, Any]) -> bool:
         _extras_set("display_name", (cur["display"] or "").strip())
         _extras_set("position_slug", pos_slug)
         _extras_set("secondary_position_slug", sec_slug)
-        _extras_set("age", (cur["age"] or "").strip())
         _extras_set("graduation_year", (cur["grad"] or "").strip())
         _extras_set("default_swing_view", cur["view"])
         _extras_set("mlb_hand_pref", cur["hand"])
