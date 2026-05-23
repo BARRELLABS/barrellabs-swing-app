@@ -1,16 +1,31 @@
 """Household / Family Pro data layer.
 
-Safe by design: every function falls back to None / empty / False
-when the schema isn't yet migrated or the Supabase client isn't
-configured. That lets the dashboard ship before the user has
-applied the migration to their live database.
+Built on the EXISTING seat model that already lives in the database:
 
-Public API:
+  subscriptions       = the household container (owner_user_id, plan_id)
+  subscription_seats  = the members (subscription_id, user_id, invite_*,
+                        accepted_at, role, display_name, is_minor)
+  plans.seats         = the per-plan seat cap (free=1, solo=1, family=4,
+                        coach=20)
+  v_my_plan           = already resolves a member's plan THROUGH their
+                        seat, so Family-Pro entitlement propagation needs
+                        no extra code — a seat on a family_pro sub already
+                        resolves the member to family_pro.
+
+This module presents a "family"-shaped API over those tables so the
+dashboard / settings don't need to know the underlying schema. A
+"family" IS a subscription whose plan has more than one seat.
+
+Safe by design: every function falls back to None / empty / False when
+the Supabase client isn't configured or a query errors, so the dashboard
+renders its empty/upgrade states instead of crashing.
+
+Public API (stable — callers depend on these shapes):
   load_family_for_user(user_id)   → family dict or None
-  list_members(family_id)         → list of family_members rows
+  list_members(family_id)         → list of member dicts
   is_family_pro_member(user_id)   → bool
   add_member(family_id, email, ...) → {ok, error?, invite_token?}
-  remove_member(family_member_id) → {ok, error?}
+  remove_member(seat_id)          → {ok, error?}
   claim_invite(token, user_id)    → {ok, family_id?, error?}
   get_member_summary(member, swings=None) → dashboard-ready dict
 
@@ -31,9 +46,11 @@ except Exception:
 
 
 # ── Constants ──────────────────────────────────────────────────────
-MAX_SEATS = 4
 STALE_DAYS = 10
 INVITE_EXPIRY_DAYS = 30
+
+# Subscription statuses that count as "the plan is live".
+_LIVE_STATUSES = ("active", "trialing", "past_due", "comp")
 
 # Trend bands for verdict-line generation
 _BIG_JUMP   = 5   # delta ≥ this → "Best swing"
@@ -43,8 +60,8 @@ _BIG_DROP   = -3  # ≤ this → "Slipping"
 
 # ── Supabase wrapper ───────────────────────────────────────────────
 def _supabase_query_safe(table: str, query_fn) -> tuple[str, Any]:
-    """Run a Supabase query, mapping schema-missing / connection errors
-    to ('schema_missing', None) so callers can fall back gracefully."""
+    """Run a Supabase query, mapping connection / schema errors to a
+    non-'ok' status so callers can fall back gracefully."""
     if _get_client is None:
         return ("no_client", None)
     try:
@@ -59,153 +76,243 @@ def _supabase_query_safe(table: str, query_fn) -> tuple[str, Any]:
         return ("error", str(exc))
 
 
-# ── Public API ─────────────────────────────────────────────────────
-def load_family_for_user(user_id: str) -> Optional[dict]:
-    """Return the family dict the user belongs to (as owner or
-    active member). None if no family or schema not yet migrated."""
+def _rows(result) -> list[dict]:
+    """Normalize a supabase-py response into a list of row dicts."""
+    if result is None:
+        return []
+    data = result.data if hasattr(result, "data") else result.get("data", [])
+    return data or []
+
+
+# ── Internal: subscription + plan lookup ───────────────────────────
+def _subscription_for_user(user_id: str) -> Optional[dict]:
+    """Find the live subscription the user belongs to — either as the
+    owner, or via a seat they hold. Returns the joined subscription+plan
+    dict (with max_seats) or None."""
     if not user_id:
         return None
+
+    # 1. A seat the user holds (covers both owner-seat and invited member).
     status, result = _supabase_query_safe(
-        "families",
-        lambda t: t.select("*").eq("owner_user_id", user_id).limit(1).execute(),
+        "subscription_seats",
+        lambda t: t.select("subscription_id")
+                   .eq("user_id", user_id)
+                   .is_("removed_at", "null")
+                   .limit(1).execute(),
     )
-    if status != "ok":
+    sub_id = None
+    if status == "ok":
+        seats = _rows(result)
+        if seats:
+            sub_id = seats[0].get("subscription_id")
+
+    # 2. Fallback: the user directly owns a subscription (no seat row yet).
+    if sub_id is None:
+        status_o, result_o = _supabase_query_safe(
+            "subscriptions",
+            lambda t: t.select("id").eq("owner_user_id", user_id)
+                       .in_("status", list(_LIVE_STATUSES))
+                       .limit(1).execute(),
+        )
+        if status_o == "ok":
+            owned = _rows(result_o)
+            if owned:
+                sub_id = owned[0].get("id")
+
+    if not sub_id:
         return None
-    rows = (result.data if hasattr(result, "data") else result.get("data", []))
-    if rows:
-        return rows[0]
-    # Fall through: user might be a member, not an owner
-    status2, result2 = _supabase_query_safe(
-        "family_members",
-        lambda t: t.select("family_id").eq("player_user_id", user_id)
-                   .eq("invite_status", "active").limit(1).execute(),
+
+    # Load the subscription row.
+    status_s, result_s = _supabase_query_safe(
+        "subscriptions",
+        lambda t: t.select("*").eq("id", sub_id).limit(1).execute(),
     )
-    if status2 != "ok":
+    if status_s != "ok":
         return None
-    mrows = (result2.data if hasattr(result2, "data") else result2.get("data", []))
-    if not mrows:
+    subs = _rows(result_s)
+    if not subs:
         return None
-    fid = mrows[0].get("family_id")
-    if not fid:
+    sub = subs[0]
+    if sub.get("status") not in _LIVE_STATUSES:
         return None
-    status3, result3 = _supabase_query_safe(
-        "families",
-        lambda t: t.select("*").eq("id", fid).limit(1).execute(),
+
+    # Join the plan for seat-count + display name.
+    plan = {}
+    status_p, result_p = _supabase_query_safe(
+        "plans",
+        lambda t: t.select("id,name,seats").eq("id", sub.get("plan_id"))
+                   .limit(1).execute(),
     )
-    if status3 != "ok":
+    if status_p == "ok":
+        prows = _rows(result_p)
+        if prows:
+            plan = prows[0]
+
+    sub["_plan_name"] = plan.get("name")
+    sub["_max_seats"] = int(plan.get("seats") or 1)
+    return sub
+
+
+# ── Public API ─────────────────────────────────────────────────────
+def load_family_for_user(user_id: str) -> Optional[dict]:
+    """Return the household ("family") the user belongs to, or None.
+
+    A household exists only when the user's live subscription has a
+    multi-seat plan (family_pro / coach_pro). Solo / free users get
+    None → the dashboard shows the upgrade prompt.
+
+    The returned dict's `id` is the subscription_id so callers can pass
+    it straight to list_members()."""
+    sub = _subscription_for_user(user_id)
+    if not sub:
         return None
-    frows = (result3.data if hasattr(result3, "data") else result3.get("data", []))
-    return frows[0] if frows else None
+    if int(sub.get("_max_seats") or 1) <= 1:
+        return None  # solo / free — no household
+    return {
+        "id":             sub["id"],
+        "subscription_id": sub["id"],
+        "owner_user_id":  sub.get("owner_user_id"),
+        "plan_id":        sub.get("plan_id"),
+        "plan_name":      sub.get("_plan_name"),
+        "max_seats":      int(sub.get("_max_seats") or 1),
+        "status":         sub.get("status"),
+    }
 
 
 def list_members(family_id: str, include_removed: bool = False) -> list[dict]:
-    """Return family_members rows for a family. Active+pending only by
-    default; pass include_removed=True to see soft-deleted rows too."""
+    """Return member dicts for a household (subscription_id). Active +
+    pending seats by default. Each member is enriched with the player's
+    profile (name / position / handedness) where they have an account."""
     if not family_id:
         return []
-    statuses = (["active", "pending", "removed"]
-                if include_removed else ["active", "pending"])
-    status, result = _supabase_query_safe(
-        "family_members",
-        lambda t: t.select("*").eq("family_id", family_id)
-                   .in_("invite_status", statuses)
-                   .order("added_at", desc=False).execute(),
-    )
+
+    def _q(t):
+        q = t.select("*").eq("subscription_id", family_id)
+        if not include_removed:
+            q = q.is_("removed_at", "null")
+        return q.order("invited_at", desc=False).execute()
+
+    status, result = _supabase_query_safe("subscription_seats", _q)
     if status != "ok":
         return []
-    rows = (result.data if hasattr(result, "data") else result.get("data", []))
-    return rows or []
+    seats = _rows(result)
+    if not seats:
+        return []
+
+    # Batch-fetch player profiles for seats that have an account.
+    user_ids = [s["user_id"] for s in seats if s.get("user_id")]
+    players_by_uid: dict[str, dict] = {}
+    if user_ids:
+        status_p, result_p = _supabase_query_safe(
+            "players",
+            lambda t: t.select("user_id,name,position,handedness")
+                       .in_("user_id", user_ids).execute(),
+        )
+        if status_p == "ok":
+            for p in _rows(result_p):
+                players_by_uid[p.get("user_id")] = p
+
+    members: list[dict] = []
+    for s in seats:
+        prof = players_by_uid.get(s.get("user_id"), {})
+        if s.get("removed_at"):
+            invite_status = "removed"
+        elif s.get("accepted_at"):
+            invite_status = "active"
+        else:
+            invite_status = "pending"
+        members.append({
+            "id":             s.get("id"),
+            "player_user_id": s.get("user_id"),
+            "display_name":   s.get("display_name") or prof.get("name")
+                              or s.get("invite_email") or "Player",
+            "position":       prof.get("position"),
+            "handedness":     prof.get("handedness"),
+            "role":           s.get("role"),
+            "is_minor":       bool(s.get("is_minor")),
+            "invite_status":  invite_status,
+            "invite_email":   s.get("invite_email"),
+        })
+    return members
 
 
 def is_family_pro_member(user_id: str) -> bool:
-    """True iff the user is an active member of a family with an
-    active Family Pro subscription. Backed by v_my_effective_plan."""
-    if not user_id:
+    """True iff the user is in a live multi-seat household (family_pro /
+    coach_pro), as owner or accepted member. Gates the Family nav item
+    and the dashboard route."""
+    sub = _subscription_for_user(user_id)
+    if not sub:
         return False
-    status, result = _supabase_query_safe(
-        "v_my_effective_plan",
-        lambda t: t.select("plan_id,source").limit(1).execute(),
-    )
-    if status != "ok":
-        return False
-    rows = (result.data if hasattr(result, "data") else result.get("data", []))
-    if not rows:
-        return False
-    row = rows[0]
-    return (row.get("plan_id") == "family_pro"
-            and row.get("source") == "family")
+    return int(sub.get("_max_seats") or 1) > 1
 
 
 def add_member(
     family_id: str,
     email: str,
-    role: str = "child",
+    role: str = "member",
     is_minor: bool = False,
     display_name: Optional[str] = None,
 ) -> dict:
-    """Invite a new member by email. Generates a one-time token,
-    stores its hash via the add_family_member RPC.
+    """Invite a member to the household via the invite_subscription_seat
+    RPC. Generates a single-use token, stores only its sha256 hash; the
+    plaintext token is returned so the caller can build the invite link
+    (email-send backend is a follow-up). Seat cap is enforced server-side
+    from plans.seats.
 
-    Returns {ok: bool, invite_token?: str, error?: str}.
-    The invite_token is returned so the caller can include it in an
-    email (or display it inline pre-email-send-backend).
-    """
+    Returns {ok, invite_token?, error?}."""
     if not email or "@" not in email:
         return {"ok": False, "error": "Enter a valid email."}
-
-    # Client-side seat-cap pre-check (the RPC is authoritative)
-    active = [m for m in list_members(family_id)
-              if m.get("invite_status") == "active"]
-    if len(active) >= MAX_SEATS:
-        return {"ok": False, "error": "Household is full — at the 4-seat cap."}
 
     token = _secrets.token_urlsafe(32)
     token_hash = _hashlib.sha256(token.encode()).hexdigest()
 
     if _get_client is None:
-        # Pre-migration mode — return the invite token without inserting
+        # Pre-DB mode — return the token so the UI can still show the link.
         return {"ok": True, "invite_token": token, "mode": "stub"}
 
     try:
         client = _get_client()
-        client.rpc("add_family_member", {
-            "p_family_id":   family_id,
-            "p_email":       email.lower().strip(),
-            "p_role":        role,
-            "p_is_minor":    is_minor,
-            "p_display_name": display_name,
-            "p_token_hash":  token_hash,
+        client.rpc("invite_subscription_seat", {
+            "p_subscription_id": family_id,
+            "p_email":           email.lower().strip(),
+            "p_is_minor":        is_minor,
+            "p_display_name":    display_name,
+            "p_token_hash":      token_hash,
         }).execute()
         return {"ok": True, "invite_token": token}
     except Exception as exc:
-        return {"ok": False, "error": str(exc)}
+        # Surface the server-side seat-cap / ownership errors verbatim-ish.
+        msg = str(exc)
+        if "seats are in use" in msg:
+            return {"ok": False, "error": "Household is full — every seat is in use."}
+        if "not the subscription owner" in msg:
+            return {"ok": False, "error": "Only the household owner can invite players."}
+        return {"ok": False, "error": msg}
 
 
-def remove_member(family_member_id: str) -> dict:
-    """Soft-delete: set invite_status='removed', removed_at=now()."""
-    if not family_member_id:
-        return {"ok": False, "error": "Missing family_member_id."}
+def remove_member(seat_id: str) -> dict:
+    """Soft-delete a seat (set removed_at). Owner-only via RLS
+    (seats_owner_writes)."""
+    if not seat_id:
+        return {"ok": False, "error": "Missing seat id."}
     if _get_client is None:
         return {"ok": True, "mode": "stub"}
     try:
         client = _get_client()
-        client.table("family_members").update({
-            "invite_status": "removed",
-            "removed_at":    _dt.datetime.utcnow().isoformat() + "Z",
-        }).eq("id", family_member_id).execute()
+        client.table("subscription_seats").update({
+            "removed_at": _dt.datetime.utcnow().isoformat() + "Z",
+        }).eq("id", seat_id).execute()
         return {"ok": True}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
 
 
 def claim_invite(token: str, user_id: str) -> dict:
-    """Match token → flip status to active via the claim_family_invite RPC.
+    """Accept a seat invite via the claim_subscription_seat RPC.
 
     The RPC is SECURITY DEFINER: it enforces the 30-day expiry AND the
-    4-seat cap server-side, and claims the pending row atomically under a
-    FOR UPDATE lock. We deliberately do NOT do the lookup/expiry/update
-    as separate client calls — that was race-able (two invitees, or an
-    invite + a seat fill, could interleave)."""
+    plan seat cap server-side, and claims the pending seat atomically
+    under a FOR UPDATE lock."""
     if not token or not user_id:
         return {"ok": False, "error": "Missing token or user."}
     token_hash = _hashlib.sha256(token.encode()).hexdigest()
@@ -214,13 +321,11 @@ def claim_invite(token: str, user_id: str) -> dict:
         return {"ok": False, "error": "Database not configured."}
     try:
         client = _get_client()
-        res = client.rpc("claim_family_invite",
+        res = client.rpc("claim_subscription_seat",
                          {"p_token_hash": token_hash}).execute()
         fam_id = res.data if hasattr(res, "data") else res.get("data")
         if not fam_id:
             return {"ok": False, "error": "Invite token invalid or expired."}
-        # supabase-py returns the scalar directly for a uuid-returning RPC,
-        # but normalize in case it's wrapped in a list.
         if isinstance(fam_id, (list, tuple)):
             fam_id = fam_id[0] if fam_id else None
         return {"ok": True, "family_id": fam_id}
@@ -229,20 +334,23 @@ def claim_invite(token: str, user_id: str) -> dict:
 
 
 def get_member_summary(member: dict, swings: list[dict] | None = None) -> dict:
-    """Combine a family_members row with their recent swings into a
-    card-ready dict. If swings is None and there's a real DB, fetches
-    the member's last 30 swings."""
+    """Combine a member dict with their recent swings into a card-ready
+    dict. If swings is None and there's a real DB, fetches the member's
+    last 30 swings (by auth user_id, since swings.user_id → auth.users)."""
     out = dict(member)
-    if swings is None and member.get("player_user_id") and _get_client is not None:
+    uid = member.get("player_user_id")
+    if swings is None and uid and _get_client is not None:
         status, result = _supabase_query_safe(
             "swings",
-            lambda t: t.select("created_at,edge_score")
-                       .eq("player_id", member["player_user_id"])
+            lambda t: t.select("created_at,score")
+                       .eq("user_id", uid)
                        .order("created_at", desc=False).limit(30).execute(),
         )
         if status == "ok":
-            rows = (result.data if hasattr(result, "data") else result.get("data", []))
-            swings = rows or []
+            # Normalize the swings table's `score` column to the
+            # `edge_score` key _compute_member_summary expects.
+            swings = [{"created_at": r.get("created_at"),
+                       "edge_score": r.get("score")} for r in _rows(result)]
         else:
             swings = []
     elif swings is None:

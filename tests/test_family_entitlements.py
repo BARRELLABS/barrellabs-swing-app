@@ -1,9 +1,11 @@
 """Family Pro entitlement propagation.
 
-When a user is an active member of a family with an active Family
-Pro subscription, they should resolve to 'family_pro' even if they
-have no direct subscription of their own. A direct subscription
-always wins over family membership.
+The key architectural fact: the `v_my_plan` SQL view ALREADY resolves a
+member's plan through their `subscription_seats` seat. So a seat on a
+family_pro subscription arrives at `entitlements._resolve_plan_id` as a
+snapshot with plan_id='family_pro' — no special-case code needed. These
+tests lock in that pass-through behavior so nobody re-adds a redundant
+family fallback.
 """
 
 from __future__ import annotations
@@ -17,38 +19,34 @@ PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT))
 
 
-class TestFamilyEntitlementPropagation:
-    def test_family_member_with_no_direct_sub_resolves_to_family_pro(self, monkeypatch):
-        """A kid added to a Family Pro household sees family_pro plan,
-        even though they didn't buy anything themselves."""
-        import family_storage
-        # Mock family_storage to say "yes, this user is in a Family Pro family"
-        monkeypatch.setattr(family_storage, "is_family_pro_member",
-                            lambda uid: True)
-        # Now invoke the entitlements resolution — it should pick up family_pro
-        # via the new helper. The exact function name depends on what we find.
+class TestPlanResolutionPassThrough:
+    def test_family_pro_snapshot_resolves_to_family_pro(self):
+        """A member's v_my_plan row (resolved through their seat) carries
+        plan_id='family_pro' → entitlements returns family_pro."""
         import entitlements
-        # Try the common names; one of these should exist
-        if hasattr(entitlements, "_resolve_plan_via_family"):
-            assert entitlements._resolve_plan_via_family("kid-uuid") == "family_pro"
-        else:
-            pytest.fail("expected entitlements._resolve_plan_via_family helper")
+        snap = {"plan_id": "family_pro", "status": "active",
+                "user_id": "kid-uuid"}
+        assert entitlements._resolve_plan_id(snap) == "family_pro"
 
-    def test_non_member_falls_through_to_none(self, monkeypatch):
-        import family_storage
-        monkeypatch.setattr(family_storage, "is_family_pro_member",
-                            lambda uid: False)
+    def test_solo_pro_snapshot_resolves_to_solo_pro(self):
         import entitlements
-        if hasattr(entitlements, "_resolve_plan_via_family"):
-            assert entitlements._resolve_plan_via_family("random-uuid") is None
+        snap = {"plan_id": "solo_pro", "status": "active"}
+        assert entitlements._resolve_plan_id(snap) == "solo_pro"
 
-    def test_helper_safe_when_family_storage_breaks(self, monkeypatch):
-        """If family_storage raises an exception, the helper should return
-        None gracefully — never break the entitlements pipeline."""
-        import family_storage
-        def boom(*a, **k):
-            raise RuntimeError("storage layer crashed")
-        monkeypatch.setattr(family_storage, "is_family_pro_member", boom)
+    def test_none_snapshot_resolves_to_free(self):
         import entitlements
-        if hasattr(entitlements, "_resolve_plan_via_family"):
-            assert entitlements._resolve_plan_via_family("any-uuid") is None
+        assert entitlements._resolve_plan_id(None) == entitlements.FREE_PLAN_ID
+
+    def test_unknown_plan_resolves_to_free(self):
+        import entitlements
+        snap = {"plan_id": "nonsense_plan"}
+        assert entitlements._resolve_plan_id(snap) == entitlements.FREE_PLAN_ID
+
+    def test_no_redundant_family_helper_remains(self):
+        """Guard against re-introducing the removed _resolve_plan_via_family
+        fallback — v_my_plan is the single source of truth."""
+        import entitlements
+        assert not hasattr(entitlements, "_resolve_plan_via_family"), (
+            "v_my_plan already resolves family seats; a separate helper "
+            "creates a competing resolution path. Don't re-add it."
+        )

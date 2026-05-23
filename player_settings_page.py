@@ -1184,7 +1184,9 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
             return
 
         family_id = family.get("id", "")
-        family_name = family.get("display_name") or family.get("name") or "My Household"
+        family_name = (family.get("display_name") or family.get("plan_name")
+                       or family.get("name") or "My Household")
+        max_seats = int(family.get("max_seats") or 4)
 
         try:
             members = _fs.list_members(family_id)
@@ -1204,7 +1206,7 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
             f'      <span style="font-family:var(--ps-mono);font-size:10px;'
             f'      letter-spacing:0.16em;text-transform:uppercase;'
             f'      color:var(--ps-bone-60);margin-left:10px;font-style:normal;">'
-            f'      {seats_used} of 4 seats used</span>'
+            f'      {seats_used} of {max_seats} seats used</span>'
             f'    </div>'
             f'  </div>'
             f'  <div></div><div></div>'

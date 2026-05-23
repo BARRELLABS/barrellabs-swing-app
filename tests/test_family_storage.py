@@ -131,24 +131,31 @@ class TestAddMember:
         result = family_storage.add_member("f1", "no-at-sign")
         assert result["ok"] is False
 
-    def test_seat_cap_enforced_client_side(self, monkeypatch):
+    def test_seat_cap_surfaced_from_rpc_error(self, monkeypatch):
+        """Seat cap is enforced server-side by invite_subscription_seat
+        (reads plans.seats). When the RPC raises the 'seats are in use'
+        error, add_member maps it to a friendly message."""
         import family_storage
-        # 4 active members already → adding 5th rejected
-        fake_members = [{"player_user_id": f"u{i}", "invite_status": "active"}
-                        for i in range(4)]
-        monkeypatch.setattr(family_storage, "list_members",
-                            lambda *a, **k: fake_members)
-        result = family_storage.add_member("f1", "new@example.com")
+
+        class _FakeRpc:
+            def execute(self):
+                raise RuntimeError("invite_subscription_seat: all 4 seats are in use")
+
+        class _FakeClient:
+            def rpc(self, *a, **k):
+                return _FakeRpc()
+
+        monkeypatch.setattr(family_storage, "_get_client", lambda: _FakeClient())
+        result = family_storage.add_member("sub1", "new@example.com")
         assert result["ok"] is False
-        assert "full" in result["error"].lower() or "cap" in result["error"].lower()
+        assert "full" in result["error"].lower()
 
     def test_under_cap_succeeds_in_stub_mode(self, monkeypatch):
         """With no Supabase client, add_member returns a stub success
         with the invite token (so the dashboard can show it inline)."""
         import family_storage
-        monkeypatch.setattr(family_storage, "list_members", lambda *a, **k: [])
         monkeypatch.setattr(family_storage, "_get_client", None)
-        result = family_storage.add_member("f1", "kid@example.com")
+        result = family_storage.add_member("sub1", "kid@example.com")
         assert result["ok"] is True
         assert len(result["invite_token"]) >= 32
 
