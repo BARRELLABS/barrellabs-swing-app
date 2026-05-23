@@ -37,6 +37,16 @@ a real signal — without breaking older fingerprints or saved reports.
 - **`detect_phases` remains the sole author of the fingerprint.** Age is passed
   *in* to it (computed by `app.py` from the profile); it writes `age` + a `stride`
   block into the fingerprint JSON.
+- **Age capture = soft nudge + honest label, never a hard gate.** Analysis is
+  never blocked on a missing birth year. Instead, when a swing is scored without
+  a known age, the report shows an honest note ("Scored on the 13–14 standard —
+  add your birth year for an age-accurate score") that links to Settings. This
+  matches the app's existing honesty cues (confidence badges, filming guide) and
+  captures most users without a wall. The label disappears once a birth year is
+  set.
+- **Height & weight stay optional, unchanged.** The analysis never reads them
+  (biomechanics are torso-normalized; the Score/Match use dimensionless ratios),
+  so they remain context-only profile fields with no prompt or gate.
 
 ## Data flow
 
@@ -103,6 +113,19 @@ Settings (Birth year)  ──save (update_profile)──▶  players.birth_year 
 - Read `stride_toward_pitcher` from `fingerprint["stride"]["toward_pitcher"]`,
   defaulting to `True` when the block is absent (back-compat). Feed it to
   `score_stride`. Age path is already wired (`player.get("age")`).
+- Add `"age_known": bool` to the result — `True` when `player.get("age")`
+  resolved to a usable int, `False` when the bracket was defaulted. The report
+  uses this to decide whether to show the honest age label. (`age_bracket` is
+  already returned.)
+
+### 8. `swing_report_dashboard_preview.py` — honest age label (the soft nudge)
+- On the score card, when `record.get("age_known")` is falsy, render a small,
+  non-blocking note: *"Scored on the 13–14 standard — add your birth year for an
+  age-accurate score."* with a link/affordance to Player Settings. When
+  `age_known` is true, render nothing (or a quiet "Age-fair · 11–12" tag).
+- Back-compat: legacy records without `age_known` are treated as unknown but the
+  note is suppressed if the record predates the field entirely (no `swing_score`)
+  so old saved reports don't sprout a nag. (i.e. only show on new-engine reports.)
 
 ## Error handling & back-compat
 
@@ -126,6 +149,11 @@ Settings (Birth year)  ──save (update_profile)──▶  players.birth_year 
   `age` resolves a non-default bracket.
 - `player_settings_page` — wiring test: editing birth year marks dirty and the
   save path calls `update_profile(birth_year=...)`.
+- `analyzer.analyze` — `age_known` is `True` when the fingerprint carries a valid
+  `age`, `False` when absent.
+- `swing_report_dashboard_preview` — the honest age note appears when
+  `age_known` is falsy on a new-engine record, and is absent when `age_known` is
+  true; a legacy record (no `swing_score`) shows no note.
 - Full suite stays green (`pytest tests/ -q`).
 
 ## Out of scope (YAGNI)
