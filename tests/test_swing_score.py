@@ -70,3 +70,26 @@ def test_aggregate_drops_zero_confidence():
 
 def test_aggregate_none_when_nothing_measurable():
     assert aggregate_score({"sequence": {"compliance": 0.5, "confidence": 0.0}}) is None
+
+def test_aggregate_drops_none_compliance_pillars():
+    # A pillar with compliance=None is unmeasurable and must drop out, not crash.
+    pillars = {
+        "a": {"compliance": None, "confidence": 1.0},   # unmeasurable → drop
+        "b": {"compliance": 0.8, "confidence": 1.0},
+        "c": {"compliance": 0.6, "confidence": 1.0},
+    }
+    # Mean of the two measurable pillars = (0.8 + 0.6)/2 = 0.7 → 70
+    assert aggregate_score(pillars) == 70
+
+def test_aggregate_none_compliance_with_zero_conf_is_safe():
+    # compliance=None with confidence=0 must not raise either.
+    pillars = {
+        "a": {"compliance": None, "confidence": 0.0},
+        "b": {"compliance": 1.0, "confidence": 1.0},
+    }
+    assert aggregate_score(pillars) == 100
+
+def test_aggregate_all_none_returns_none():
+    pillars = {"a": {"compliance": None, "confidence": 1.0},
+               "b": {"compliance": None, "confidence": 0.5}}
+    assert aggregate_score(pillars) is None

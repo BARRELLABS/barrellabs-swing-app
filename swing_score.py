@@ -62,10 +62,13 @@ def score_stride(knee_re_extension_deg, stride_toward_pitcher: bool, bracket: st
 
 
 def aggregate_score(pillars: dict) -> Optional[int]:
-    """Confidence-weighted mean of compliance across pillars; pillars with
-    confidence 0 drop out entirely. Returns None if nothing is measurable."""
-    num = sum(p["compliance"] * p["confidence"] for p in pillars.values())
-    den = sum(p["confidence"] for p in pillars.values())
+    """Confidence-weighted mean of compliance across pillars. Pillars that are
+    unmeasurable (compliance is None) or have zero confidence drop out
+    entirely. Returns None if nothing is measurable."""
+    measurable = [p for p in pillars.values()
+                  if p.get("compliance") is not None and p.get("confidence", 0) > 0]
+    den = sum(p["confidence"] for p in measurable)
     if den <= 0:
         return None
+    num = sum(p["compliance"] * p["confidence"] for p in measurable)
     return round(100.0 * num / den)
