@@ -92,6 +92,119 @@ def _profile_from_row(row: dict) -> dict:
 
 
 # --------------------------------------------------------------------
+#  Household / multi-profile helpers
+# --------------------------------------------------------------------
+def _current_user_id() -> Optional[str]:
+    """The logged-in auth user id, or None."""
+    user = get_current_user()
+    return user.id if user else None
+
+
+def _query_household_rows(user_id: str) -> list[dict]:
+    """All players rows for an auth user (incl. removed). Thin DB wrapper
+    so tests can stub it."""
+    sb = get_client()
+    try:
+        resp = (sb.table("players").select("*")
+                  .eq("user_id", user_id)
+                  .order("created_at", desc=False).execute())
+        return resp.data or []
+    except Exception as exc:
+        st.error(f"Failed to load household: {exc}")
+        return []
+
+
+def list_household_players(user_id: str) -> list[dict]:
+    """Active (non-removed) profile dicts for a household, in the app's
+    legacy profile shape."""
+    if not user_id:
+        return []
+    rows = [r for r in _query_household_rows(user_id) if not r.get("removed_at")]
+    return [_profile_from_row(r) for r in rows]
+
+
+def set_active_player(player_id: str) -> bool:
+    """Set the active profile for this session. Returns False (and does
+    nothing) if player_id isn't one of the caller's own non-removed
+    profiles — IDOR guard."""
+    uid = _current_user_id()
+    if not uid or not player_id:
+        return False
+    for r in _query_household_rows(uid):
+        if r.get("id") == player_id and not r.get("removed_at"):
+            st.session_state["player"] = _profile_from_row(r)
+            return True
+    return False
+
+
+def needs_profile_pick() -> bool:
+    """True when the household has >1 active profile and none is selected
+    yet. With exactly 1 profile, auto-selects it and returns False (solo
+    users never see a picker)."""
+    if st.session_state.get("player"):
+        return False
+    uid = _current_user_id()
+    if not uid:
+        return False
+    actives = [r for r in _query_household_rows(uid) if not r.get("removed_at")]
+    if len(actives) == 1:
+        st.session_state["player"] = _profile_from_row(actives[0])
+        return False
+    return len(actives) > 1
+
+
+def current_household_seats() -> int:
+    """Seat cap for the logged-in household's plan (default 1)."""
+    try:
+        sb = get_client()
+        resp = sb.table("v_my_plan").select("seats").limit(1).execute()
+        rows = resp.data or []
+        return int(rows[0].get("seats") or 1) if rows else 1
+    except Exception:
+        return 1
+
+
+def create_household_player(name: str, handedness: str = "RIGHT",
+                            position: Optional[str] = None,
+                            is_minor: bool = True) -> dict:
+    """Create a new profile under the household via the seat-capped RPC.
+    Returns {ok, player?, error?}."""
+    if not (name or "").strip():
+        return {"ok": False, "error": "Enter a name."}
+    try:
+        sb = get_client()
+        resp = sb.rpc("create_household_player", {
+            "p_name": name.strip(),
+            "p_handedness": handedness,
+            "p_position": position,
+            "p_is_minor": is_minor,
+        }).execute()
+        data = resp.data
+        row = data[0] if isinstance(data, list) and data else data
+        return {"ok": True, "player": _profile_from_row(row) if row else None}
+    except Exception as exc:
+        msg = str(exc)
+        if "slots are in use" in msg:
+            return {"ok": False, "error": "Your household is full — every profile slot is in use."}
+        return {"ok": False, "error": msg}
+
+
+def remove_household_player(player_id: str) -> dict:
+    """Soft-remove a profile (set removed_at). Owner-scoped by RLS."""
+    if not player_id:
+        return {"ok": False, "error": "Missing id."}
+    import datetime as _dt
+    try:
+        sb = get_client()
+        sb.table("players").update(
+            {"removed_at": _dt.datetime.utcnow().isoformat() + "Z"}
+        ).eq("id", player_id).execute()
+        return {"ok": True}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
+
+
+# --------------------------------------------------------------------
 #  Signup
 # --------------------------------------------------------------------
 def sign_up(
