@@ -1195,7 +1195,7 @@ inject_global_theme()
 _ALLOWED_PAGES_FROM_URL = {
     "dashboard", "saved_reports", "swing_report", "compare_swings",
     "development_tracker", "historical_charts", "billing",
-    "launch_progress", "pricing", "upload",
+    "launch_progress", "pricing", "upload", "family",
 }
 try:
     _url_page = st.query_params.get("page")
@@ -4253,6 +4253,35 @@ if st.session_state.get("view") == "settings":
 if st.session_state.get("page") == "player_settings":
     from player_settings_page import render_player_settings_page
     render_player_settings_page(user, build_pdf_fn=build_swing_report_pdf)
+    st.stop()
+
+
+# ---------- FAMILY DASHBOARD (Family Pro households only) ----------
+if st.session_state.get("page") == "family":
+    import family_storage as _fam_storage
+    _fam_user_id = (
+        (user or {}).get("user_id")
+        or (user or {}).get("id")
+        or ""
+    )
+    _has_family = (
+        _fam_storage.is_family_pro_member(_fam_user_id)
+        or _fam_storage.load_family_for_user(_fam_user_id) is not None
+    )
+    if not _has_family:
+        from bl_edge_chrome import render_edge_masthead, render_edge_page_wrapper_open, render_edge_page_wrapper_close
+        from bl_theme import inject_global_theme
+        inject_global_theme()
+        render_edge_masthead(user, active_page="family")
+        render_edge_page_wrapper_open()
+        st.error("The Family Dashboard is for Family Pro households.")
+        if st.button("View pricing →", key="family_guard_pricing"):
+            st.session_state["page"] = "pricing"
+            st.rerun()
+        render_edge_page_wrapper_close()
+        st.stop()
+    import family_dashboard as _fam_dash
+    _fam_dash.render_family_dashboard()
     st.stop()
 
 

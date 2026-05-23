@@ -101,13 +101,42 @@ class EntitlementResult:
 # --------------------------------------------------------------------
 #  Plan lookups
 # --------------------------------------------------------------------
+def _resolve_plan_via_family(user_id: str) -> str | None:
+    """Look up plan_id via family membership.
+
+    Returns 'family_pro' if the user is an ACTIVE member of a family
+    with a non-cancelled Family Pro subscription. Returns None otherwise.
+
+    Safe — wraps family_storage in try/except so a storage-layer
+    failure can never break the entitlements pipeline.
+    """
+    try:
+        import family_storage
+        if family_storage.is_family_pro_member(user_id):
+            return FAMILY_PLAN_ID
+        return None
+    except Exception:
+        return None
+
+
 def _resolve_plan_id(plan_snapshot: Optional[dict]) -> str:
-    """Pick a plan id out of a v_my_plan row, defaulting to FREE."""
+    """Pick a plan id out of a v_my_plan row, defaulting to FREE.
+
+    Falls back to family membership when the user has no direct
+    subscription: a Family Pro member resolves to 'family_pro' even
+    if they never bought a sub themselves. Direct subs always win.
+    """
     if not plan_snapshot:
         return FREE_PLAN_ID
     pid = plan_snapshot.get("plan_id")
     if pid in PLAN_CAPS:
         return pid
+    # No direct subscription — check family membership before falling back.
+    user_id = plan_snapshot.get("user_id")
+    if user_id:
+        via_family = _resolve_plan_via_family(user_id)
+        if via_family:
+            return via_family
     return FREE_PLAN_ID
 
 
