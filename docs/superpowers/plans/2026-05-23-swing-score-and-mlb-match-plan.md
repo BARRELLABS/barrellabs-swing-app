@@ -388,10 +388,10 @@ Build the per-pillar dict (compliance from Task 1, confidence from existing `cam
 
 **Files:** none (validation) + a short `docs/superpowers/specs/2026-05-23-swing-score-calibration.md` notes file.
 
-- [ ] **Step 1:** Re-run the pro-vs-amateur cohort through `analyze()` (reuse the calibration harness pattern from `/tmp/calibrate_biomech.py`); confirm amateurs score lower on weak pillars and each held-out pro lands in a sensible cluster/match. Record the table in the notes file.
-- [ ] **Step 2:** `…/.venv/bin/python -m pytest tests/ -q` — full suite green (fix any snapshot fallout in existing report tests).
-- [ ] **Step 3:** Headless render check (reuse `scripts/visual_qa/render_swing_report_static.py` pattern) — eyeball the new report HTML for the two-system layout + badges.
-- [ ] **Step 4: Commit + open PR** off `main`: `gh pr create --title "Swing Score + movement-based MLB Match (v1)" --body "…summary + risks from the spec…"`.
+- [x] **Step 1:** Re-run the pro-vs-amateur cohort through `analyze()` (reuse the calibration harness pattern from `/tmp/calibrate_biomech.py`); confirm amateurs score lower on weak pillars and each held-out pro lands in a sensible cluster/match. Record the table in the notes file. → `docs/superpowers/specs/2026-05-23-swing-score-calibration.md` (pro mean 77 vs synthetic amateur 6; held-out matches archetype-consistent).
+- [x] **Step 2:** `…/.venv/bin/python -m pytest tests/ -q` — full suite green (fix any snapshot fallout in existing report tests). → 435 passed, 1 skipped.
+- [x] **Step 3:** Headless render check (reuse `scripts/visual_qa/render_swing_report_static.py` pattern) — eyeball the new report HTML for the two-system layout + badges. → two-system report builds + renders cleanly.
+- [x] **Step 4: Commit + open PR** off `main`: `gh pr create --title "Swing Score + movement-based MLB Match (v1)" --body "…summary + risks from the spec…"`. → PR #23.
 
 ---
 
