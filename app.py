@@ -924,6 +924,26 @@ if st.session_state.get("page") == "pricing":
     render_pricing_page()
     st.stop()
 
+if st.session_state.get("page") == "legal_terms":
+    from pathlib import Path
+    if st.button("← Back", key="legal_terms_back"):
+        prev = st.session_state.get("_legal_return_to") or "auth"
+        st.session_state["page"] = prev
+        st.rerun()
+    md = Path("legal/TERMS.md").read_text()
+    st.markdown(md, unsafe_allow_html=False)
+    st.stop()
+
+if st.session_state.get("page") == "legal_privacy":
+    from pathlib import Path
+    if st.button("← Back", key="legal_privacy_back"):
+        prev = st.session_state.get("_legal_return_to") or "auth"
+        st.session_state["page"] = prev
+        st.rerun()
+    md = Path("legal/PRIVACY.md").read_text()
+    st.markdown(md, unsafe_allow_html=False)
+    st.stop()
+
 
 # ============================================================
 # ---------- AUTH GATE ----------
@@ -4563,6 +4583,34 @@ st.markdown(f"""
   </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ===== Sample swing video =====
+import os as _os
+_sample_path = "assets/sample_swing.mp4"
+if _os.path.exists(_sample_path):
+    import base64 as _base64
+    with open(_sample_path, "rb") as _f:
+        _b64 = _base64.b64encode(_f.read()).decode("ascii")
+    st.markdown(
+        f"""
+        <div class="bl-up-sample">
+          <video autoplay muted loop playsinline preload="auto"
+                 style="width:100%;max-width:560px;border-radius:14px;
+                        display:block;margin:0 auto;
+                        border:1px solid rgba(244,239,230,0.10);">
+            <source src="data:video/mp4;base64,{_b64}" type="video/mp4">
+          </video>
+          <p style="text-align:center;margin-top:14px;color:#C8C4BB;
+                    font-family:'Geist',sans-serif;font-size:0.95rem;
+                    max-width: 480px; margin-left:auto; margin-right:auto;">
+            Film like this — <strong style="color:#F4EFE6;">side angle</strong>,
+            <strong style="color:#F4EFE6;">full body in frame</strong>,
+            <strong style="color:#F4EFE6;">one swing</strong>.
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ===== Recording tips =====
 st.markdown("""

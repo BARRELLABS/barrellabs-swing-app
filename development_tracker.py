@@ -6202,63 +6202,15 @@ def render_development_tracker():
         st.markdown('</div>', unsafe_allow_html=True)
         return
 
-    # ---- Pro entitlement gate ----
-    # The Development Tracker — drills, streaks, XP, achievements, the
-    # rewards roadmap — is a Pro-only feature. Free users get a paywall
-    # card with a clear upgrade path (or a beta-code hint).
+    # ---- Pro entitlement check (soft gate) ----
+    # Free users get a teaser: all drill cards are visible, the #1 priority
+    # drill is fully actionable, and the rest are locked with a gold PRO
+    # badge. A CTA card at the bottom nudges upgrade. The entitlements layer
+    # is unchanged — locked drills still cannot call mark_drill_complete()
+    # or grant XP; the lock UI is purely visual.
     _plan_snapshot = load_my_plan()
     _dt_check = can_access_development_tracker(_plan_snapshot)
-    if not _dt_check.allowed:
-        st.markdown(_build_hero_brand_html(), unsafe_allow_html=True)
-        st.markdown("""
-<div style="
-    margin: 1rem 0 0.5rem 0;
-    padding: 1.6rem 1.7rem;
-    border-radius: 16px;
-    border: 1px solid rgba(220,38,38,0.35);
-    background:
-      radial-gradient(120% 80% at 100% 0%, rgba(220,38,38,0.10), transparent 60%),
-      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
-">
-  <div style="
-      display: inline-block;
-      padding: 0.22rem 0.7rem;
-      border-radius: 999px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #FF3B30;
-      background: rgba(255,59,48,0.14);
-      border: 1px solid rgba(255,59,48,0.35);
-  ">Pro feature</div>
-  <div style="font-size: 1.55rem; font-weight: 800; color: #fafafa; margin-top: 0.6rem; letter-spacing: -0.01em;">
-    The Training Plan is Pro-only.
-  </div>
-  <div style="color: #d4d4d4; line-height: 1.6; margin-top: 0.55rem; max-width: 60ch;">
-    Upgrade to <strong style="color:#fafafa;">Solo Pro</strong> to unlock:
-    your personalized drill plan with reps tracked across sessions,
-    streaks and XP, the full Achievements grid, and the Rewards
-    Roadmap — including the limited-edition BarrelLabs hoodie at 180 days
-    and Hall of Fame status at 365.
-  </div>
-  <div style="color: #a3a3a3; font-size: 0.86rem; margin-top: 0.8rem;">
-    Have a beta code? Redeem it from <em>Account Settings → Subscription</em>
-    to unlock the full app for 30 days.
-  </div>
-</div>
-""", unsafe_allow_html=True)
-        _dt_up_l, _dt_up_r = st.columns([1, 1])
-        if _dt_up_l.button("See plans & upgrade", type="primary",
-                           width="stretch", key="dt_paywall_upgrade"):
-            st.session_state["page"] = "pricing"
-            st.rerun()
-        if _dt_up_r.button("Back to Dashboard", width="stretch",
-                           key="dt_paywall_back"):
-            st.session_state["page"] = "dashboard"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-        return
+    _is_free_tier = not _dt_check.allowed
 
     player_id = user.get("id") or user.get("slug")
     player_name = user.get("name") or "Player"
@@ -6624,6 +6576,45 @@ def render_development_tracker():
                         log["drills"] = drill_log
                         save_training_log(player_id, log)
                         st.rerun()
+            elif _is_free_tier and drill_counter > 1:
+                # ---- Free-tier locked drill card ----
+                # Show the drill name + metadata so the user can see
+                # their full plan; gate the action row behind a Pro badge.
+                locked_html = (
+                    f'<div class="dt-drill" style="position:relative;'
+                    f'opacity:0.72;pointer-events:none;'
+                    f'border:1px solid rgba(232,193,112,0.22);">'
+                    # Gold PRO badge top-right
+                    f'<div style="position:absolute;top:12px;right:12px;'
+                    f'padding:3px 10px;border-radius:999px;'
+                    f'background:rgba(232,193,112,0.15);'
+                    f'border:1px solid rgba(232,193,112,0.55);'
+                    f'font-family:\'Geist Mono\',monospace;font-size:9px;'
+                    f'font-weight:700;letter-spacing:0.18em;'
+                    f'text-transform:uppercase;color:#E8C170;">PRO</div>'
+                    # Lock icon
+                    f'<div class="dt-drill-row">'
+                    f'<div class="dt-drill-num" style="opacity:0.5;">🔒</div>'
+                    f'<div class="dt-drill-meta">'
+                    f'<div class="dt-drill-name">{_html.escape(name)}{role_chip}</div>'
+                    f'{reps_chip}'
+                    f'</div>'
+                    f'<div class="dt-drill-status-pill" style="opacity:0.5;">LOCKED</div>'
+                    f'</div>'
+                    f'{meta_strip}'
+                    f'{description_html}'
+                    f'</div>'
+                )
+                st.markdown(locked_html, unsafe_allow_html=True)
+                # Unlock CTA button (pointer-events back on, outside the locked div)
+                with st.container(key=f"tp_action_{drill_counter:02d}"):
+                    if st.button(
+                        "Start free trial to unlock →",
+                        key=f"lock_cta__{player_id}__{drill_id}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["page"] = "pricing"
+                        st.rerun()
             else:
                 # ---- Pending drill: full module + action row ----
                 # Mastery chip with tooltip — same as on the completed
@@ -6728,6 +6719,37 @@ def render_development_tracker():
                         "last_updated": datetime.now().isoformat(timespec="seconds"),
                     }
                     dirty = True
+
+    # ---- Free-tier upgrade CTA (shown after locked drills) ----
+    if _is_free_tier and drill_counter > 1:
+        st.markdown("""
+<div style="margin: 32px auto; padding: 28px 32px; max-width: 640px;
+            border: 1px solid rgba(232,193,112,0.42);
+            border-radius: 14px;
+            background: linear-gradient(135deg,
+                rgba(232,193,112,0.08), rgba(244,239,230,0.03));
+            text-align: center;">
+  <div style="font-family:'Geist Mono',monospace; font-size:10.5px;
+              letter-spacing:0.22em; text-transform:uppercase;
+              color:#E8C170; margin-bottom:8px;">
+    Unlock the full plan
+  </div>
+  <h3 style="font-family:'Instrument Serif',serif; font-size:1.8rem;
+             font-weight:400; color:#F4EFE6; margin:4px 0 10px 0;">
+    All your <span style="font-style:italic;color:#E8C170;">drills.</span>
+    All your <span style="font-style:italic;color:#E8C170;">progress.</span>
+  </h3>
+  <p style="color:#C8C4BB; font-size:0.96rem; line-height:1.55;
+            max-width:48ch; margin:0 auto 18px auto;">
+    Solo Pro unlocks every drill in your plan plus unlimited swing
+    analyses, full MLB comp library, and the Rewards Roadmap.
+  </p>
+</div>
+""", unsafe_allow_html=True)
+        if st.button("Start your free trial →", key="bl_drill_paywall_cta",
+                     type="primary"):
+            st.session_state["page"] = "pricing"
+            st.rerun()
 
     # ---- Re-Test Reminder ----
     # The drill plan's `weekly_guide` is the analyzer's recommended

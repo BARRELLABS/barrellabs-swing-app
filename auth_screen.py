@@ -1201,6 +1201,36 @@ def _render_signup_form() -> None:
                         "Try again in a moment."
                     )
 
+    # Legal-consent footer (industry-standard "by signing up you agree" pattern)
+    st.markdown(
+        """
+        <div style="margin-top: 18px; padding-top: 16px;
+                    border-top: 1px solid rgba(244,239,230,0.08);
+                    font-family: 'Geist', sans-serif; font-size: 0.82rem;
+                    line-height: 1.5; color: #8a857b; text-align: center;
+                    max-width: 380px; margin-left: auto; margin-right: auto;">
+          By creating an account, you agree to our
+          <span style="color:#C8C4BB;text-decoration:underline;text-underline-offset:3px;">Terms of Service</span>
+          and
+          <span style="color:#C8C4BB;text-decoration:underline;text-underline-offset:3px;">Privacy Policy</span>.
+          You confirm you&#39;re at least <strong style="color:#C8C4BB;">13 years old</strong> —
+          under 13 needs a parent&#39;s Family Pro account.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _l1, _l2, _l3 = st.columns([1, 1, 1])
+    with _l1:
+        if st.button("View Terms", key="bl_auth_view_terms"):
+            st.session_state["_legal_return_to"] = "auth"
+            st.session_state["page"] = "legal_terms"
+            st.rerun()
+    with _l2:
+        if st.button("View Privacy Policy", key="bl_auth_view_privacy"):
+            st.session_state["_legal_return_to"] = "auth"
+            st.session_state["page"] = "legal_privacy"
+            st.rerun()
+
 
 def _render_forgot_form() -> None:
     """Forgot-password form: email field + send + back."""
