@@ -133,6 +133,11 @@ def set_active_player(player_id: str) -> bool:
     for r in _query_household_rows(uid):
         if r.get("id") == player_id and not r.get("removed_at"):
             st.session_state["player"] = _profile_from_row(r)
+            # Mark that the active profile was an explicit choice this
+            # session, so app.py's picker gate lets it through (the gate
+            # ignores a player that was only auto-restored from the
+            # Supabase session for a multi-profile household).
+            st.session_state["_profile_picked"] = True
             return True
     return False
 
