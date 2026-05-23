@@ -1036,6 +1036,240 @@ _DASHBOARD_CSS = """
     font-family: var(--srd-sans); font-size: 0.92rem;
     line-height: 1.45; color: var(--srd-bone-60); max-width: 32ch;
 }
+
+/* ───── Two-System Layout: Match Reveal + Reconciliation + Score Card ───── */
+
+/* Match Reveal Hero (full-width, top of report) */
+.srd-match-reveal {
+  background:
+    radial-gradient(ellipse at 30% 0%, rgba(232,193,112,0.10) 0%, transparent 60%),
+    var(--srd-glass-1);
+  border: 1px solid rgba(232,193,112,0.20);
+  border-radius: var(--srd-radius-lg);
+  padding: 2rem 2.2rem;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.srd-match-eyebrow {
+  font-family: var(--srd-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--srd-gold);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.srd-match-eyebrow::before {
+  content: "";
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--srd-gold);
+  box-shadow: 0 0 10px var(--srd-gold);
+}
+.srd-match-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}
+.srd-match-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(232,193,112,0.22), rgba(232,193,112,0.06));
+  border: 1px solid rgba(232,193,112,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--srd-serif);
+  font-style: italic;
+  color: var(--srd-gold);
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.srd-match-info { flex: 1; }
+.srd-match-name {
+  font-family: var(--srd-serif);
+  font-style: italic;
+  font-size: 2.8rem;
+  letter-spacing: -0.02em;
+  color: var(--srd-bone);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.srd-match-pct-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+.srd-match-pct {
+  font-family: var(--srd-serif);
+  font-style: italic;
+  font-size: 2.2rem;
+  color: var(--srd-gold);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.srd-match-pct-label {
+  font-family: var(--srd-mono);
+  font-size: 10px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--srd-bone-60);
+}
+.srd-match-nudge {
+  margin-top: 0.9rem;
+  color: var(--srd-bone-60);
+  font-family: var(--srd-mono);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  font-style: italic;
+}
+
+/* Reconciliation line */
+.srd-reconcile {
+  margin: 1rem 0;
+  padding: 0.9rem 1.2rem;
+  background: rgba(244,239,230,0.03);
+  border: 1px solid var(--srd-line);
+  border-radius: var(--srd-radius);
+  text-align: center;
+  font-family: var(--srd-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--srd-bone-60);
+  line-height: 1.6;
+}
+.srd-reconcile strong { color: var(--srd-bone-80); font-weight: normal; }
+
+/* Pillar mini-bars */
+.srd-pillars { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem; }
+.srd-pillar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
+  align-items: center;
+  gap: 0.7rem;
+}
+.srd-pillar-label {
+  font-family: var(--srd-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--srd-bone-60);
+}
+.srd-pillar-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(244,239,230,0.08);
+  overflow: hidden;
+}
+.srd-pillar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--srd-gold);
+  transition: width 0.4s ease;
+}
+.srd-pillar-fill.green { background: var(--srd-green); }
+.srd-pillar-fill.red   { background: var(--srd-red); }
+.srd-pillar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* Confidence badge */
+.srd-conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--srd-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.srd-conf-badge::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor;
+}
+.srd-conf-badge.green { color: var(--srd-green); background: var(--srd-green-soft); border: 1px solid rgba(74,227,140,0.25); }
+.srd-conf-badge.amber { color: var(--srd-gold);  background: var(--srd-gold-soft);  border: 1px solid rgba(232,193,112,0.25); }
+.srd-conf-badge.red   { color: var(--srd-red);   background: var(--srd-red-soft);   border: 1px solid rgba(230,69,48,0.28); }
+
+/* What you did well */
+.srd-did-well {
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--srd-green-soft);
+  border: 1px solid rgba(74,227,140,0.22);
+  border-radius: var(--srd-radius);
+  color: var(--srd-bone-80);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.srd-did-well-label {
+  font-family: var(--srd-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--srd-green);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+/* Filming guide */
+.srd-filming-guide {
+  margin-top: 1rem;
+  padding: 0.85rem 1.1rem;
+  background: rgba(232,193,112,0.06);
+  border: 1px solid rgba(232,193,112,0.22);
+  border-radius: var(--srd-radius);
+}
+.srd-filming-label {
+  font-family: var(--srd-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--srd-gold);
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.srd-filming-text {
+  color: var(--srd-bone-60);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* New score card layout for two-system */
+.srd-score-card-two {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(230,69,48,0.06) 0%, transparent 55%),
+    var(--srd-glass-1);
+  border: 1px solid var(--srd-line);
+  border-radius: var(--srd-radius-lg);
+  padding: 1.6rem 1.7rem;
+  margin-bottom: 1rem;
+}
+.srd-score-card-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.6rem;
+  align-items: start;
+}
+
+/* Pillar re-film warning */
+.srd-pillar-warn {
+  font-family: var(--srd-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--srd-red);
+  font-style: italic;
+  margin-top: 0.2rem;
+}
 </style>
 """
 
@@ -1301,6 +1535,292 @@ def _build_mlb_insights(record: Dict[str, Any],
 
     why = _why_matters_sentence(record)
     return traits, biggest_gap, why
+
+
+# =====================================================================
+#                   TWO-SYSTEM SECTION BUILDERS
+# =====================================================================
+
+
+def _confidence_class(confidence: Optional[float]) -> str:
+    """Return 'green', 'amber', or 'red' based on pillar confidence value."""
+    if confidence is None:
+        return "red"
+    if confidence >= 0.8:
+        return "green"
+    if confidence >= 0.4:
+        return "amber"
+    return "red"
+
+
+def _build_confidence_badge(confidence: Optional[float]) -> str:
+    """Return an HTML confidence badge for the given confidence value."""
+    cls = _confidence_class(confidence)
+    labels = {"green": "High", "amber": "Medium", "red": "Low"}
+    lbl = labels[cls]
+    return f'<span class="srd-conf-badge {cls}">{lbl}</span>'
+
+
+def _filming_guide_needed(pillars: Optional[Dict[str, Any]]) -> bool:
+    """Return True if any pillar has yellow or red confidence."""
+    if not pillars:
+        return False
+    for pillar_data in pillars.values():
+        conf = pillar_data.get("confidence")
+        if conf is None or conf < 0.8:
+            return True
+    return False
+
+
+def _build_filming_guide() -> str:
+    """Return the 'Film it like this' inline guide block."""
+    return """
+<div class="srd-filming-guide">
+  <div class="srd-filming-label">Film it like this</div>
+  <div class="srd-filming-text">
+    120/240fps slow-mo &nbsp;&middot;&nbsp; ~45° three-quarter angle
+    &nbsp;&middot;&nbsp; full body in frame &nbsp;&middot;&nbsp; good light
+  </div>
+</div>
+"""
+
+
+def _build_match_reveal(record: Dict[str, Any]) -> str:
+    """Card 1 — MLB Match reveal: full-width hero at the very top.
+
+    Shows the pro name always. Shows the movement-match % ONLY when
+    mlb_match.confident is True, labeled as 'movement match'. Never
+    '/100', never red-banded. When not confident, shows a side-angle nudge.
+
+    Falls back gracefully to the legacy `reference` block.
+    """
+    mlb = record.get("mlb_match") or {}
+    reference = record.get("reference") or {}
+
+    # Resolve pro name: new field first, legacy fallback
+    pro_name = (
+        mlb.get("pro_name")
+        or reference.get("name")
+        or "Your Pro Match"
+    )
+    initials = _initials(pro_name)
+
+    confident = mlb.get("confident", False)
+    movement_pct = mlb.get("movement_match_pct")
+    locked = mlb.get("locked", False)
+
+    # Style identity / team from reference
+    team_pos = (reference.get("team") or "")
+    if reference.get("position"):
+        sep = " · " if team_pos else ""
+        team_pos = f"{team_pos}{sep}{reference['position']}"
+    style_text = (reference.get("style") or "")
+
+    # Movement match % — only when confident and present; never /100
+    if confident and movement_pct is not None and mlb:
+        pct_html = f"""
+<div class="srd-match-pct-row">
+  <span class="srd-match-pct">{int(movement_pct)}%</span>
+  <span class="srd-match-pct-label">movement match</span>
+</div>
+"""
+        nudge_html = ""
+    else:
+        pct_html = ""
+        if mlb:
+            # New record but low confidence — show nudge
+            nudge_html = (
+                '<div class="srd-match-nudge">'
+                'Film a cleaner side angle to confirm your match.'
+                '</div>'
+            )
+        else:
+            # Legacy record — no nudge, no %
+            nudge_html = ""
+
+    style_html = (
+        f'<div class="srd-mlb-style">{html.escape(style_text)}</div>'
+        if style_text else ""
+    )
+
+    team_html = (
+        f'<div class="srd-mlb-team">{html.escape(team_pos)}</div>'
+        if team_pos else ""
+    )
+
+    locked_tag = ""
+    if locked:
+        locked_tag = (
+            '<span class="srd-conf-badge green" style="margin-left:10px;">LOCKED</span>'
+        )
+
+    return f"""
+<div class="srd-match-reveal">
+  <div class="srd-match-eyebrow">MLB Match{locked_tag}</div>
+  <div class="srd-match-body">
+    <div class="srd-match-avatar">{initials}</div>
+    <div class="srd-match-info">
+      <div class="srd-match-name">{html.escape(pro_name)}</div>
+      {team_html}
+      {pct_html}
+      {nudge_html}
+      {style_html}
+    </div>
+  </div>
+</div>
+"""
+
+
+def _build_reconciliation() -> str:
+    """The exact reconciliation line between Match and Score."""
+    return """
+<div class="srd-reconcile">
+  Your Match is who you move like; your Swing Score is how well you&#39;re
+  executing it &#8212; <strong>you grow your Score, not your Match.</strong>
+</div>
+"""
+
+
+def _build_pillar_bars(pillars: Dict[str, Any]) -> str:
+    """Render the 4 pillar mini-bars with compliance + confidence badges."""
+    PILLAR_ORDER = [
+        ("sequence",  "Sequence"),
+        ("stability", "Stability"),
+        ("timing",    "Timing"),
+        ("stride",    "Stride"),
+    ]
+    rows_html = []
+    for key, display in PILLAR_ORDER:
+        p = pillars.get(key) or {}
+        compliance = p.get("compliance")
+        confidence = p.get("confidence")
+        label = p.get("label") or display
+
+        fill_pct = int(round((compliance or 0) * 100))
+        conf_cls = _confidence_class(confidence)
+        fill_color_cls = conf_cls  # green/amber/red maps to same bar color
+
+        # Low-confidence warning
+        if conf_cls == "red":
+            warn_html = (
+                '<div class="srd-pillar-warn">'
+                'Couldn&#39;t read this cleanly — re-film for a better read.'
+                '</div>'
+            )
+        else:
+            warn_html = ""
+
+        badge_html = _build_confidence_badge(confidence)
+        rows_html.append(f"""
+<div>
+  <div class="srd-pillar-row">
+    <span class="srd-pillar-label">{html.escape(display)}</span>
+    <div class="srd-pillar-track">
+      <div class="srd-pillar-fill {fill_color_cls}" style="width:{fill_pct}%;"></div>
+    </div>
+    <div class="srd-pillar-right">{badge_html}</div>
+  </div>
+  {warn_html}
+</div>
+""")
+    return f'<div class="srd-pillars">{"".join(rows_html)}</div>'
+
+
+def _build_score_card(record: Dict[str, Any],
+                      history: Optional[List[Dict[str, Any]]]) -> str:
+    """Card 2 — Swing Score: ring/number + band + pillar bars + what-you-did-well.
+
+    Falls back gracefully when new fields are absent (legacy records).
+    """
+    # Headline score — new field first, legacy fallback
+    raw_score = record.get("swing_score") or record.get("score") or 0
+    try:
+        score = int(round(float(raw_score)))
+    except (TypeError, ValueError):
+        score = 0
+
+    band_class = _band_class_srd(record.get("score_band_color") or "", score)
+    band_label = (record.get("score_band_label") or {
+        "green": "Elite", "amber": "Strong Foundation", "red": "Rebuild Zone"
+    }[band_class])
+
+    ring = _ring_svg(score, band_class, size=130)
+
+    # Δ vs prior
+    prog = swing_progress(record, history) or {}
+    delta = prog.get("score_delta")
+    if delta is None or not prog.get("has_prior"):
+        delta_html = (
+            '<div class="srd-ring-delta flat">'
+            'Baseline<span class="sub">First measured swing</span></div>'
+        )
+    else:
+        d = int(round(float(delta)))
+        prev_int = int(round(float(prog.get("prev_score") or 0)))
+        if d > 0:
+            cls, arrow, txt = "up", "↑", f"+{d}"
+        elif d < 0:
+            cls, arrow, txt = "down", "↓", f"{d}"
+        else:
+            cls, arrow, txt = "flat", "→", "±0"
+        delta_html = (
+            f'<div class="srd-ring-delta {cls}">{arrow}&nbsp;{txt}'
+            f'<span class="sub">vs previous · {prev_int}</span></div>'
+        )
+
+    # Overall confidence badge (mean pillar confidence or None)
+    pillars = record.get("pillars")
+    overall_conf_html = ""
+    pillar_html = ""
+    filming_guide_html = ""
+
+    if pillars:
+        confs = [p.get("confidence") for p in pillars.values()
+                 if p.get("confidence") is not None]
+        mean_conf = (sum(confs) / len(confs)) if confs else None
+        overall_conf_html = _build_confidence_badge(mean_conf)
+        pillar_html = _build_pillar_bars(pillars)
+        if _filming_guide_needed(pillars):
+            filming_guide_html = _build_filming_guide()
+    else:
+        # Legacy: show aggregate badge from band only (no exact confidence)
+        overall_conf_html = ""
+
+    # "What you did well" — renders before any fix
+    well_text = record.get("what_you_did_well") or ""
+    did_well_html = ""
+    if well_text:
+        did_well_html = f"""
+<div class="srd-did-well">
+  <div class="srd-did-well-label">What you did well</div>
+  {html.escape(well_text)}
+</div>
+"""
+
+    return f"""
+<div class="srd-score-card-two">
+  <div class="srd-card-eyebrow">
+    <span class="dot"></span>Swing Score {overall_conf_html}
+  </div>
+  <div class="srd-score-card-top">
+    <div>
+      <div>
+        <span class="srd-score-num">{score}</span>
+      </div>
+      <div class="srd-score-band {band_class}">
+        <span class="dot"></span>{html.escape(band_label.upper())}
+      </div>
+    </div>
+    <div class="srd-ring-wrap">
+      {ring}
+      {delta_html}
+    </div>
+  </div>
+  {pillar_html}
+  {did_well_html}
+  {filming_guide_html}
+</div>
+"""
 
 
 def _fmt_date(record: Dict[str, Any]) -> str:
@@ -2372,17 +2892,35 @@ def build_dashboard_preview_html(record: Dict[str, Any],
                                   *, is_sample: bool = False) -> str:
     """Return the full preview as a single HTML string (no Streamlit needed).
 
+    New section order (spec "Report UX, Data Model & Must-Haves"):
+      1. MLB Match reveal (hero, full-width)
+      2. Reconciliation line
+      3. Swing Score card (ring + pillar bars + what-you-did-well)
+      4. Top fixes + drills
+      5. Key metrics / Breakdown
+      6. Kinetic-Chain (power sequence)
+      7. Progress / Compare / Next Session
+
     Used by `scripts/visual_qa/render_swing_report_static.py` to produce a
     standalone preview file you can open in any browser.
     """
+    power_html = _render_power_sequence(record)
     return (
         _DASHBOARD_CSS
         + '<div class="srd-wrap">'
         + _build_header(record, is_sample)
-        + _build_hero(record, history)
+        # Two-system layout
+        + _build_match_reveal(record)
+        + _build_reconciliation()
+        + _build_score_card(record, history)
+        # Fixes & drills
         + _build_priorities_drills(record, history)
+        # Kinetic-chain (sequencing tile — kept as-is)
+        + power_html
+        # Biomech detail
         + _build_key_metrics(record, history)
         + _build_breakdown(record)
+        # Progress / compare / next
         + _build_progress(record, history)
         + _build_compare_static(record, history)
         + _build_next_session(record)
@@ -2483,17 +3021,24 @@ def render_swing_report_dashboard_preview(
     """
     import streamlit as st  # local — stubbed by the static renderer
 
-    # Top sections — header through Progress
+    # Top sections — new two-system order + Progress
     power_html = _render_power_sequence(record)
     top_html = (
         _DASHBOARD_CSS
         + '<div class="srd-wrap">'
         + (_build_header(record, is_sample) if is_preview else _build_header_production(record))
-        + _build_hero(record, history)
-        + power_html
+        # Two-system layout: Match → reconcile → Score
+        + _build_match_reveal(record)
+        + _build_reconciliation()
+        + _build_score_card(record, history)
+        # Fixes & drills
         + _build_priorities_drills(record, history)
+        # Kinetic-chain tile (kept)
+        + power_html
+        # Biomech detail
         + _build_key_metrics(record, history)
         + _build_breakdown(record)
+        # Progress
         + _build_progress(record, history)
     )
     st.markdown(top_html, unsafe_allow_html=True)
