@@ -1143,62 +1143,37 @@ div[data-testid="stDialog"] [data-testid="stButton"] button[kind="primary"] {
 def _render_household_section(profile: Dict[str, Any]) -> None:
     """Render the 'Household' settings section (between Billing and Privacy).
 
-    Only rendered if the current user is a Family Pro owner or active member.
-    Lazy-imports family_storage so the settings page stays usable before
-    the DB schema is migrated.
+    Shows profile management (create/remove sub-account player profiles).
+    Hidden for single-seat plans. Lazy-imports auth so the settings page
+    stays usable before the household schema is fully migrated.
     """
-    try:
-        import family_storage as _fs
-    except Exception:
-        return
+    import auth as _auth
 
     user_id = (profile or {}).get("user_id") or (profile or {}).get("id") or ""
     if not user_id:
         return
 
-    # Only show the section for Family Pro households.
+    # Single-seat plans get no household section at all.
     try:
-        family = _fs.load_family_for_user(user_id)
-        is_member = _fs.is_family_pro_member(user_id)
+        seats = _auth.current_household_seats()
     except Exception:
-        family = None
-        is_member = False
-
-    if not family and not is_member:
+        seats = 1
+    if seats <= 1:
         return
+
+    try:
+        profiles = _auth.list_household_players(user_id)
+    except Exception:
+        profiles = []
+
+    family_name = "My Household"
+    num_profiles = len(profiles)
 
     with st.container(key="ps_sec_household"):
         _sec_head("04b", "Household", "Manage your household",
-                  "Invite players, manage seats, and remove members. "
-                  "Family Pro covers all 4 seats.")
+                  "Add player profiles for each member of your household.")
 
-        if not family:
-            st.markdown(
-                '<div style="font-size:13px; color:var(--ps-bone-60); '
-                'padding-bottom:1rem; max-width:520px;">'
-                'Family Pro households activate here once your subscription is '
-                'processed — refresh in a minute if you just upgraded.'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-            return
-
-        family_id = family.get("id", "")
-        family_name = (family.get("display_name") or family.get("plan_name")
-                       or family.get("name") or "My Household")
-        max_seats = int(family.get("max_seats") or 4)
-
-        try:
-            members = _fs.list_members(family_id)
-        except Exception:
-            members = []
-
-        active_members = [m for m in members if m.get("invite_status") == "active"]
-        seats_used = len(active_members)
-        owner_id = family.get("owner_user_id", "")
-        is_owner = (user_id == owner_id)
-
-        # Family name + seat count header
+        # Header: family name + profile count
         st.markdown(
             f'<div class="ps-plan-row">'
             f'  <div>'
@@ -1206,7 +1181,7 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
             f'      <span style="font-family:var(--ps-mono);font-size:10px;'
             f'      letter-spacing:0.16em;text-transform:uppercase;'
             f'      color:var(--ps-bone-60);margin-left:10px;font-style:normal;">'
-            f'      {seats_used} of {max_seats} seats used</span>'
+            f'      {num_profiles} of {seats} profiles</span>'
             f'    </div>'
             f'  </div>'
             f'  <div></div><div></div>'
@@ -1214,117 +1189,99 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
             unsafe_allow_html=True,
         )
 
-        # Member list
-        if members:
+        # Profile list
+        if profiles:
             st.markdown(
                 '<div style="font-family:var(--ps-mono); font-size:9.5px; '
                 'letter-spacing:0.20em; text-transform:uppercase; '
-                'color:var(--ps-bone-60); padding:0.8rem 0 0.4rem;">Members</div>',
+                'color:var(--ps-bone-60); padding:0.8rem 0 0.4rem;">Profiles</div>',
                 unsafe_allow_html=True,
             )
-            for m in members:
-                mid = m.get("id", "")
-                mname = m.get("display_name") or m.get("email") or mid
-                mrole = m.get("role") or "member"
-                mstatus = m.get("invite_status") or "unknown"
-                is_this_owner = (m.get("player_user_id") == owner_id)
+            active_player_id = st.session_state.get("player", {}).get("id")
+            for p in profiles:
+                pid = p.get("id", "")
+                pname = p.get("name") or pid
+                ppos = p.get("position") or ""
+                phand = p.get("handedness") or ""
+                is_active = (pid == active_player_id)
+                meta_parts = [x for x in [ppos, phand] if x]
+                meta_str = " · ".join(meta_parts) if meta_parts else ""
                 row_col, btn_col = st.columns([4, 1])
                 with row_col:
                     st.markdown(
                         f'<div style="padding:6px 0 2px 0; font-size:13px; '
                         f'color:var(--ps-bone);">'
-                        f'{html.escape(str(mname))}'
-                        f'<span style="font-family:var(--ps-mono);font-size:10px;'
-                        f'letter-spacing:0.12em;color:var(--ps-bone-60);margin-left:8px;">'
-                        f'{html.escape(mrole)} · {html.escape(mstatus)}'
-                        + (' · owner' if is_this_owner else '')
-                        + '</span></div>',
+                        f'{html.escape(str(pname))}'
+                        + (f'<span style="font-family:var(--ps-mono);font-size:10px;'
+                           f'letter-spacing:0.12em;color:var(--ps-bone-60);margin-left:8px;">'
+                           f'{html.escape(meta_str)}'
+                           + (' · active' if is_active else '')
+                           + '</span>' if (meta_str or is_active) else "")
+                        + '</div>',
                         unsafe_allow_html=True,
                     )
                 with btn_col:
-                    # Only let owner remove non-owner members
-                    if is_owner and not is_this_owner and mid:
-                        if st.button("Remove", key=f"ps_hh_remove_{mid}",
+                    # Hide Remove for the currently-active profile
+                    if not is_active and pid:
+                        if st.button("Remove", key=f"ps_hh_remove_{pid}",
                                      type="secondary"):
                             try:
-                                _fs.remove_member(mid)
+                                _auth.remove_household_player(pid)
                             except Exception:
                                 pass
                             st.rerun()
 
-        # Invite form (owner only, or if under seat cap)
-        if is_owner and seats_used < 4:
+        # Add a player form (only when under seat cap)
+        if num_profiles < seats:
             st.markdown(
                 '<div style="height:1px; margin:1.2rem 0; '
                 'background:var(--ps-line);"></div>'
                 '<div style="font-family:var(--ps-mono); font-size:9.5px; '
                 'letter-spacing:0.20em; text-transform:uppercase; '
-                'color:var(--ps-bone-60); padding-bottom:6px;">Invite a Player</div>',
+                'color:var(--ps-bone-60); padding-bottom:6px;">Add a Player</div>',
                 unsafe_allow_html=True,
             )
-            invite_email = st.text_input(
-                "Email address",
+            add_name = st.text_input(
+                "Name",
                 value="",
-                placeholder="player@example.com",
-                key="ps_hh_invite_email",
+                placeholder="Player name",
+                key="ps_hh_add_name",
             )
-            is_minor = st.checkbox("Under 13?", key="ps_hh_invite_minor")
-
-            # Surface any previously generated invite token
-            token_key = f"_fd_invite_{family_id}"
-            prior = st.session_state.get(token_key)
-            if prior and isinstance(prior, dict):
-                email_sent = prior.get("email", "")
-                token_val  = prior.get("token", "")
-                st.markdown(
-                    f'<div style="font-size:12px; color:var(--ps-bone-60); '
-                    f'padding:0.6rem 0 0.8rem; max-width:520px; line-height:1.6;">'
-                    f'Invite created. Send this link to '
-                    f'<em style="color:var(--ps-bone);">{html.escape(email_sent)}</em>:<br>'
-                    f'<code style="font-family:var(--ps-mono);font-size:11px;'
-                    f'color:var(--ps-gold,#E8C170);word-break:break-all;">'
-                    f'https://barrellabs.com/invite?token={html.escape(token_val)}</code>'
-                    f'<br><span style="font-size:11px;color:var(--ps-bone-60);">'
-                    f'(Email-send backend lands in a follow-up PR.)</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-            if st.button("Send invite", key="ps_hh_invite_submit"):
-                raw_email = (invite_email or "").strip()
-                if not raw_email or "@" not in raw_email:
-                    st.session_state["ps_flash_err"] = "Enter a valid email address."
+            add_hand = st.radio(
+                "Bat hand",
+                options=["Right", "Left"],
+                horizontal=True,
+                key="ps_hh_add_hand",
+            )
+            add_position = st.text_input(
+                "Position (optional)",
+                value="",
+                placeholder="e.g. SS, 2B, CF",
+                key="ps_hh_add_position",
+            )
+            if st.button("Add player", key="ps_hh_add_submit"):
+                raw_name = (add_name or "").strip()
+                if not raw_name:
+                    st.session_state["ps_flash_err"] = "Enter a player name."
                     st.rerun()
                 else:
+                    handedness = "RIGHT" if (add_hand or "Right") == "Right" else "LEFT"
+                    position = (add_position or "").strip() or None
                     try:
-                        result = _fs.add_member(
-                            family_id,
-                            raw_email,
-                            # Schema CHECK allows only owner/parent/child.
-                            # Under-13 → child; everyone else → parent.
-                            role="child" if is_minor else "parent",
-                            is_minor=is_minor,
+                        result = _auth.create_household_player(
+                            raw_name, handedness, position
                         )
-                        if result.get("ok") and result.get("invite_token"):
-                            st.session_state[token_key] = {
-                                "email": raw_email,
-                                "token": result["invite_token"],
-                            }
-                            st.session_state["ps_flash_info"] = (
-                                f"Invite created for {raw_email}. "
-                                "Copy the link above and send it manually."
-                            )
-                        elif not result.get("ok"):
-                            st.session_state["ps_flash_err"] = (
-                                result.get("error") or "Could not create invite."
-                            )
+                        if result.get("ok"):
+                            st.success("Added " + raw_name)
+                            st.rerun()
+                        else:
+                            st.error(result.get("error") or "Could not add player.")
                     except Exception as exc:
-                        st.session_state["ps_flash_err"] = str(exc)
-                    st.rerun()
-        elif is_owner and seats_used >= 4:
+                        st.error(str(exc))
+        elif num_profiles >= seats:
             st.markdown(
                 '<div style="font-size:13px; color:var(--ps-bone-60); '
-                'padding:0.8rem 0 0.4rem;">Household is full — all 4 seats used.</div>',
+                'padding:0.8rem 0 0.4rem;">Household is full — all profiles in use.</div>',
                 unsafe_allow_html=True,
             )
 
