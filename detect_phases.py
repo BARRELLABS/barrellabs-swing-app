@@ -30,6 +30,16 @@ INPUT_VIDEO = sys.argv[1] if len(sys.argv) > 1 else "swing.mp4"
 # arg to override (e.g. if auto-detect is wrong on a low-confidence clip).
 HANDEDNESS = sys.argv[2].upper() if len(sys.argv) > 2 else "AUTO"
 
+# Optional player age (years), passed by app.py as "--age N". Written into the
+# fingerprint so analyzer.age_bracket() can pick an age-fair band. Absent →
+# fingerprint omits `age` → analyzer falls back to the default bracket.
+PLAYER_AGE = None
+if "--age" in sys.argv:
+    try:
+        PLAYER_AGE = int(sys.argv[sys.argv.index("--age") + 1])
+    except (ValueError, IndexError):
+        PLAYER_AGE = None
+
 _base = os.path.splitext(os.path.basename(INPUT_VIDEO))[0]
 OUTPUT_CSV = f"{_base}_metrics.csv"
 OUTPUT_CHART = f"{_base}_phases.png"
@@ -1043,6 +1053,16 @@ if os.environ.get("BIOMECH_DUMP") == "1":
     except Exception as _sig_exc:
         print(f"  BIOMECH_DUMP failed: {_sig_exc!r}")
 
+# ---------- STRIDE DIRECTION (front foot toward the pitcher?) ----------
+# Stance reference = start of the pre-load window (sk_start); ref_torso_len is
+# the 95th-pct torso length used elsewhere for scale-invariant normalization.
+_stance_ref = max(0, min(sk_start, len(records) - 1))
+_front_ax = [r["front_ankle_x"] for r in records]
+_back_ax = [r[f"{back_side}_ankle_x"] for r in records]
+stride_block = biomech.stride_direction(
+    _front_ax, _back_ax, _stance_ref, int(phases["foot_plant"]), ref_torso_len,
+)
+
 # ---------- FINGERPRINT JSON (for cross-swing comparison) ----------
 fingerprint = {
     "video": os.path.basename(INPUT_VIDEO),
@@ -1094,6 +1114,7 @@ fingerprint = {
     "camera_view": {
         "hip_to_torso_ratio_stance": float(hip_to_torso_ratio),
     },
+    "stride": stride_block,
 }
 
 # Attach Phase 1 observability payload when PHASE_DEBUG_V1 is on. This is
@@ -1112,6 +1133,10 @@ if detector_v4_result is not None:
     # phases_t / phases_frame fields above.
     fingerprint["phases_t_v4"] = detector_v4_result["phases_t"]
     fingerprint["phases_frame_v4"] = detector_v4_result["phases"]
+
+# Player age (optional) — additive; absent when not supplied.
+if PLAYER_AGE is not None:
+    fingerprint["age"] = int(PLAYER_AGE)
 
 with open(OUTPUT_FINGERPRINT, "w") as f:
     json.dump(fingerprint, f, indent=2)
