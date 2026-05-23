@@ -1298,7 +1298,9 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
                         result = _fs.add_member(
                             family_id,
                             raw_email,
-                            role="child" if is_minor else "member",
+                            # Schema CHECK allows only owner/parent/child.
+                            # Under-13 → child; everyone else → parent.
+                            role="child" if is_minor else "parent",
                             is_minor=is_minor,
                         )
                         if result.get("ok") and result.get("invite_token"):

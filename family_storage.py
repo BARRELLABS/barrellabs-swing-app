@@ -199,7 +199,13 @@ def remove_member(family_member_id: str) -> dict:
 
 
 def claim_invite(token: str, user_id: str) -> dict:
-    """Match token → flip status to active, set player_user_id."""
+    """Match token → flip status to active via the claim_family_invite RPC.
+
+    The RPC is SECURITY DEFINER: it enforces the 30-day expiry AND the
+    4-seat cap server-side, and claims the pending row atomically under a
+    FOR UPDATE lock. We deliberately do NOT do the lookup/expiry/update
+    as separate client calls — that was race-able (two invitees, or an
+    invite + a seat fill, could interleave)."""
     if not token or not user_id:
         return {"ok": False, "error": "Missing token or user."}
     token_hash = _hashlib.sha256(token.encode()).hexdigest()
@@ -208,27 +214,16 @@ def claim_invite(token: str, user_id: str) -> dict:
         return {"ok": False, "error": "Database not configured."}
     try:
         client = _get_client()
-        # Look up the pending row
-        res = (client.table("family_members")
-               .select("*")
-               .eq("invite_token_hash", token_hash)
-               .eq("invite_status", "pending")
-               .limit(1).execute())
-        rows = res.data if hasattr(res, "data") else res.get("data", [])
-        if not rows:
-            return {"ok": False, "error": "Invite token invalid or already used."}
-        row = rows[0]
-        # Expiry check
-        added = _dt.datetime.fromisoformat(row["added_at"].rstrip("Z"))
-        if (_dt.datetime.utcnow() - added).days > INVITE_EXPIRY_DAYS:
-            return {"ok": False, "error": "Invite has expired."}
-        # Claim it
-        client.table("family_members").update({
-            "invite_status":     "active",
-            "player_user_id":    user_id,
-            "invite_token_hash": None,
-        }).eq("id", row["id"]).execute()
-        return {"ok": True, "family_id": row["family_id"]}
+        res = client.rpc("claim_family_invite",
+                         {"p_token_hash": token_hash}).execute()
+        fam_id = res.data if hasattr(res, "data") else res.get("data")
+        if not fam_id:
+            return {"ok": False, "error": "Invite token invalid or expired."}
+        # supabase-py returns the scalar directly for a uuid-returning RPC,
+        # but normalize in case it's wrapped in a list.
+        if isinstance(fam_id, (list, tuple)):
+            fam_id = fam_id[0] if fam_id else None
+        return {"ok": True, "family_id": fam_id}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
 

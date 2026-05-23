@@ -88,10 +88,29 @@ def _make_summary(name, **overrides):
     return base
 
 
+class TestUpgradeGate:
+    def test_non_pro_user_sees_upgrade_prompt_not_empty_state(self, _stub_streamlit, monkeypatch):
+        """A free-tier user with no family must NOT see 'Family Pro is
+        active' copy — they get an upgrade prompt."""
+        import family_storage
+        monkeypatch.setattr(family_storage, "load_family_for_user", lambda uid: None)
+        monkeypatch.setattr(family_storage, "is_family_pro_member", lambda uid: False)
+        import family_dashboard
+        family_dashboard.render_family_dashboard()
+        out = "\n".join(_stub_streamlit["markdown"])
+        assert "Family Pro" in out and "unlocks this" in out
+        assert "Family Pro is active" not in out
+        assert "View plans →" in _stub_streamlit["button"]
+
+
 class TestEmptyState:
     def test_empty_state_renders_invite_cta(self, _stub_streamlit, monkeypatch):
         import family_storage
+        # No family yet, but the user IS a Family Pro member (e.g. webhook
+        # just created their sub; family row provisioning lagging) — they
+        # should see the onboarding empty state, not the upgrade prompt.
         monkeypatch.setattr(family_storage, "load_family_for_user", lambda uid: None)
+        monkeypatch.setattr(family_storage, "is_family_pro_member", lambda uid: True)
         import family_dashboard
         family_dashboard.render_family_dashboard()
         out = "\n".join(_stub_streamlit["markdown"])

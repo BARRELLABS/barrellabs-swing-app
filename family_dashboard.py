@@ -290,11 +290,15 @@ _FAMILY_CSS = """
 .fd-nudge-text { font-size: 0.86rem; color: var(--bone-dim); line-height: 1.4; }
 .fd-nudge-text strong { color: var(--bone); font-weight: 500; }
 
-/* Editorial pill buttons (Streamlit-rendered) */
-[data-testid="stButton"]:has(button[kind][title*="fd_"]) button,
-[data-testid="stButton"]:has(button:contains("View")) button,
-[data-testid="stButton"]:has(button:contains("Nudge")) button,
-[data-testid="stButton"]:has(button:contains("Invite Player")) button {
+/* Editorial pill buttons. NOTE: :contains() is a jQuery extension, NOT
+   real CSS — selectors that use it are discarded by the browser. We key
+   off Streamlit's `st-key-<key>` wrapper class instead, which it emits on
+   the container div around every st.button(key=...). The per-card view
+   buttons use the prefix fd_view_<id> so we prefix-match with [class*=].  */
+div[class*="st-key-fd_view_"] button,
+.st-key-fd_invite_player button,
+.st-key-fd_empty_invite button,
+.st-key-fd_upgrade button {
     width: 100% !important;
     padding: 12px 18px !important;
     border-radius: 100px !important;
@@ -307,12 +311,34 @@ _FAMILY_CSS = """
     transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease !important;
     box-shadow: 0 12px 28px -16px rgba(244,239,230,0.40) !important;
 }
-[data-testid="stButton"]:has(button:contains("View")) button:hover,
-[data-testid="stButton"]:has(button:contains("Nudge")) button:hover,
-[data-testid="stButton"]:has(button:contains("Invite Player")) button:hover {
+div[class*="st-key-fd_view_"] button:hover,
+.st-key-fd_invite_player button:hover,
+.st-key-fd_empty_invite button:hover,
+.st-key-fd_upgrade button:hover {
     background: var(--gold) !important;
     color: #1a1206 !important;
     transform: translateY(-2px) !important;
+}
+
+/* Nudge button — ghost variant (transparent + bordered) so the red Nudge
+   block stays the single 'needs attention' moment per stale card. */
+div[class*="st-key-fd_nudge_"] button {
+    width: 100% !important;
+    padding: 10px 18px !important;
+    border-radius: 100px !important;
+    background: transparent !important;
+    color: var(--bone) !important;
+    border: 1px solid var(--line-hi) !important;
+    font-family: var(--fd-mono) !important;
+    font-size: 10.5px !important; font-weight: 700 !important;
+    letter-spacing: 0.20em !important; text-transform: uppercase !important;
+    transition: all 0.22s ease !important;
+    box-shadow: none !important;
+}
+div[class*="st-key-fd_nudge_"] button:hover {
+    background: var(--bone) !important;
+    color: var(--ink) !important;
+    border-color: var(--bone) !important;
 }
 
 .fd-add-row {
@@ -418,6 +444,21 @@ def render_family_dashboard() -> None:
     _render_context_bar(profile)
 
     family = family_storage.load_family_for_user(user_id) if user_id else None
+    is_pro = family_storage.is_family_pro_member(user_id) if user_id else False
+
+    # Entitlement gate: a user who is neither an owner-of-family NOR an
+    # active Family Pro member must NOT see "Family Pro is active. Now
+    # invite players." — that copy would falsely imply they have the plan.
+    # Show an upgrade prompt instead.
+    if not family and not is_pro:
+        _render_upgrade_prompt()
+        st.markdown("""
+        <div class="fd-foot">
+          Parents see what their kids see. Kids own their data.
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
 
     if not family:
         _render_empty_state(profile)
@@ -457,6 +498,28 @@ def _render_context_bar(profile: dict) -> None:
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+
+def _render_upgrade_prompt() -> None:
+    """Shown to non-Family-Pro users who reach the page. No 'active' copy —
+    a clear upgrade ask with a CTA to pricing."""
+    st.markdown("""
+    <div class="fd-hero">
+      <div class="fd-hero-eyebrow">Your household</div>
+      <h1 class="fd-hero-title">Family Pro <span class="ital">unlocks this.</span></h1>
+      <p class="fd-hero-sub">
+        The household dashboard is a Family Pro feature. Upgrade to invite up
+        to 4 players and see everyone's progress — every score, every streak,
+        every player — in one place.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+    cols = st.columns([1, 1, 1])
+    with cols[1]:
+        if st.button("View plans →", key="fd_upgrade",
+                     type="primary", use_container_width=True):
+            st.session_state["page"] = "pricing"
+            st.rerun()
 
 
 def _render_empty_state(profile: dict, family: Optional[dict] = None) -> None:
