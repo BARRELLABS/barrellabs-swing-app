@@ -40,7 +40,54 @@ import json
 import os
 from typing import Optional, Tuple, List, Dict, Any
 
+from mlb_match import movement_vector, zscore, _dist
+
 REFERENCES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "references")
+_STATS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mlb_match_stats.json")
+
+# Frozen movement-match stats (means/stds for z-scoring + precomputed pro
+# z-vectors). Loaded once and cached. The matcher z-scores the player's
+# movement vector against these means/stds and ranks references by Euclidean
+# distance in that shared z-space — i.e. it picks the pro who MOVES like the
+# player, not the pro who happened to be filmed from the same angle.
+_STATS_CACHE: Optional[Dict[str, Any]] = None
+
+
+def _load_stats() -> Optional[Dict[str, Any]]:
+    global _STATS_CACHE
+    if _STATS_CACHE is None:
+        try:
+            with open(_STATS_PATH) as f:
+                _STATS_CACHE = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            _STATS_CACHE = {}
+    return _STATS_CACHE or None
+
+
+def _pro_z_by_slug(stats: Dict[str, Any]) -> Dict[str, List[float]]:
+    """slug -> precomputed z-vector for every pro in the frozen stats."""
+    return {p["slug"]: p["z"] for p in (stats.get("pros") or [])}
+
+
+def _player_z(player_fp: Dict[str, Any], stats: Dict[str, Any]) -> Optional[List[float]]:
+    try:
+        return zscore(movement_vector(player_fp), stats)
+    except Exception:
+        return None
+
+
+def _reference_z(slug: str, reference: Dict[str, Any],
+                 stats: Dict[str, Any],
+                 pro_z: Dict[str, List[float]]) -> Optional[List[float]]:
+    """z-vector for a reference. Prefer the frozen precomputed value (keyed by
+    slug) so ranking matches how the stats were built; fall back to computing
+    it from the reference fingerprint for any library file not in stats."""
+    if slug in pro_z:
+        return pro_z[slug]
+    try:
+        return zscore(movement_vector(reference), stats)
+    except Exception:
+        return None
 
 
 def _slug_from_filename(filename: str) -> str:
@@ -118,57 +165,98 @@ def load_reference(slug_or_name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+# Tiny handedness tiebreaker. Movement distance dominates; this only breaks
+# near-ties so a same-side pro edges out a mirrored one when they move almost
+# identically. The metrics are mirror-normalized by detect_phases, so a
+# mismatched-handed pro can — and should — still win on movement alone.
+_HAND_TIEBREAK = 1e-3
+
+
 def _match_score(player_fp: Dict[str, Any],
-                 reference: Dict[str, Any]) -> Tuple[float, Dict[str, Any]]:
+                 reference: Dict[str, Any],
+                 *,
+                 stats: Optional[Dict[str, Any]] = None,
+                 pro_z: Optional[Dict[str, List[float]]] = None,
+                 player_z: Optional[List[float]] = None,
+                 ref_slug: Optional[str] = None) -> Tuple[float, Dict[str, Any]]:
     """Compute a matching score (0=perfect, larger=worse) and a breakdown.
 
-    Components (lower is better):
-      - handedness penalty: 0 if same side, 1.0 if mirrored
-      - camera-view delta:  abs(hip/torso ratio_stance difference); 0..1ish
-      - rotation-method penalty: 0 if same method, 1.0 if mixed
+    Score is the Euclidean distance between the player's movement vector and
+    the reference's, both expressed in the shared z-space from
+    mlb_match_stats.json. Smaller distance = more similar swing MOVEMENT.
+
+    A negligible handedness tiebreaker is added so a same-side pro wins a true
+    tie, but it can never flip a real movement difference. Handedness is NOT a
+    gate — detect_phases mirror-normalizes the metrics, so mismatched-handed
+    pros remain fair matches.
+
+    `stats`/`pro_z`/`player_z` are optional precomputed caches so callers that
+    rank the whole library don't recompute them per reference.
     """
+    if stats is None:
+        stats = _load_stats()
     p_hand = (player_fp.get("handedness") or "").upper()
     r_hand = (reference.get("handedness") or "").upper()
     handedness_pen = 0.0 if p_hand == r_hand else 1.0
 
-    p_view = float(player_fp.get("camera_view", {}).get("hip_to_torso_ratio_stance", 0.0))
-    r_view = float(reference.get("camera_view", {}).get("hip_to_torso_ratio_stance", 0.0))
-    view_delta = abs(p_view - r_view)
+    # No frozen stats available → degrade to a stable, deterministic fallback
+    # (handedness only) rather than crashing. Should not happen in practice.
+    if not stats:
+        return handedness_pen, {
+            "movement_distance": None,
+            "handedness_pen": handedness_pen,
+            "method": "handedness_fallback",
+        }
 
-    p_method = player_fp.get("rotation_method", "")
-    r_method = reference.get("rotation_method", "")
-    method_pen = 0.0 if p_method == r_method else 1.0
+    if pro_z is None:
+        pro_z = _pro_z_by_slug(stats)
+    if player_z is None:
+        player_z = _player_z(player_fp, stats)
+    if ref_slug is None:
+        ref_slug = reference.get("slug")
 
-    # Weighting: rotation method is the biggest unlock for fair scoring,
-    # then camera-view proximity (which is what drives method selection),
-    # then handedness (mirroring keeps it apples-to-apples but same-side
-    # is still preferred because the user can SEE the same view).
-    score = (3.0 * method_pen) + (2.0 * view_delta) + (1.0 * handedness_pen)
+    r_z = _reference_z(ref_slug or "", reference, stats, pro_z)
+    if player_z is None or r_z is None:
+        # Can't compute movement distance for this pair → push to the back but
+        # keep handedness ordering stable.
+        return 1e6 + handedness_pen, {
+            "movement_distance": None,
+            "handedness_pen": handedness_pen,
+            "method": "movement_unavailable",
+        }
+
+    distance = _dist(player_z, r_z)
+    score = distance + _HAND_TIEBREAK * handedness_pen
     return score, {
+        "movement_distance": distance,
         "handedness_pen": handedness_pen,
-        "view_delta": view_delta,
-        "method_pen": method_pen,
-        "p_view": p_view,
-        "r_view": r_view,
-        "p_method": p_method,
-        "r_method": r_method,
+        "method": "movement_zspace",
     }
 
 
 def find_all_ranked(player_fp: Dict[str, Any]) -> List[Tuple[str, Dict[str, Any], float, Dict[str, Any]]]:
-    """Return every reference in the library ranked best-first."""
+    """Return every reference in the library ranked best-first (lower score =
+    closer movement match)."""
     out = []
     if not os.path.isdir(REFERENCES_DIR):
         return out
-    for fname in os.listdir(REFERENCES_DIR):
+    # Compute the player z-vector + pro z-lookup once, then reuse per ref.
+    stats = _load_stats()
+    pro_z = _pro_z_by_slug(stats) if stats else {}
+    player_z = _player_z(player_fp, stats) if stats else None
+    for fname in sorted(os.listdir(REFERENCES_DIR)):
         if not fname.endswith(".json"):
             continue
         path = os.path.join(REFERENCES_DIR, fname)
         data = _read_json(path)
         if data is None:
             continue
-        score, breakdown = _match_score(player_fp, data)
-        out.append((_slug_from_filename(fname), data, score, breakdown))
+        slug = _slug_from_filename(fname)
+        score, breakdown = _match_score(
+            player_fp, data,
+            stats=stats, pro_z=pro_z, player_z=player_z, ref_slug=slug,
+        )
+        out.append((slug, data, score, breakdown))
     out.sort(key=lambda t: t[2])
     return out
 
@@ -176,7 +264,7 @@ def find_all_ranked(player_fp: Dict[str, Any]) -> List[Tuple[str, Dict[str, Any]
 def find_best_match(player_fp: Dict[str, Any]) -> Tuple[Optional[str], Optional[Dict[str, Any]], str]:
     """Return (slug, reference_dict, reason). reason is a short string
     explaining why this reference was chosen, suitable for printing in a
-    CLI report.
+    CLI report. Selection is by movement similarity (see _match_score).
     """
     ranked = find_all_ranked(player_fp)
     if not ranked:
@@ -186,15 +274,20 @@ def find_best_match(player_fp: Dict[str, Any]) -> Tuple[Optional[str], Optional[
     name = ref.get("player_name", slug)
 
     bits = []
-    if br["method_pen"] == 0.0:
-        bits.append(f"matching rotation method ({br['p_method']})")
+    dist = br.get("movement_distance")
+    if dist is not None:
+        # Same scale-invariant exp() mapping mlb_match uses for the headline %,
+        # so the reason text agrees with the match % the report shows.
+        import math
+        pct = round(100.0 * math.exp(-dist / 3.0))
+        pct = max(0, min(100, pct))
+        bits.append(f"closest swing movement ({pct}% match)")
     else:
-        bits.append("closest available rotation method")
-    if br["handedness_pen"] == 0.0:
+        bits.append("closest available swing")
+    if br.get("handedness_pen") == 0.0:
         bits.append(f"same handedness ({player_fp.get('handedness','?')})")
     else:
         bits.append("mirrored handedness")
-    bits.append(f"camera-view Δ={br['view_delta']:.2f}")
 
     reason = f"selected {name}: " + ", ".join(bits)
     if len(ranked) > 1:
