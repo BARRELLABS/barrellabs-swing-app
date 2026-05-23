@@ -73,10 +73,24 @@ BEGIN
     RAISE EXCEPTION 'invite_subscription_seat: caller is not the subscription owner';
   END IF;
 
+  -- Ensure the owner occupies a seat so they always count toward the cap.
+  -- This guarantees "exactly plans.seats total, INCLUDING the parent"
+  -- (family_pro = parent + 3 = 4) regardless of whether the purchase
+  -- webhook created the owner seat. Idempotent.
+  INSERT INTO public.subscription_seats
+    (subscription_id, user_id, role, accepted_at, invited_at, display_name)
+  SELECT p_subscription_id, v_owner, 'owner', now(), now(), 'Parent'
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.subscription_seats
+      WHERE subscription_id = p_subscription_id
+        AND user_id = v_owner
+        AND removed_at IS NULL
+   );
+
   SELECT seats INTO v_max FROM public.plans WHERE id = v_plan;
   v_max := COALESCE(v_max, 1);
 
-  -- All non-removed seats (incl. owner + pending invites) count against cap.
+  -- All non-removed seats (owner + pending + accepted) count against cap.
   SELECT count(*) INTO v_active
     FROM public.subscription_seats
    WHERE subscription_id = p_subscription_id
@@ -158,5 +172,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 
 -- 4. Grants -----------------------------------------------------------
-GRANT EXECUTE ON FUNCTION public.invite_subscription_seat TO authenticated;
-GRANT EXECUTE ON FUNCTION public.claim_subscription_seat  TO authenticated;
+--  Authenticated-only. anon hits the auth.uid() IS NULL guard anyway,
+--  but revoking from anon/public is cleaner and clears the Supabase
+--  "anon can execute SECURITY DEFINER function" linter warning.
+REVOKE EXECUTE ON FUNCTION public.invite_subscription_seat(uuid, text, boolean, text, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.claim_subscription_seat(text) FROM anon, public;
+GRANT EXECUTE ON FUNCTION public.invite_subscription_seat(uuid, text, boolean, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_subscription_seat(text) TO authenticated;
