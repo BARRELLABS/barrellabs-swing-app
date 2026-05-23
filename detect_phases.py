@@ -1054,9 +1054,11 @@ if os.environ.get("BIOMECH_DUMP") == "1":
         print(f"  BIOMECH_DUMP failed: {_sig_exc!r}")
 
 # ---------- STRIDE DIRECTION (front foot toward the pitcher?) ----------
-# Stance reference = start of the pre-load window (sk_start); ref_torso_len is
-# the 95th-pct torso length used elsewhere for scale-invariant normalization.
-_stance_ref = max(0, min(sk_start, len(records) - 1))
+# ref_torso_len is the 95th-pct torso length used elsewhere for
+# scale-invariant normalization.
+# Use the midpoint of the pre-load window as the stance reference — more
+# representative of settled stance than frame 0 on clips that open mid-load.
+_stance_ref = max(0, min((sk_start + sk_end) // 2, len(records) - 1))
 _front_ax = [r["front_ankle_x"] for r in records]
 _back_ax = [r[f"{back_side}_ankle_x"] for r in records]
 stride_block = biomech.stride_direction(

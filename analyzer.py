@@ -708,13 +708,6 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     ltc_ms = player_timing.get("launch_to_contact")
     knee_reext = _get(player, "knee_deg", "re_extension", default=None)
 
-    # stride_toward_pitcher: a real forward stride is required for the brace
-    # pillar to count a firm front leg. The persisted player fingerprint does
-    # NOT carry stride-direction (detect_phases computes it internally but
-    # doesn't serialize it), so we cannot derive it here yet. Default True (the
-    # overwhelmingly common case — players step toward the pitcher); a later
-    # task can persist the stride vector and feed it in. See detect_phases.py
-    # stride_px logic (2026-05-23).
     # Stride direction comes from the fingerprint (detect_phases serializes it
     # as `stride.toward_pitcher`). Default True for older fingerprints that
     # predate the field so they keep their prior (lenient) brace scoring.

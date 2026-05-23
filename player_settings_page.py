@@ -1914,11 +1914,12 @@ def _do_save(user: Dict[str, Any]) -> bool:
     cur = _current_field_values(user)
 
     def _parse_birth_year(v):
+        import datetime
         try:
             y = int(str(v).strip())
-            return y if 1990 <= y <= 2025 else None
         except (TypeError, ValueError):
             return None
+        return y if 1990 <= y <= datetime.date.today().year else None
 
     db_bats = {"Right": "RIGHT", "Left": "LEFT",
                 "Switch": "SWITCH"}.get(cur["bats"], "RIGHT")
