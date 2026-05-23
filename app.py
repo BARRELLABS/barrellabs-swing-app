@@ -1071,6 +1071,38 @@ if "user" not in st.session_state:
 user = st.session_state.user
 
 
+# --- Household sub-account picker gate --------------------------------
+# A Family Pro login can hold up to N player profiles. When the household
+# has >1 active profile and one hasn't been explicitly chosen THIS session,
+# show the "Who's training?" picker before any page renders. The auth
+# restore above (current_profile) may have auto-set st.session_state["player"]
+# to the first profile; for multi-profile households we override that with an
+# explicit pick. Solo/Free users (1 profile) never see the picker.
+if st.session_state.get("_action") == "switch_profile":
+    # Triggered by the nav "Switch profile" control — drop the active
+    # profile + the picked flag so the picker reappears.
+    st.session_state.pop("player", None)
+    st.session_state.pop("_profile_picked", None)
+    st.session_state.pop("_action", None)
+    st.rerun()
+
+if not st.session_state.get("_profile_picked"):
+    try:
+        import auth as _auth_pick
+        _hh_uid = _auth_pick._current_user_id()
+        if _hh_uid:
+            _hh_profiles = _auth_pick.list_household_players(_hh_uid)
+            if len(_hh_profiles) > 1:
+                import household_picker
+                household_picker.render_household_picker(_hh_uid)
+                st.stop()
+            # 0 or 1 profile → nothing to pick; resolve so we don't recheck.
+            st.session_state["_profile_picked"] = True
+    except Exception:
+        # Picker must never wedge the app — fall through to normal render.
+        st.session_state["_profile_picked"] = True
+
+
 # ---------- STRIPE CHECKOUT RETURN HANDLER ----------
 # After a successful Checkout, Stripe redirects to ?checkout=success.
 # We invalidate the plan cache (so the next entitlement check sees the
@@ -1160,7 +1192,8 @@ if st.session_state.get("_session_expired"):
             _clear_sess()
         except Exception:
             pass
-        for _k in ("user", "player", "supabase_session", "auth_user",
+        for _k in ("user", "player", "_profile_picked", "_action",
+                   "supabase_session", "auth_user",
                    "_session_expired", "page", "view",
                    "view_swing_path", "view_swing_record"):
             st.session_state.pop(_k, None)
@@ -3566,7 +3599,11 @@ def _go_logout():
         sign_out()
     except Exception:
         pass
-    st.session_state.pop("user", None)
+    # Clear the active profile + the picker flag too, so logging into a
+    # DIFFERENT household in the same browser re-shows "Who's training?"
+    # instead of inheriting the previous session's picked state.
+    for _k in ("user", "player", "_profile_picked", "_action"):
+        st.session_state.pop(_k, None)
 
 
 # Determine active item (used for highlight glow)
