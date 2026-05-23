@@ -124,3 +124,28 @@ def test_locked_match_replays_locked_pro(player_fp_path):
     assert m["slug"] == "mookie_betts"
     assert m["pro_name"] == "Mookie Betts"
     assert m["locked"] is True
+    # Uniform dict shape: every path (locked + auto-pick) carries `cluster`
+    # so downstream readers never KeyError on one path but not the other.
+    assert "cluster" in m
+
+
+def test_match_stats_cache_retries_after_failed_load(monkeypatch, tmp_path):
+    """A failed match-stats load must not poison analyzer's module cache —
+    the sentinel stays so a later valid load succeeds (no permanent disable
+    after a transient I/O error)."""
+    import json as _json
+    import analyzer as az
+
+    monkeypatch.setattr(az, "_MATCH_STATS_PATH", str(tmp_path / "missing.json"))
+    monkeypatch.setattr(az, "_MATCH_STATS_CACHE", az._MATCH_STATS_UNSET)
+
+    assert az._load_match_stats() is None
+    assert az._MATCH_STATS_CACHE is az._MATCH_STATS_UNSET  # not poisoned to {}
+
+    good = {"means": [0.0], "stds": [1.0], "centroids": [[0.0]],
+            "pros": [{"slug": "x", "name": "X", "z": [0.0], "cluster": 0}]}
+    good_path = tmp_path / "stats.json"
+    good_path.write_text(_json.dumps(good))
+    monkeypatch.setattr(az, "_MATCH_STATS_PATH", str(good_path))
+
+    assert az._load_match_stats() == good

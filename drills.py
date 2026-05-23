@@ -1078,7 +1078,7 @@ def build_drill_plan(gaps_ranked, top_n_categories=2, *, preferred_goal=None):
         weekly.append("Pick 1 drill from PRIORITY 2 — do it 3× per week.")
     weekly.append(
         "Re-film and re-run the comparison every 2–3 weeks. The goal is your "
-        "similarity score climbing over time."
+        "Swing Score climbing over time."
     )
     if goal_applied:
         weekly.insert(0,
@@ -1328,7 +1328,7 @@ def recommend_drills(gaps_ranked, top_n_categories=2):
     if len(top_cats) > 1:
         print(f"  • Pick 1 drill from PRIORITY 2 — do it 3x per week.")
     print(f"  • Re-film and re-run the comparison every 2–3 weeks to track")
-    print(f"    progress. The goal is your similarity score climbing over time.")
+    print(f"    progress. The goal is your Swing Score climbing over time.")
     print()
 
 

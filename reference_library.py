@@ -50,17 +50,21 @@ _STATS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mlb_matc
 # movement vector against these means/stds and ranks references by Euclidean
 # distance in that shared z-space — i.e. it picks the pro who MOVES like the
 # player, not the pro who happened to be filmed from the same angle.
-_STATS_CACHE: Optional[Dict[str, Any]] = None
+_STATS_UNSET: Any = object()  # sentinel: distinct from a failed/empty load
+_STATS_CACHE: Any = _STATS_UNSET
 
 
 def _load_stats() -> Optional[Dict[str, Any]]:
+    # A failed load is NOT cached — leave the sentinel so a later call
+    # retries rather than permanently disabling matching after one
+    # transient I/O error.
     global _STATS_CACHE
-    if _STATS_CACHE is None:
+    if _STATS_CACHE is _STATS_UNSET:
         try:
             with open(_STATS_PATH) as f:
                 _STATS_CACHE = json.load(f)
         except (OSError, json.JSONDecodeError):
-            _STATS_CACHE = {}
+            return None  # leave cache unset → retry on the next call
     return _STATS_CACHE or None
 
 

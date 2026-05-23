@@ -1732,8 +1732,13 @@ def _build_score_card(record: Dict[str, Any],
 
     Falls back gracefully when new fields are absent (legacy records).
     """
-    # Headline score — new field first, legacy fallback
-    raw_score = record.get("swing_score") or record.get("score") or 0
+    # Headline score — new field first, legacy fallback. A swing_score of 0
+    # is a legitimate value (all pillars zero), so test for None rather than
+    # falsiness — an `or` chain would wrongly fall through to the legacy
+    # pro-similarity score for a real zero-scoring swing.
+    raw_score = record.get("swing_score")
+    if raw_score is None:
+        raw_score = record.get("score") or 0
     try:
         score = int(round(float(raw_score)))
     except (TypeError, ValueError):

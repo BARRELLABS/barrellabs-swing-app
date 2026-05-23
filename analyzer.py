@@ -197,18 +197,24 @@ def _pose_visibility(player_fp: dict) -> float:
 # don't re-read it.
 _MATCH_STATS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "mlb_match_stats.json")
-_MATCH_STATS_CACHE = None
+_MATCH_STATS_UNSET = object()  # sentinel: distinct from a failed/empty load
+_MATCH_STATS_CACHE = _MATCH_STATS_UNSET
 
 
 def _load_match_stats():
-    """Load + cache the frozen movement-match stats. Returns None if missing."""
+    """Load + cache the frozen movement-match stats. Returns None if missing.
+
+    A failed load is NOT cached — we leave the sentinel in place so a later
+    call retries, rather than permanently disabling the MLB match for the
+    process lifetime after a single transient I/O error.
+    """
     global _MATCH_STATS_CACHE
-    if _MATCH_STATS_CACHE is None:
+    if _MATCH_STATS_CACHE is _MATCH_STATS_UNSET:
         try:
             with open(_MATCH_STATS_PATH) as f:
                 _MATCH_STATS_CACHE = json.load(f)
         except (OSError, json.JSONDecodeError):
-            _MATCH_STATS_CACHE = {}
+            return None  # leave cache unset → retry on the next call
     return _MATCH_STATS_CACHE or None
 
 
@@ -746,6 +752,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
             "movement_match_pct": int(match_pct),
             "confident": match_confident,
             "locked": True,
+            "cluster": None,  # uniform shape; replay path has no cluster read
         }
     else:
         # Auto-pick path: compute the closest-moving pro from the frozen stats.
@@ -755,6 +762,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
             "movement_match_pct": 0,
             "confident": match_confident,
             "locked": False,
+            "cluster": None,
         }
         if _stats is not None:
             try:
@@ -766,6 +774,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
                     "movement_match_pct": int(m["movement_match_pct"]),
                     "confident": match_confident,
                     "locked": False,
+                    "cluster": m.get("cluster"),
                 }
             except Exception:
                 # Fail-soft to the reference attribution computed above.

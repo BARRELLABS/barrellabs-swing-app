@@ -122,3 +122,28 @@ def test_locked_slug_replays_without_recompute():
     other = load_reference("mike_trout")
     assert other is not None
     assert other.get("player_name") == "Mike Trout"
+
+
+def test_stats_cache_retries_after_failed_load(monkeypatch, tmp_path):
+    """A failed stats load must NOT poison the module cache. The sentinel
+    stays in place so a later (now-valid) load succeeds — otherwise a single
+    transient I/O error would disable matching for the process lifetime."""
+    import json as _json
+    import reference_library as rl
+
+    # Point at a missing file and reset the cache to the unset sentinel.
+    monkeypatch.setattr(rl, "_STATS_PATH", str(tmp_path / "missing.json"))
+    monkeypatch.setattr(rl, "_STATS_CACHE", rl._STATS_UNSET)
+
+    assert rl._load_stats() is None
+    # Cache must remain the sentinel (not poisoned to {}), so we can retry.
+    assert rl._STATS_CACHE is rl._STATS_UNSET
+
+    # Now make a valid file appear and confirm the retry loads it.
+    good = {"means": [0.0], "stds": [1.0], "centroids": [[0.0]],
+            "pros": [{"slug": "x", "name": "X", "z": [0.0], "cluster": 0}]}
+    good_path = tmp_path / "stats.json"
+    good_path.write_text(_json.dumps(good))
+    monkeypatch.setattr(rl, "_STATS_PATH", str(good_path))
+
+    assert rl._load_stats() == good

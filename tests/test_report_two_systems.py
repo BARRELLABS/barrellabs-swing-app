@@ -290,6 +290,15 @@ class TestSwingScoreCard:
         html = _srd._build_score_card(rec, history=None)
         assert "65" in html
 
+    def test_swing_score_zero_not_swallowed_by_legacy(self):
+        """swing_score==0 is a real value (all pillars zero) and must render
+        as 0 — an `or` chain would wrongly fall through to the legacy
+        pro-similarity score."""
+        rec = _make_record(swing_score=0, score=72)
+        html = _srd._build_score_card(rec, history=None)
+        assert ">0</text>" in html, "headline Swing Score did not render as 0"
+        assert "72" not in html, "swing_score=0 wrongly fell through to legacy score 72"
+
 
 # ---------------------------------------------------------------------------
 # 4. Confidence badge (green/yellow/red) per pillar

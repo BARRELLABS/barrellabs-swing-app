@@ -34,6 +34,15 @@ def test_timing_no_gather_low():
 def test_timing_none_when_missing():
     assert score_timing(load_ms=0, launch_to_contact_ms=0, bracket="13-14") is None
 
+def test_timing_zero_gather_scores_low_not_none():
+    # A genuine 0ms gather is *measured* (a real, badly-timed swing) and must
+    # score low — it should NOT vanish like an unmeasured signal.
+    assert score_timing(load_ms=0, launch_to_contact_ms=200, bracket="13-14") == 0.0
+
+def test_timing_none_load_drops_pillar():
+    # Truly absent signal (None) → unmeasurable → drop the pillar.
+    assert score_timing(load_ms=None, launch_to_contact_ms=200, bracket="13-14") is None
+
 def test_stride_firm_front_side_high():
     assert score_stride(knee_re_extension_deg=20.0, stride_toward_pitcher=True, bracket="13-14") > 0.7
 

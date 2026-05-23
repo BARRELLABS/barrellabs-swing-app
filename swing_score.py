@@ -41,7 +41,9 @@ def score_stability(total_drift_torso: Optional[float], bracket: str) -> Optiona
 
 def score_timing(load_ms, launch_to_contact_ms, bracket: str) -> Optional[float]:
     """Reward a real gather then a crisp fire (ratio), not absolute speed."""
-    if not load_ms or not launch_to_contact_ms or launch_to_contact_ms <= 0:
+    # Distinguish "not measured" (None → drop the pillar) from a genuine 0ms
+    # gather (a real, poorly-timed swing that should score low, not vanish).
+    if load_ms is None or launch_to_contact_ms is None or launch_to_contact_ms <= 0:
         return None
     ratio = load_ms / launch_to_contact_ms
     floor = {"8-10": 0.5, "11-12": 0.6, "13-14": 0.8, "15-17": 0.8}.get(bracket, 0.8)
