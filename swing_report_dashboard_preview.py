@@ -1364,53 +1364,49 @@ def _format_pwr_value(metric: str, value):
 
 
 def _render_power_sequence(record) -> str:
-    """Return the HTML string for the Power Sequence section, or empty
-    string if the record has no usable sequence block."""
+    """Return the HTML for the Kinetic-Chain section, or empty string.
+
+    Only sequencing-lag (the hips-vs-shoulders firing ORDER) is reliable from a
+    single-camera phone video, so it's the only metric we surface — presented
+    CATEGORICALLY (not a false-precise ms). Peak hip speed and front-side
+    stability need sensors / multi-angle capture (Barrel Lock) and read
+    backwards from 2D, so they are intentionally not shown: we never display a
+    number we can't stand behind. The section hides entirely when we couldn't
+    get a clean sequencing read (bad angle / not a single swing)."""
     seq = (record.get("sequence") or {})
     rating = (seq.get("rating") or {})
-    if not any(seq.get(k) is not None for k in (
-        "sequencing_lag_ms", "peak_hip_omega_deg_s", "front_side_stability_pct"
-    )):
+    lag_rating = rating.get("sequencing_lag")
+    if lag_rating is None or seq.get("sequencing_lag_ms") is None:
         return ""
 
-    def _tile(label, value, unit, rating_val, coach):
-        rating_class = rating_val or "marginal"
-        return f"""
-        <div class="srd-power-tile {rating_class}">
-          <div class="srd-power-tile-label">{label}</div>
-          <div class="srd-power-tile-value">{value}<span class="srd-power-tile-unit"> {unit}</span></div>
-          <div class="srd-power-tile-coach">{coach}</div>
-        </div>
-        """
-
-    lag_rating = rating.get("sequencing_lag")
+    category = {
+        "good":     "Hips lead",
+        "marginal": "Nearly synced",
+        "poor":     "Shoulders fire early",
+    }.get(lag_rating, "—")
     verdict = {
-        "good":     "Your chain fired in order. The numbers below show how well.",
-        "marginal": "Your chain mostly fired in order. Tighten the sequence and the bat will jump.",
-        "poor":     "Your chain isn't firing in order yet. This is the biggest unlock available to you.",
-        None:       "How your body fired through the swing.",
-    }[lag_rating]
-
-    seq_val,  seq_unit  = _format_pwr_value("sequencing_lag",       seq.get("sequencing_lag_ms"))
-    omega_val, omega_unit = _format_pwr_value("peak_hip_omega",     seq.get("peak_hip_omega_deg_s"))
-    stab_val, stab_unit = _format_pwr_value("front_side_stability", seq.get("front_side_stability_pct"))
+        "good":     "Your chain fired in the right order — pelvis first, then torso. "
+                    "That sequence is where real bat speed comes from.",
+        "marginal": "Your chain is close. Get the hips to clearly lead the shoulders "
+                    "and the barrel will jump.",
+        "poor":     "Your shoulders are firing before your hips — that's casting, and "
+                    "it's the single biggest power leak available to fix.",
+    }.get(lag_rating, "")
+    coach = _POWER_COPY["sequencing_lag"].get(lag_rating, "")
+    rating_class = lag_rating or "marginal"
 
     return f"""
     <div class="srd-power-section">
-      <div class="srd-power-eyebrow">§ 01 · Power Sequence</div>
+      <div class="srd-power-eyebrow">§ 01 · Kinetic Chain</div>
       <h2 class="srd-power-title">How your body <span class="ital">fired.</span></h2>
-      <p class="srd-power-verdict">{verdict}</p>
       <div class="srd-power-tiles">
-        {_tile("Sequencing", seq_val, seq_unit,
-                rating.get("sequencing_lag"),
-                _POWER_COPY["sequencing_lag"].get(rating.get("sequencing_lag")))}
-        {_tile("Peak Hip Speed", omega_val, omega_unit,
-                rating.get("peak_hip_omega"),
-                _POWER_COPY["peak_hip_omega"].get(rating.get("peak_hip_omega")))}
-        {_tile("Stay Closed", stab_val, stab_unit,
-                rating.get("front_side_stability"),
-                _POWER_COPY["front_side_stability"].get(rating.get("front_side_stability")))}
+        <div class="srd-power-tile {rating_class}" style="grid-column: 1 / -1;">
+          <div class="srd-power-tile-label">Sequencing — hips vs. shoulders</div>
+          <div class="srd-power-tile-value">{category}</div>
+          <div class="srd-power-tile-coach">{coach}</div>
+        </div>
       </div>
+      <p class="srd-power-verdict">{verdict}</p>
     </div>
     """
 

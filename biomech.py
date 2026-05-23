@@ -34,26 +34,68 @@ def _smooth(arr: np.ndarray, window: int = 5) -> np.ndarray:
     return out
 
 
-def _search_window(load_start: int, contact: int, fps: float, n: int) -> tuple[int, int]:
-    """The interval inside which we look for hip / shoulder peaks.
+def _search_window(launch: int, contact: int, fps: float, n: int) -> tuple[int, int]:
+    """The downswing interval inside which we look for hip / shoulder peaks.
 
-    200ms before load_start through 50ms after contact. This excludes
-    post-contact follow-through from dominating the shoulder peak.
+    [launch - 50ms, contact + 100ms]. Anchoring to ``launch`` (the burst
+    leading edge — when the hips fire) instead of ``load_start`` is the key
+    robustness fix: ``load_start`` can sit ~1s before contact, so the old
+    window swallowed pre-pitch waggle / leg-kick motion, and ``argmax`` then
+    locked onto that noise on long broadcast clips (the calibration bug where
+    pro clips returned −1000ms lags). The downswing is where hip and shoulder
+    angular velocity actually peak. The small 50ms lead lets a genuine
+    early-shoulder (out-of-sequence) peak register as interior rather than as a
+    window-edge artifact; the 100ms trail covers shoulder peaks that lag the
+    hips by up to the marginal band.
     """
-    lo = max(0, int(load_start) - int(round(0.20 * fps)))
-    hi = min(int(n), int(contact) + int(round(0.05 * fps)))
-    if hi <= lo:                       # malformed phases — fall back to whole clip
+    lo = max(0, int(launch) - int(round(0.05 * fps)))
+    hi = min(int(n), int(contact) + int(round(0.10 * fps)))
+    if hi - lo < 3:                    # malformed/too-short — fall back to clip
         return 0, int(n)
     return lo, hi
 
 
+def _subframe_peak(arr: np.ndarray, k: int, lo: int, hi: int) -> float:
+    """Parabolic sub-frame refinement of an integer ``argmax`` at index ``k``.
+
+    Fits a parabola through (k-1, k, k+1) and returns the vertex position as a
+    float frame index — removing the 1000/fps ms quantization that made the
+    raw lag cluster on exact frame multiples. Falls back to ``k`` when the peak
+    sits at the window boundary or the local curvature is flat/convex
+    (no well-defined interior vertex).
+    """
+    if k <= lo or k >= hi - 1 or k <= 0 or k >= len(arr) - 1:
+        return float(k)
+    y0, y1, y2 = float(arr[k - 1]), float(arr[k]), float(arr[k + 1])
+    denom = y0 - 2.0 * y1 + y2
+    if abs(denom) < 1e-9:
+        return float(k)
+    delta = 0.5 * (y0 - y2) / denom
+    if delta < -0.5 or delta > 0.5:    # not a concave-down peak here
+        return float(k)
+    return float(k) + delta
+
+
 def rate_sequencing_lag(ms: Optional[float]) -> Optional[str]:
-    """Good: 20-60ms. Marginal: 5-20 or 60-80. Poor: <=5 or negative."""
+    """Categorical kinetic-chain rating, calibrated to the 2D-pose measurement.
+
+    Textbook elite sequencing lag is ~20-60ms (pelvis leads torso), but a
+    single-camera 2D estimate systematically compresses the magnitude toward
+    zero. Calibrated on a pro-vs-amateur set, the reliable signal is the
+    DIRECTION, not a precise millisecond: pros cluster at/above zero (hips
+    lead), amateurs sit strongly negative (shoulders fire first = casting).
+    So we rate directionally and surface it categorically — never as a
+    false-precise ms. (When Barrel Lock sensors give a true ms, revert to the
+    textbook bands.)
+        good     — hips lead             (lag >= 0)
+        marginal — nearly synced         (-50 <= lag < 0)
+        poor     — shoulders fire early  (lag < -50)
+    """
     if ms is None:
         return None
-    if 20.0 <= ms <= 60.0:
+    if ms >= 0.0:
         return "good"
-    if 5.0 < ms < 20.0 or 60.0 < ms <= 80.0:
+    if ms >= -50.0:
         return "marginal"
     return "poor"
 
@@ -108,35 +150,47 @@ def compute_sequence(
                        "front_side_stability": None},
         }
 
-    lo, hi = _search_window(load_start, contact, fps, n)
+    lo, hi = _search_window(launch, contact, fps, n)
 
-    # M1 — sequencing lag
+    # M1 — sequencing lag (downswing window only)
     # Use forward difference (diff with prepend) rather than np.gradient so
     # that the peak of d/dt(cumsum(gaussian(t0))) falls exactly at t0 instead
     # of being split symmetrically across t0-1 and t0 by central differences.
     shoulder_vel = _smooth(np.diff(shoulder_rotation, prepend=shoulder_rotation[0]), window=5)
-    hip_window = np.abs(hip_vel[lo:hi])
-    sho_window = np.abs(shoulder_vel[lo:hi])
+    hip_abs = np.abs(hip_vel)
+    sho_abs = np.abs(shoulder_vel)
+    hip_window = hip_abs[lo:hi]
+    sho_window = sho_abs[lo:hi]
     hip_peak_frame = int(lo + np.argmax(hip_window)) if len(hip_window) else None
     sho_peak_frame = int(lo + np.argmax(sho_window)) if len(sho_window) else None
     sequencing_lag_ms: Optional[float] = None
     if hip_peak_frame is not None and sho_peak_frame is not None:
-        sequencing_lag_ms = (sho_peak_frame - hip_peak_frame) * 1000.0 / fps
+        # Sub-frame parabolic refinement removes the 1000/fps ms quantization
+        # that made raw lags cluster on exact frame multiples.
+        hip_pos = _subframe_peak(hip_abs, hip_peak_frame, lo, hi)
+        sho_pos = _subframe_peak(sho_abs, sho_peak_frame, lo, hi)
+        sequencing_lag_ms = (sho_pos - hip_pos) * 1000.0 / fps
 
-    # M2 — peak hip angular velocity
+    # M2 — peak hip angular velocity (within the downswing window)
     if len(hip_window):
         peak_hip_omega_deg_s = float(np.max(hip_window)) * fps
     else:
         peak_hip_omega_deg_s = None
 
-    # M3 — front-side stability (% shoulder rotation done at launch)
+    # M3 — front-side stability (% shoulder rotation done at launch).
+    # SUPPRESS (return None) rather than clamp when the value is implausible:
+    # a result outside roughly [-20%, 120%] means the shoulder-rotation signal
+    # is non-monotonic to contact (noise / mis-indexed contact frame), so we
+    # genuinely can't characterize fly-out — emitting a pegged "150% / poor"
+    # would be fabricating a reading. Better to show nothing.
     front_side_stability_pct: Optional[float] = None
     if 0 <= int(launch) < n and 0 <= int(contact) < n:
         total_to_contact = float(shoulder_rotation[int(contact)])
         done_at_launch = float(shoulder_rotation[int(launch)])
         if abs(total_to_contact) >= 5.0:
             raw_pct = 100.0 * done_at_launch / total_to_contact
-            front_side_stability_pct = float(max(-50.0, min(150.0, raw_pct)))
+            if -20.0 <= raw_pct <= 120.0:
+                front_side_stability_pct = float(raw_pct)
 
     rating = {
         "sequencing_lag":        rate_sequencing_lag(sequencing_lag_ms),

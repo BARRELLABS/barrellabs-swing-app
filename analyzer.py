@@ -110,9 +110,14 @@ def _synthesize_sequence_gaps(sequence_block: dict) -> list:
         })
 
     _add("Sequencing lag",        "sequencing_lag",        sequence_block.get("sequencing_lag_ms"))
-    _add("Peak hip rotational speed", "peak_hip_omega",    sequence_block.get("peak_hip_omega_deg_s"))
-    _add("Stay closed (front-side stability)", "front_side_stability",
-         sequence_block.get("front_side_stability_pct"))
+    # peak_hip_omega and front_side_stability are NOT surfaced as gaps: they
+    # can't be measured reliably from a single-camera phone video (omega reads
+    # backwards; flyout mostly can't be computed). They stay computed in the
+    # sequence block for later (Barrel Lock sensors), but must not drive drills,
+    # scoring, or report tiles. See biomech verification findings (2026-05-23).
+    # _add("Peak hip rotational speed", "peak_hip_omega", sequence_block.get("peak_hip_omega_deg_s"))
+    # _add("Stay closed (front-side stability)", "front_side_stability",
+    #      sequence_block.get("front_side_stability_pct"))
     return gaps
 
 

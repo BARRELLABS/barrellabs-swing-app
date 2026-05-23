@@ -100,8 +100,8 @@ class TestSequencingLag:
         )
 
     def test_search_window_ignores_followthrough(self):
-        """A huge post-contact shoulder spike must NOT win — it's
-        outside the [load_start - 200ms, contact + 50ms] window."""
+        """A huge post-contact shoulder spike must NOT win — it's outside the
+        downswing [launch - 50ms, contact + 100ms] window."""
         from biomech import compute_sequence
         n = 300
         x = np.arange(n, dtype=float)
@@ -119,6 +119,47 @@ class TestSequencingLag:
         # if it failed, lag would be huge (~140 frames = 2333ms).
         assert -100 <= result["sequencing_lag_ms"] <= 100, (
             f"search window leaked; got {result['sequencing_lag_ms']}ms"
+        )
+
+    def test_downswing_window_excludes_prepitch_noise(self):
+        """A big pre-pitch hip-vel spike (waggle / leg-kick) BEFORE launch must
+        not be picked as the hip peak — only the downswing counts. This is the
+        long-broadcast-clip failure mode from calibration, where load_start sat
+        far before contact and argmax locked onto pre-swing motion."""
+        from biomech import compute_sequence
+        n = 200
+        x = np.arange(n, dtype=float)
+        # Real downswing hip peak at 60 ...
+        hip_vel = 8.0 * np.exp(-((x - 60) ** 2) / 32.0)
+        # ... but a BIGGER pre-pitch spike at frame 35 (after load_start=40's
+        # old window edge, before launch=58). The old [load_start-200ms, ...]
+        # window included frame ~28+, so it would have picked 35.
+        hip_vel += 20.0 * np.exp(-((x - 35) ** 2) / 32.0)
+        shoulder_rotation = np.cumsum(np.exp(-((x - 63) ** 2) / 32.0)) * 5.0
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 56 <= result["hip_peak_frame"] <= 64, (
+            f"pre-pitch noise leaked into hip peak; got {result['hip_peak_frame']}"
+        )
+
+    def test_subframe_interpolation_resolves_between_frames(self):
+        """Lag resolution is finer than one frame thanks to parabolic
+        sub-frame refinement: a true 1.5-frame gap (25ms at 60fps) should not
+        snap to 1 or 2 whole frames (16.7 / 33.3 ms)."""
+        from biomech import compute_sequence
+        n = 200
+        x = np.arange(n, dtype=float)
+        hip_vel = 10.0 * np.exp(-((x - 60.0) ** 2) / 32.0)
+        shoulder_pulse = np.exp(-((x - 61.5) ** 2) / 32.0)
+        shoulder_rotation = np.cumsum(shoulder_pulse) * 5.0
+        result = compute_sequence(
+            hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+            load_start=40, launch=58, contact=70, fps=60.0,
+        )
+        assert 19.0 <= result["sequencing_lag_ms"] <= 31.0, (
+            f"expected ~25ms (sub-frame); got {result['sequencing_lag_ms']}"
         )
 
 
@@ -228,9 +269,11 @@ class TestFrontSideStability:
         )
         assert result["front_side_stability_pct"] is None
 
-    def test_clamped_to_150_max(self):
+    def test_recoil_suppressed_returns_none(self):
         """Pathological case: shoulder at 100° at launch but only 50° at
-        contact (recoiled) → 100/50 = 200%, clamped to 150."""
+        contact (recoiled) → 100/50 = 200%. The signal is non-monotonic to
+        contact, so we can't characterize fly-out — suppress (None) rather
+        than emit a fabricated pegged value."""
         from biomech import compute_sequence
         n = 100
         arr = np.zeros(n)
@@ -243,28 +286,30 @@ class TestFrontSideStability:
             shoulder_rotation=arr,
             load_start=40, launch=58, contact=70, fps=60.0,
         )
-        assert result["front_side_stability_pct"] == 150.0
+        assert result["front_side_stability_pct"] is None
 
 
 class TestRatings:
     """The `rating` sub-dict maps each metric to 'good' / 'marginal' / 'poor'
     using the thresholds locked in the spec (§ The 3 new metrics)."""
 
-    def test_sequencing_good_30ms(self):
+    def test_sequencing_good_hips_lead(self):
+        # Calibrated to 2D pose: non-negative lag = hips lead = good.
         from biomech import rate_sequencing_lag
         assert rate_sequencing_lag(30.0) == "good"
-        assert rate_sequencing_lag(20.0) == "good"
-        assert rate_sequencing_lag(60.0) == "good"
+        assert rate_sequencing_lag(0.0) == "good"
+        assert rate_sequencing_lag(5.0) == "good"
 
-    def test_sequencing_marginal(self):
+    def test_sequencing_marginal_nearly_synced(self):
         from biomech import rate_sequencing_lag
-        assert rate_sequencing_lag(10.0) == "marginal"
-        assert rate_sequencing_lag(70.0) == "marginal"
+        assert rate_sequencing_lag(-10.0) == "marginal"
+        assert rate_sequencing_lag(-49.0) == "marginal"
 
-    def test_sequencing_poor_simultaneous(self):
+    def test_sequencing_poor_casting(self):
+        # Strongly negative = shoulders fired first (casting).
         from biomech import rate_sequencing_lag
-        assert rate_sequencing_lag(0.0) == "poor"
-        assert rate_sequencing_lag(-20.0) == "poor"
+        assert rate_sequencing_lag(-60.0) == "poor"
+        assert rate_sequencing_lag(-120.0) == "poor"
 
     def test_sequencing_none_passes_through(self):
         from biomech import rate_sequencing_lag
