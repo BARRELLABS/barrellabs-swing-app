@@ -82,25 +82,28 @@ def _ensure_css_v2():
     st.session_state[_CSS_FLAG] = True
     _md("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
 
   :root {
-    --bld2-bg:        #0a0a0c;
-    --bld2-surface-0: #0f0f12;
-    --bld2-surface-1: #15151a;
-    --bld2-surface-2: #1c1c22;
-    --bld2-line:      rgba(255,255,255,0.06);
-    --bld2-line-2:    rgba(255,255,255,0.10);
-    --bld2-ink-100:   #f5f5f7;
-    --bld2-ink-80:    #cdcdd2;
-    --bld2-ink-60:    #8a8a92;
-    --bld2-ink-40:    #5a5a62;
-    --bld2-red:       #ff3b30;
-    --bld2-red-dim:   rgba(255,59,48,0.18);
-    --bld2-green:     #6ee7b7;
-    --bld2-amber:     #fbbf24;
-    --bld2-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --bld2-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    /* Editorial palette (matches bl_theme.py / household + training pages). */
+    --bld2-bg:        #0A0B0E;
+    --bld2-surface-0: #101116;
+    --bld2-surface-1: #15171c;
+    --bld2-surface-2: #1c1e25;
+    --bld2-line:      rgba(244,239,230,0.08);
+    --bld2-line-2:    rgba(244,239,230,0.14);
+    --bld2-ink-100:   #F4EFE6;
+    --bld2-ink-80:    #C8C4BB;
+    --bld2-ink-60:    #8A857B;
+    --bld2-ink-40:    #5A564F;
+    --bld2-red:       #E64530;
+    --bld2-red-dim:   rgba(230,69,48,0.18);
+    --bld2-gold:      #E8C170;
+    --bld2-green:     #6ee7b7;   /* status: "good" band (shared with training pages) */
+    --bld2-amber:     #fbbf24;   /* status: "marginal" band */
+    --bld2-serif: 'Instrument Serif', 'Times New Roman', Georgia, serif;
+    --bld2-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --bld2-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
   }
   .bld2-wrap { max-width: 1400px; margin: 0 auto; padding: 0.5rem 0 2rem; }
   .bld2-wrap *, .bld2-wrap *::before, .bld2-wrap *::after { box-sizing: border-box; }
@@ -112,7 +115,7 @@ def _ensure_css_v2():
   .bld2-pill-new {
     background: var(--bld2-red-dim);
     color: var(--bld2-red);
-    border: 1px solid rgba(255,59,48,0.35);
+    border: 1px solid rgba(230,69,48,0.35);
     padding: 0.28rem 0.7rem;
     border-radius: 999px;
     font-family: var(--bld2-mono);
@@ -198,7 +201,7 @@ def _ensure_css_v2():
   }
   .bld2-band-green { color: var(--bld2-green); background: rgba(110,231,183,0.08); border-color: rgba(110,231,183,0.3); }
   .bld2-band-amber { color: var(--bld2-amber); background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3); }
-  .bld2-band-red   { color: var(--bld2-red);   background: rgba(255,59,48,0.08); border-color: rgba(255,59,48,0.35); }
+  .bld2-band-red   { color: var(--bld2-red);   background: rgba(230,69,48,0.08); border-color: rgba(230,69,48,0.35); }
   .bld2-band-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .bld2-score-blurb { color: var(--bld2-ink-80); font-size: 0.86rem; line-height: 1.5; }
 
@@ -233,8 +236,8 @@ def _ensure_css_v2():
   .bld2-mlb-avatar {
     width: 38px; height: 38px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(255,59,48,0.25), rgba(255,59,48,0.05));
-    border: 1px solid rgba(255,59,48,0.35);
+    background: linear-gradient(135deg, rgba(230,69,48,0.25), rgba(230,69,48,0.05));
+    border: 1px solid rgba(230,69,48,0.35);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--bld2-sans); font-weight: 800; font-size: 0.78rem;
     color: var(--bld2-red);
@@ -314,7 +317,7 @@ def _ensure_css_v2():
   }
   .bld2-st-ok   { background: rgba(110,231,183,0.12); color: var(--bld2-green); }
   .bld2-st-warn { background: rgba(251,191,36,0.12); color: var(--bld2-amber); }
-  .bld2-st-bad  { background: rgba(255,59,48,0.12);  color: var(--bld2-red); }
+  .bld2-st-bad  { background: rgba(230,69,48,0.12);  color: var(--bld2-red); }
   .bld2-legend { margin-top: 0.85rem; display: flex; gap: 1rem; font-family: var(--bld2-mono); font-size: 0.55rem; color: var(--bld2-ink-60); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
   .bld2-legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.35rem; vertical-align: middle; }
 
@@ -354,8 +357,8 @@ def _ensure_css_v2():
     line-height: 1.6;
   }
   .bld2-viz-soon {
-    background: rgba(255,59,48,0.08);
-    border-top: 1px solid rgba(255,59,48,0.25);
+    background: rgba(230,69,48,0.08);
+    border-top: 1px solid rgba(230,69,48,0.25);
     color: var(--bld2-red);
     font-family: var(--bld2-mono);
     font-size: 0.58rem;
@@ -374,8 +377,8 @@ def _ensure_css_v2():
   .bld2-pri-num {
     width: 30px; height: 30px;
     border-radius: 8px;
-    background: rgba(255,59,48,0.1);
-    border: 1px solid rgba(255,59,48,0.25);
+    background: rgba(230,69,48,0.1);
+    border: 1px solid rgba(230,69,48,0.25);
     color: var(--bld2-red);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--bld2-mono); font-weight: 700; font-size: 0.78rem;
@@ -394,7 +397,7 @@ def _ensure_css_v2():
     border-radius: 6px;
     border: 1px solid;
   }
-  .bld2-pri-tag.high { color: var(--bld2-red); border-color: rgba(255,59,48,0.4); background: rgba(255,59,48,0.07); }
+  .bld2-pri-tag.high { color: var(--bld2-red); border-color: rgba(230,69,48,0.4); background: rgba(230,69,48,0.07); }
   .bld2-pri-tag.med  { color: var(--bld2-amber); border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.07); }
   .bld2-pri-tag.low  { color: var(--bld2-green); border-color: rgba(110,231,183,0.35); background: rgba(110,231,183,0.07); }
   .bld2-pri-desc { font-size: 0.8rem; color: var(--bld2-ink-60); line-height: 1.45; }
@@ -502,9 +505,9 @@ def _ensure_css_v2():
   .bld2-btn-ghost:hover { border-color: rgba(255,255,255,0.22); }
   .bld2-btn-primary {
     background: var(--bld2-red); color: #fff; border-color: var(--bld2-red);
-    box-shadow: 0 10px 30px -12px rgba(255,59,48,0.55);
+    box-shadow: 0 10px 30px -12px rgba(230,69,48,0.55);
   }
-  .bld2-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 36px -12px rgba(255,59,48,0.7); }
+  .bld2-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 36px -12px rgba(230,69,48,0.7); }
 
   /* ===== KEY METRICS — SPARKLINES ===== */
   .bld2-km-spark { margin-top: 0.55rem; width: 100%; height: 28px; display: block; }
@@ -523,8 +526,8 @@ def _ensure_css_v2():
   }
   .bld2-viz-tab.active {
     color: var(--bld2-red);
-    border-color: rgba(255,59,48,0.45);
-    background: rgba(255,59,48,0.06);
+    border-color: rgba(230,69,48,0.45);
+    background: rgba(230,69,48,0.06);
   }
   .bld2-scrub-row {
     display: flex; align-items: center; gap: 0.55rem;
@@ -554,7 +557,7 @@ def _ensure_css_v2():
     width: 14px; height: 14px;
     background: var(--bld2-red);
     border-radius: 50%;
-    box-shadow: 0 0 0 4px rgba(255,59,48,0.18);
+    box-shadow: 0 0 0 4px rgba(230,69,48,0.18);
   }
   .bld2-scrub-time {
     font-family: var(--bld2-mono);
@@ -596,7 +599,7 @@ def _ensure_css_v2():
     font-weight: 700;
     font-size: 0.92rem;
     width: 100%;
-    box-shadow: 0 10px 30px -12px rgba(255,59,48,0.55);
+    box-shadow: 0 10px 30px -12px rgba(230,69,48,0.55);
     text-align: center;
     display: block;
   }
@@ -650,8 +653,8 @@ def _ensure_css_v2():
      Gives the whole page a subtle atmospheric depth instead of flat black. */
   .bld2-wrap {
     background-image:
-      radial-gradient(ellipse 800px 400px at 85% 0%, rgba(255,59,48,0.05), transparent 60%),
-      radial-gradient(ellipse 600px 500px at 15% 100%, rgba(255,59,48,0.03), transparent 60%);
+      radial-gradient(ellipse 800px 400px at 85% 0%, rgba(230,69,48,0.05), transparent 60%),
+      radial-gradient(ellipse 600px 500px at 15% 100%, rgba(230,69,48,0.03), transparent 60%);
     background-attachment: scroll;
     background-repeat: no-repeat;
     padding: 1.2rem 0 2.5rem;
@@ -685,14 +688,14 @@ def _ensure_css_v2():
   /* Score number — drop a soft red halo behind the big 78. */
   .bld2-score-num {
     text-shadow:
-      0 0 32px rgba(255,59,48,0.35),
-      0 0 8px rgba(255,59,48,0.2);
+      0 0 32px rgba(230,69,48,0.35),
+      0 0 8px rgba(230,69,48,0.2);
   }
 
   /* NEW ANALYSIS pill — pulse the background so the eye is drawn to it. */
   @keyframes bld2-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,59,48,0.5); }
-    50%      { box-shadow: 0 0 0 6px rgba(255,59,48,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230,69,48,0.5); }
+    50%      { box-shadow: 0 0 0 6px rgba(230,69,48,0); }
   }
   .bld2-pill-new {
     animation: bld2-pulse 2.4s ease-in-out infinite;
@@ -701,16 +704,16 @@ def _ensure_css_v2():
   /* Score band pill — slight glow so the strong-swing badge pops. */
   .bld2-band-green { box-shadow: 0 0 18px -6px rgba(110,231,183,0.4); }
   .bld2-band-amber { box-shadow: 0 0 18px -6px rgba(251,191,36,0.35); }
-  .bld2-band-red   { box-shadow: 0 0 18px -6px rgba(255,59,48,0.4); }
+  .bld2-band-red   { box-shadow: 0 0 18px -6px rgba(230,69,48,0.4); }
 
   /* MLB avatar — outer ring glow */
   .bld2-mlb-avatar {
-    box-shadow: 0 0 24px -6px rgba(255,59,48,0.45);
+    box-shadow: 0 0 24px -6px rgba(230,69,48,0.45);
   }
 
   /* MLB similarity % — slight glow on the %. */
   .bld2-mlb-sim .pct {
-    text-shadow: 0 0 16px rgba(255,59,48,0.4);
+    text-shadow: 0 0 16px rgba(230,69,48,0.4);
   }
 
   /* Key metrics value — small white-glow lift so the numbers feel sharper. */
@@ -720,33 +723,33 @@ def _ensure_css_v2():
   /* What's Next card — subtle red wash so the CTA feels charged. */
   .bld2-next {
     background:
-      radial-gradient(ellipse at top right, rgba(255,59,48,0.06), transparent 60%),
+      radial-gradient(ellipse at top right, rgba(230,69,48,0.06), transparent 60%),
       var(--bld2-surface-0);
-    border-color: rgba(255,59,48,0.18);
+    border-color: rgba(230,69,48,0.18);
   }
   .bld2-next-cta {
     box-shadow:
-      0 12px 32px -14px rgba(255,59,48,0.6),
+      0 12px 32px -14px rgba(230,69,48,0.6),
       inset 0 1px 0 rgba(255,255,255,0.18);
     transition: transform .2s ease, box-shadow .2s ease;
   }
   .bld2-next-cta:hover {
     transform: translateY(-2px);
     box-shadow:
-      0 16px 40px -10px rgba(255,59,48,0.75),
+      0 16px 40px -10px rgba(230,69,48,0.75),
       inset 0 1px 0 rgba(255,255,255,0.22);
   }
 
   /* Header primary button — match the same heat as the bottom CTA. */
   .bld2-btn-primary {
     box-shadow:
-      0 10px 30px -12px rgba(255,59,48,0.55),
+      0 10px 30px -12px rgba(230,69,48,0.55),
       inset 0 1px 0 rgba(255,255,255,0.18);
   }
   .bld2-btn-primary:hover {
     transform: translateY(-1px);
     box-shadow:
-      0 14px 36px -10px rgba(255,59,48,0.7),
+      0 14px 36px -10px rgba(230,69,48,0.7),
       inset 0 1px 0 rgba(255,255,255,0.22);
   }
 
@@ -757,7 +760,7 @@ def _ensure_css_v2():
   /* Coach quote — stronger left bar + soft red glow. */
   .bld2-coach-quote {
     border-left-width: 3px;
-    box-shadow: -2px 0 18px -10px rgba(255,59,48,0.5);
+    box-shadow: -2px 0 18px -10px rgba(230,69,48,0.5);
   }
 
   /* Strength cards — stronger green glow. */
@@ -767,7 +770,7 @@ def _ensure_css_v2():
 
   /* Sparklines — drop-shadow makes the line feel like a glowing trace. */
   .bld2-km-spark polyline {
-    filter: drop-shadow(0 0 4px rgba(255,59,48,0.45));
+    filter: drop-shadow(0 0 4px rgba(230,69,48,0.45));
   }
 
   /* =====================================================================
@@ -907,9 +910,9 @@ def _score_ring_svg(score: int, band_class: str) -> str:
     color_map = {
         "bld2-band-green": "#6ee7b7",
         "bld2-band-amber": "#fbbf24",
-        "bld2-band-red":   "#ff3b30",
+        "bld2-band-red":   "#E64530",
     }
-    color = color_map.get(band_class, "#ff3b30")
+    color = color_map.get(band_class, "#E64530")
     radius = 56
     stroke = 9
     cx, cy = 70, 70
@@ -926,7 +929,7 @@ def _score_ring_svg(score: int, band_class: str) -> str:
           transform="rotate(-90 {cx} {cy})"
           style="filter: drop-shadow(0 0 8px {color}55);"/>
   <text x="{cx}" y="{cy + 6}" text-anchor="middle"
-        fill="{color}" font-family="Inter" font-weight="900" font-size="28"
+        fill="{color}" font-family="Geist" font-weight="900" font-size="28"
         letter-spacing="-1">{pct}</text>
 </svg>
 """
@@ -984,7 +987,7 @@ def _radar_svg(axes: List[Tuple[str, float]]) -> str:
             anchor = "end"
         parts.append(
             f'<text x="{lx:.1f}" y="{ly:.1f}" text-anchor="{anchor}" '
-            f'fill="#8a8a92" font-family="JetBrains Mono" font-size="8.5" '
+            f'fill="#8A857B" font-family="Geist Mono" font-size="8.5" '
             f'letter-spacing="1.6" font-weight="700">{html.escape(label.upper())}</text>'
         )
 
@@ -1011,15 +1014,15 @@ def _radar_svg(axes: List[Tuple[str, float]]) -> str:
         player_pts.append(f"{x:.1f},{y:.1f}")
     parts.append(
         f'<polygon points="{" ".join(player_pts)}" '
-        f'fill="rgba(255,59,48,0.18)" '
-        f'stroke="#ff3b30" stroke-width="2"/>'
+        f'fill="rgba(230,69,48,0.18)" '
+        f'stroke="#E64530" stroke-width="2"/>'
     )
     for a, (_label, pct) in zip(angles, axes):
         pct = max(0.0, min(100.0, float(pct or 0.0)))
         r = R * (pct / 100.0)
         x = cx + math.cos(a) * r
         y = cy + math.sin(a) * r
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="#ff3b30"/>')
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="#E64530"/>')
 
     parts.append("</svg>")
     return "".join(parts)
@@ -1069,7 +1072,7 @@ def _progress_chart_svg(score_history: List[Tuple[Any, float]]) -> str:
         )
         parts.append(
             f'<text x="{PAD_L - 8}" y="{y + 3:.1f}" text-anchor="end" '
-            f'fill="#5a5a62" font-family="JetBrains Mono" font-size="9">{lvl}</text>'
+            f'fill="#5A564F" font-family="Geist Mono" font-size="9">{lvl}</text>'
         )
 
     # Area fill
@@ -1078,11 +1081,11 @@ def _progress_chart_svg(score_history: List[Tuple[Any, float]]) -> str:
         area += f"L {x:.1f},{y:.1f} "
     area += f"L {pts[-1][0]:.1f},{_y(s_min):.1f} "
     area += f"L {pts[0][0]:.1f},{_y(s_min):.1f} Z"
-    parts.append(f'<path d="{area}" fill="rgba(255,59,48,0.10)"/>')
+    parts.append(f'<path d="{area}" fill="rgba(230,69,48,0.10)"/>')
 
     # Line
     parts.append(
-        f'<polyline fill="none" stroke="#ff3b30" stroke-width="2.5" '
+        f'<polyline fill="none" stroke="#E64530" stroke-width="2.5" '
         f'points="{poly}" stroke-linecap="round" stroke-linejoin="round"/>'
     )
 
@@ -1091,19 +1094,19 @@ def _progress_chart_svg(score_history: List[Tuple[Any, float]]) -> str:
         is_last = (i == n - 1)
         if is_last:
             parts.append(
-                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#ff3b30" '
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="#E64530" '
                 f'stroke="#0a0a0c" stroke-width="3"/>'
             )
             parts.append(
                 f'<text x="{x:.1f}" y="{y - 14:.1f}" text-anchor="middle" '
-                f'fill="#ff3b30" font-family="Inter" font-weight="800" font-size="13">'
+                f'fill="#E64530" font-family="Geist" font-weight="800" font-size="13">'
                 f'{int(round(s))}</text>'
             )
         else:
-            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#ff3b30"/>')
+            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#E64530"/>')
             parts.append(
                 f'<text x="{x:.1f}" y="{y - 12:.1f}" text-anchor="middle" '
-                f'fill="#cdcdd2" font-family="Inter" font-weight="700" font-size="11">'
+                f'fill="#C8C4BB" font-family="Geist" font-weight="700" font-size="11">'
                 f'{int(round(s))}</text>'
             )
 
@@ -1111,7 +1114,7 @@ def _progress_chart_svg(score_history: List[Tuple[Any, float]]) -> str:
     for i, ((x, _y_), (num, _s)) in enumerate(zip(pts, score_history)):
         parts.append(
             f'<text x="{x:.1f}" y="{H - 10}" text-anchor="middle" '
-            f'fill="#5a5a62" font-family="JetBrains Mono" font-size="9" '
+            f'fill="#5A564F" font-family="Geist Mono" font-size="9" '
             f'letter-spacing="1">#{num}</text>'
         )
 
@@ -1150,7 +1153,7 @@ def _sparkline_svg(values: List[float], direction: str = "match") -> str:
     return (
         f'<svg class="bld2-km-spark" viewBox="0 0 100 28" '
         f'preserveAspectRatio="none">'
-        f'<polyline fill="none" stroke="#ff3b30" stroke-width="1.5" '
+        f'<polyline fill="none" stroke="#E64530" stroke-width="1.5" '
         f'stroke-linecap="round" stroke-linejoin="round" points="{poly}"/>'
         f'</svg>'
     )
@@ -1589,7 +1592,7 @@ def _build_v2_breakdown_and_viz(record: Dict[str, Any],
     <div class="bld2-scrub-time">0.00 / 0.60</div>
   </div>
   <div style="margin-top:0.7rem;display:flex;gap:1rem;font-family:var(--bld2-mono);font-size:0.55rem;color:var(--bld2-ink-60);letter-spacing:0.14em;text-transform:uppercase;font-weight:600;">
-    <div><span class="bld2-legend-dot" style="background:#ff3b30;"></span>Your Swing</div>
+    <div><span class="bld2-legend-dot" style="background:#E64530;"></span>Your Swing</div>
     <div><span class="bld2-legend-dot" style="background:rgba(255,255,255,0.4);"></span>MLB Reference</div>
   </div>
   <div class="bld2-viz-soon">POSE SKELETON RENDERING — SHIPPING NEXT</div>
@@ -1961,7 +1964,7 @@ def render_swing_report_v2(
             _md(
                 '<div class="bld2-wrap" style="margin-bottom:0.75rem;">'
                 '<div style="background:#1a0f0f;border:1px solid #3a1f1f;'
-                'border-left:3px solid #ff3b30;border-radius:10px;'
+                'border-left:3px solid #E64530;border-radius:10px;'
                 'padding:12px 16px;color:#ffb3a8;font-size:13px;'
                 'line-height:1.5;">'
                 '<strong style="color:#fff;">Upgrade to Pro</strong> '

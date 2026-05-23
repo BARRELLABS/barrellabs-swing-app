@@ -7,8 +7,16 @@ Performance Over Time, Compare Swings, Settings, Billing) should call
 `inject_global_theme()` once near the top of its render flow so the
 shared tokens and component classes are available.
 
-EXPOSED TOKENS (CSS custom properties)
+EDITORIAL CANONICAL TOKENS (source of truth)
+    --bone / --bone-dim / --bone-mute / --bone-faint
+    --ink / --ink-elev
+    --gold / --gold-deep
+    --red / --red-hover
+    --serif / --sans / --mono
+
+LEGACY ALIASES (point at the canonical tokens above)
     --bl-red / --bl-red-hover / --bl-red-glow / --bl-red-soft
+    --bl-gold / --bl-serif
     --bl-bg
     --bl-surface-1 / --bl-surface-2
     --bl-line / --bl-line-hi
@@ -16,6 +24,10 @@ EXPOSED TOKENS (CSS custom properties)
     --bl-radius-xl / --bl-radius-lg / --bl-radius-md / --bl-radius-sm
     --bl-space-2xs ... --bl-space-xl
     --bl-sans / --bl-mono
+
+PYTHON CONSTANTS (for Plotly / SVG / PDF — no CSS vars there)
+    BL_INK / BL_BONE / BL_GOLD / BL_RED / BL_POSITIVE / BL_SECONDARY / ...
+    BL_FONT_SANS / BL_FONT_MONO / BL_FONT_SERIF
 
 REUSABLE COMPONENT CLASSES
     .bl-page              top-level page wrapper (z-index lifted above bg)
@@ -47,25 +59,50 @@ import streamlit as st
 
 BL_GLOBAL_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 
 :root {
-    --bl-red:         #FF3B30;
-    --bl-red-hover:   #ff4d43;
-    --bl-red-glow:    rgba(255,59,48,0.28);
-    --bl-red-soft:    rgba(255,59,48,0.08);
+    /* ===========  EDITORIAL CANONICAL TOKENS (source of truth)  ===========
+       Matches the household / training-plan pages (family_dashboard.py et al).
+       Everything else (the --bl-* names below) is aliased to these so legacy
+       pages inherit the editorial palette without per-page edits. */
+    --bone:        #F4EFE6;
+    --bone-dim:    #C8C4BB;
+    --bone-mute:   #8a857b;
+    --bone-faint:  #5a564f;
+    --ink:         #0A0B0E;
+    --ink-elev:    #15171c;
+    --gold:        #E8C170;
+    --gold-deep:   #C9A350;
+    --red:         #E64530;
+    --red-hover:   #f0563f;
 
-    --bl-bg:          #050505;
-    --bl-surface-1:   rgba(255,255,255,0.02);
-    --bl-surface-2:   rgba(255,255,255,0.035);
+    --serif:  'Instrument Serif', 'Times New Roman', Georgia, serif;
+    --sans:   'Geist', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono:   'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --bl-line:        rgba(255,255,255,0.06);
-    --bl-line-hi:     rgba(255,255,255,0.12);
+    /* ===========  LEGACY ALIASES (→ editorial canonical above)  ===========
+       Existing pages reference these names; pointing them at the editorial
+       tokens flips the whole legacy surface to editorial in one place. */
+    --bl-red:         var(--red);
+    --bl-red-hover:   var(--red-hover);
+    --bl-red-glow:    rgba(230,69,48,0.28);
+    --bl-red-soft:    rgba(230,69,48,0.08);
 
-    --bl-ink-100:     #fafafa;
-    --bl-ink-80:      #d4d4d4;
-    --bl-ink-60:      #8b8b8b;
-    --bl-ink-40:      #5c5c5c;
+    --bl-gold:        var(--gold);
+    --bl-serif:       var(--serif);
+
+    --bl-bg:          var(--ink);
+    --bl-surface-1:   rgba(244,239,230,0.02);
+    --bl-surface-2:   rgba(244,239,230,0.04);
+
+    --bl-line:        rgba(244,239,230,0.10);
+    --bl-line-hi:     rgba(244,239,230,0.18);
+
+    --bl-ink-100:     var(--bone);
+    --bl-ink-80:      var(--bone-dim);
+    --bl-ink-60:      var(--bone-mute);
+    --bl-ink-40:      var(--bone-faint);
 
     --bl-radius-xl:   28px;
     --bl-radius-lg:   24px;
@@ -79,15 +116,15 @@ BL_GLOBAL_CSS = """
     --bl-space-lg:    2rem;
     --bl-space-xl:    2.8rem;
 
-    --bl-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-    --bl-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --bl-sans:  var(--sans);
+    --bl-mono:  var(--mono);
 
-    --bl-cta-shadow:  0 12px 30px -10px rgba(255,59,48,0.42);
+    --bl-cta-shadow:  0 12px 30px -10px rgba(230,69,48,0.42);
 }
 
 /* ===========  GLOBAL BACKGROUND  =========== */
 [data-testid="stAppViewContainer"] {
-    background: #050505 !important;
+    background: var(--ink) !important;
 }
 [data-testid="stAppViewContainer"]::before {
     content: "";
@@ -96,11 +133,11 @@ BL_GLOBAL_CSS = """
     width: 1600px; height: 760px;
     background:
         radial-gradient(ellipse at 35% 50%,
-            rgba(255,59,48,0.085) 0%,
-            rgba(255,59,48,0.025) 30%,
+            rgba(230,69,48,0.075) 0%,
+            rgba(230,69,48,0.020) 30%,
             transparent 70%),
         radial-gradient(ellipse at 78% 40%,
-            rgba(30,58,138,0.04) 0%,
+            rgba(232,193,112,0.035) 0%,
             transparent 70%);
     pointer-events: none;
     z-index: 0;
@@ -302,6 +339,34 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 </style>
 """
+
+
+# ===========================================================================
+#  PYTHON-ACCESSIBLE CONSTANTS
+#  For code that cannot read CSS custom properties — Plotly figures, inline
+#  SVG (sparklines), and ReportLab PDFs. Keep these in sync with the editorial
+#  canonical tokens in :root above.
+# ===========================================================================
+BL_INK        = "#0A0B0E"
+BL_INK_ELEV   = "#15171C"
+BL_BONE       = "#F4EFE6"
+BL_BONE_DIM   = "#C8C4BB"
+BL_BONE_MUTE  = "#8A857B"
+BL_BONE_FAINT = "#5A564F"
+BL_GOLD       = "#E8C170"
+BL_GOLD_DEEP  = "#C9A350"
+BL_RED        = "#E64530"
+
+# Semantic chart roles (no green exists in the editorial palette):
+#   positive / "trending up" → gold;  negative → red;  secondary trace → bone-dim.
+BL_POSITIVE   = BL_GOLD
+BL_NEGATIVE   = BL_RED
+BL_SECONDARY  = BL_BONE_DIM
+
+# Font stacks (Plotly / SVG take plain strings, not CSS variables).
+BL_FONT_SANS  = "Geist, Inter, system-ui, sans-serif"
+BL_FONT_MONO  = "Geist Mono, JetBrains Mono, monospace"
+BL_FONT_SERIF = "Instrument Serif, Georgia, serif"
 
 
 def inject_global_theme() -> None:
