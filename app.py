@@ -25,7 +25,7 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-from analyzer import analyze
+from analyzer import analyze, age_from_birth_year
 from bl_theme import inject_global_theme
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
@@ -4335,10 +4335,12 @@ if _swing_check.remaining is not None and not is_pro(_plan_snapshot):
 
 # ---------- RUN POSE DETECTION ----------
 with st.spinner("Tracking pose and detecting swing phases (~30–60 seconds)..."):
-    rc, out, err = run_subprocess(
-        [PY, "detect_phases.py", str(video_path), HAND_MAP[hand_override]],
-        cwd=PROJECT_ROOT,
-    )
+    _detect_cmd = [PY, "detect_phases.py", str(video_path),
+                   HAND_MAP[hand_override]]
+    _player_age = age_from_birth_year((user or {}).get("birth_year"))
+    if _player_age is not None:
+        _detect_cmd += ["--age", str(_player_age)]
+    rc, out, err = run_subprocess(_detect_cmd, cwd=PROJECT_ROOT)
 
 if rc != 0:
     st.error("Pose detection failed.")
