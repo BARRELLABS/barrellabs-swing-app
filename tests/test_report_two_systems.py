@@ -463,3 +463,22 @@ class TestBackwardCompat:
                            if p in html)
         # Legacy record: expect 0 or < 4 pillar names
         assert pillar_count < 4
+
+    def test_age_nudge_shown_when_age_unknown(self):
+        """New-engine report with age_known False shows the birth-year nudge."""
+        rec = _make_record(swing_score=72)
+        rec["age_known"] = False
+        html = _srd._build_score_card(rec, history=None)
+        assert "birth year" in html.lower()
+
+    def test_age_nudge_absent_when_age_known(self):
+        rec = _make_record(swing_score=72)
+        rec["age_known"] = True
+        html = _srd._build_score_card(rec, history=None)
+        assert "birth year" not in html.lower()
+
+    def test_age_nudge_absent_on_legacy_record(self):
+        """Legacy record (no swing_score) must not sprout the nudge."""
+        rec = _make_legacy_record(score=65)
+        html = _srd._build_score_card(rec, history=None)
+        assert "birth year" not in html.lower()

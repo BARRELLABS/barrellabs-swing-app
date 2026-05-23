@@ -1244,6 +1244,10 @@ _DASHBOARD_CSS = """
   line-height: 1.6;
 }
 
+/* Age nudge caption */
+.srd-age-nudge { margin-top:8px; font-size:12px; line-height:1.4;
+  color:rgba(244,239,230,0.62); font-style:italic; }
+
 /* New score card layout for two-system */
 .srd-score-card-two {
   background:
@@ -1802,6 +1806,17 @@ def _build_score_card(record: Dict[str, Any],
 </div>
 """
 
+    # Honest age nudge (#134): only on new-engine reports (those with a
+    # swing_score) where age was unknown, so the score used the default band.
+    _is_new_engine = record.get("swing_score") is not None
+    _age_unknown = not record.get("age_known", False)
+    age_nudge_html = ""
+    if _is_new_engine and _age_unknown:
+        age_nudge_html = (
+            '<div class="srd-age-nudge">Scored on the 13–14 standard — '
+            'add your birth year in Settings for an age-accurate score.</div>'
+        )
+
     return f"""
 <div class="srd-score-card-two">
   <div class="srd-card-eyebrow">
@@ -1815,6 +1830,7 @@ def _build_score_card(record: Dict[str, Any],
       <div class="srd-score-band {band_class}">
         <span class="dot"></span>{html.escape(band_label.upper())}
       </div>
+      {age_nudge_html}
     </div>
     <div class="srd-ring-wrap">
       {ring}
