@@ -16,6 +16,7 @@ Where reference_arg is one of:
 import json
 import math
 import os
+from typing import Optional
 
 from drills import (
     DRILL_DB,
@@ -145,6 +146,27 @@ _PILLAR_LABELS = {
     "timing":    "Timing & Tempo",
     "stride":    "Front-Side Brace",
 }
+
+
+def age_from_birth_year(birth_year, today_year: Optional[int] = None) -> Optional[int]:
+    """Compute a player's current age from a 4-digit birth year.
+
+    Returns None for missing/blank/unparseable input, and for ages outside a
+    plausible youth-baseball range (typo guard) so a bad value falls back to
+    the default bracket rather than skewing the score.
+    """
+    import datetime
+    if birth_year is None:
+        return None
+    try:
+        by = int(str(birth_year).strip())
+    except (TypeError, ValueError):
+        return None
+    yr = today_year if today_year is not None else datetime.date.today().year
+    age = yr - by
+    if age < 4 or age > 25:
+        return None
+    return age
 
 
 def age_bracket(age) -> str:
