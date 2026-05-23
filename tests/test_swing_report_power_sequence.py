@@ -60,7 +60,10 @@ if "streamlit" not in sys.modules:
 import swing_report_dashboard_preview as _srd  # noqa: E402
 
 
-def test_power_sequence_section_renders_with_all_three_tiles():
+def test_power_sequence_renders_sequencing_only():
+    """Only the sequencing-lag (kinetic-chain) read is surfaced, and
+    CATEGORICALLY — not a precise ms. Peak hip speed + front-side stability are
+    intentionally NOT shown (unreliable from a single phone video)."""
     record = {
         "sequence": {
             "sequencing_lag_ms":        32.0,
@@ -74,13 +77,13 @@ def test_power_sequence_section_renders_with_all_three_tiles():
         },
     }
     html = _srd._render_power_sequence(record)
-    assert "Power Sequence" in html
-    assert "32" in html and "ms" in html
-    assert "947" in html and "°/s" in html
-    assert "22" in html and "%" in html
+    assert "Kinetic Chain" in html
+    assert "Hips lead" in html                       # categorical label, not "32 ms"
     assert "SEQUENCING" in html.upper()
-    assert "PEAK HIP SPEED" in html.upper()
-    assert "STAY CLOSED" in html.upper()
+    # The two unreliable metrics must NOT surface anywhere.
+    assert "947" not in html and "°/s" not in html
+    assert "PEAK HIP SPEED" not in html.upper()
+    assert "STAY CLOSED" not in html.upper()
 
 
 def test_power_sequence_section_empty_when_no_sequence_block():
@@ -102,10 +105,10 @@ def test_power_sequence_section_skips_all_none_metrics():
     assert _srd._render_power_sequence(record) == ""
 
 
-def test_power_sequence_poor_rating_shows_red_border_class():
+def test_power_sequence_poor_rating_single_tile():
     record = {
         "sequence": {
-            "sequencing_lag_ms":        -10.0,
+            "sequencing_lag_ms":        -80.0,
             "peak_hip_omega_deg_s":     400.0,
             "front_side_stability_pct": 60.0,
             "rating": {
@@ -116,4 +119,21 @@ def test_power_sequence_poor_rating_shows_red_border_class():
         },
     }
     html = _srd._render_power_sequence(record)
-    assert html.count("srd-power-tile poor") == 3
+    # Single sequencing tile now — not three.
+    assert html.count("srd-power-tile poor") == 1
+    assert "Shoulders fire early" in html
+
+
+def test_power_sequence_hidden_when_lag_unmeasured():
+    """If sequencing couldn't be read (bad angle / not a clean swing), the whole
+    section hides — even if the now-unused omega/flyout happen to have values."""
+    record = {
+        "sequence": {
+            "sequencing_lag_ms":        None,
+            "peak_hip_omega_deg_s":     900.0,
+            "front_side_stability_pct": 20.0,
+            "rating": {"sequencing_lag": None, "peak_hip_omega": "good",
+                       "front_side_stability": "good"},
+        },
+    }
+    assert _srd._render_power_sequence(record) == ""

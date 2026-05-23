@@ -1018,6 +1018,31 @@ except Exception as _seq_exc:
                    "front_side_stability": None},
     }
 
+# ---------- BIOMECH SIGNAL DUMP (R&D only — gated by env, zero normal cost) ----------
+# Writes the per-frame rotation signals + phase frames to a sidecar so we can
+# experiment with lag/omega/flyout formulations OFFLINE (no repeated MediaPipe).
+if os.environ.get("BIOMECH_DUMP") == "1":
+    try:
+        _hr2d = width_to_rotation_deg(hip_w)
+        _sr2d = width_to_rotation_deg(sho_w)
+        _sig_dump = {
+            "video": os.path.basename(INPUT_VIDEO),
+            "fps": float(fps),
+            "prefer_3d": bool(prefer_3d),
+            "phases_frame": {k: int(v) for k, v in phases.items()},
+            "hip_rotation":      [float(x) for x in hip_rotation],
+            "shoulder_rotation": [float(x) for x in shoulder_rotation],
+            "hip_rot_2d":        [float(x) for x in _hr2d],
+            "sho_rot_2d":        [float(x) for x in _sr2d],
+            "hip_w":             [float(x) for x in hip_w],
+            "sho_w":             [float(x) for x in sho_w],
+        }
+        with open(f"{_base}_signals.json", "w") as _sf:
+            json.dump(_sig_dump, _sf)
+        print(f"  BIOMECH_DUMP → {_base}_signals.json")
+    except Exception as _sig_exc:
+        print(f"  BIOMECH_DUMP failed: {_sig_exc!r}")
+
 # ---------- FINGERPRINT JSON (for cross-swing comparison) ----------
 fingerprint = {
     "video": os.path.basename(INPUT_VIDEO),
