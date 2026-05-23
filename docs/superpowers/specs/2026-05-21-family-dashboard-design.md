@@ -1,10 +1,33 @@
 # Parent / Family Dashboard — Design Spec
 
 **Date:** 2026-05-21
-**Status:** Draft, locked after multi-agent design critique pass
-**Workstream:** Family Pro UX — first ever family infrastructure in the codebase
+**Status:** Implemented. PIVOTED after discovering existing seat infrastructure.
+**Workstream:** Family Pro UX
 
-> ⚠️ Prior audit confirmed: **zero family infrastructure exists**. No `families` table, no parent-child links, no seat enforcement. Family Pro today grants Pro only to the buyer. This spec is foundational.
+> ⚠️ **CORRECTION (post-implementation):** The original audit agent reported
+> "zero family infrastructure exists" and this spec was first written around a
+> new `families` + `family_members` schema. That was **wrong** — the database
+> already has a complete seat model:
+>
+> - `subscriptions` = the household container (owner_user_id, plan_id)
+> - `subscription_seats` = the members (subscription_id, user_id, invite_token,
+>   invite_email, accepted_at, role)
+> - `plans.seats` = the per-plan seat cap (free 1 / solo 1 / family 4 / coach 20)
+> - `v_my_plan` **already resolves a member's plan through their seat**, so
+>   Family-Pro entitlement propagation needs ZERO new code.
+>
+> The implementation was therefore **pivoted to build on `subscription_seats`**
+> rather than create a parallel `families`/`family_members` schema. The
+> migration only ADDs `display_name`/`is_minor`/`invite_token_hash`/`removed_at`
+> columns + two SECURITY DEFINER RPCs (`invite_subscription_seat`,
+> `claim_subscription_seat`). The `families`/`family_members` tables, the
+> `v_my_effective_plan` view, and the `_resolve_plan_via_family` entitlements
+> helper described below were all removed as redundant. The UI, the 4 states,
+> the editorial design, and `family_storage.py`'s public API are unchanged —
+> only the data layer points at the real tables.
+>
+> Sections below that reference `families`/`family_members` are kept for
+> historical context; the shipped schema is `supabase/migrations/2026_05_21_household_seats.sql`.
 
 ## Problem
 

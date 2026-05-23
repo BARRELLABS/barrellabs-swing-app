@@ -466,14 +466,15 @@ def render_family_dashboard() -> None:
         members = family_storage.list_members(family["id"])
         active = [m for m in members if m.get("invite_status") == "active"]
         n = len(active)
+        max_seats = int(family.get("max_seats") or 4)
         if n == 0:
             _render_empty_state(profile, family=family)
         elif n == 1:
-            _render_single_state(profile, family, active[0])
-        elif n >= 4:
+            _render_single_state(profile, family, active[0], max_seats)
+        elif n >= max_seats:
             _render_full_state(profile, family, active)
         else:
-            _render_populated_state(profile, family, active)
+            _render_populated_state(profile, family, active, max_seats)
 
     st.markdown("""
     <div class="fd-foot">
@@ -560,7 +561,8 @@ def _render_empty_state(profile: dict, family: Optional[dict] = None) -> None:
     """, unsafe_allow_html=True)
 
 
-def _render_single_state(profile: dict, family: dict, member: dict) -> None:
+def _render_single_state(profile: dict, family: dict, member: dict,
+                         max_seats: int = 4) -> None:
     """State C — exactly one member."""
     import family_storage
     summary = family_storage.get_member_summary(member)
@@ -577,11 +579,12 @@ def _render_single_state(profile: dict, family: dict, member: dict) -> None:
     """, unsafe_allow_html=True)
     _render_member_card(summary, is_self=_is_self(member, profile))
     st.markdown("</div>", unsafe_allow_html=True)
-    _render_add_row(seats_used=1)
+    _render_add_row(seats_used=1, max_seats=max_seats)
 
 
-def _render_populated_state(profile: dict, family: dict, members: list[dict]) -> None:
-    """State A — 2-3 members."""
+def _render_populated_state(profile: dict, family: dict, members: list[dict],
+                            max_seats: int = 4) -> None:
+    """State A — more than one member, below the seat cap."""
     import family_storage
     n = len(members)
     summaries = [family_storage.get_member_summary(m) for m in members]
@@ -625,7 +628,7 @@ def _render_populated_state(profile: dict, family: dict, members: list[dict]) ->
       </div>
       <div class="fd-sum-cell">
         <div class="fd-sum-eyebrow">Players</div>
-        <div class="fd-sum-val">{n} of 4</div>
+        <div class="fd-sum-val">{n} of {max_seats}</div>
         <div class="fd-sum-label">seats used</div>
       </div>
       <div class="fd-sum-cell">
@@ -644,43 +647,49 @@ def _render_populated_state(profile: dict, family: dict, members: list[dict]) ->
         with cols[idx]:
             _render_member_card(summary, is_self=_is_self(members[idx], profile))
 
-    _render_add_row(seats_used=n)
+    _render_add_row(seats_used=n, max_seats=max_seats)
+
+
+_COUNT_WORDS = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five"}
 
 
 def _render_full_state(profile: dict, family: dict, members: list[dict]) -> None:
-    """State D — 4 of 4 seats used."""
+    """State D — every seat used."""
     import family_storage
     summaries = [family_storage.get_member_summary(m) for m in members]
+    n = len(members)
+    count_word = _COUNT_WORDS.get(n, str(n))
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="fd-hero">
       <div class="fd-hero-eyebrow">Your household</div>
-      <h1 class="fd-hero-title">Four players. <span class="ital">One lab.</span></h1>
+      <h1 class="fd-hero-title">{count_word} players. <span class="ital">One lab.</span></h1>
       <p class="fd-hero-sub">
         Read-only view of everyone in your household, including yourself.
       </p>
     </div>
     """, unsafe_allow_html=True)
 
-    cols = st.columns(4, gap="medium")
+    # Cap to 4 columns per row so large rosters (coach) don't get crushed.
+    cols = st.columns(min(n, 4), gap="medium")
     for idx, summary in enumerate(summaries):
-        with cols[idx]:
+        with cols[idx % 4]:
             _render_member_card(summary, is_self=_is_self(members[idx], profile))
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="fd-household-full">
-      Your household is full · 4 of 4 seats used
+      Your household is full · {n} of {n} seats used
     </div>
     """, unsafe_allow_html=True)
 
 
-def _render_add_row(seats_used: int) -> None:
-    seats_remaining = 4 - seats_used
+def _render_add_row(seats_used: int, max_seats: int = 4) -> None:
+    seats_remaining = max(0, max_seats - seats_used)
     st.markdown(f"""
     <div class="fd-add-row">
       <div>
         <div class="fd-add-title">Add another <span class="accent">player</span> to your household.</div>
-        <div class="fd-add-meta">{seats_used} of 4 seats used</div>
+        <div class="fd-add-meta">{seats_used} of {max_seats} seats used</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
