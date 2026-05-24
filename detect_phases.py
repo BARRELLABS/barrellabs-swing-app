@@ -1066,6 +1066,16 @@ stride_block = biomech.stride_direction(
     _front_ax, _back_ax, _stance_ref, int(phases["foot_plant"]), ref_torso_len,
 )
 
+# Sign head Δx so positive = toward the pitcher (head_x is raw image-x, so the
+# "toward pitcher" label was backwards for one handedness). Same convention as
+# the stride direction above, so the two always agree.
+try:
+    _px_sign = biomech.pitcher_sign(_front_ax[_stance_ref], _back_ax[_stance_ref])
+except Exception:
+    _px_sign = 1.0
+head_dx_swing = head_dx_swing * _px_sign
+head_dx_norm = head_dx_norm * _px_sign
+
 # ---------- FINGERPRINT JSON (for cross-swing comparison) ----------
 fingerprint = {
     "video": os.path.basename(INPUT_VIDEO),

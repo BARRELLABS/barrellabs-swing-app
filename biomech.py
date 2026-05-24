@@ -215,6 +215,14 @@ def compute_sequence(
     }
 
 
+def pitcher_sign(front_ankle_x_stance: float, back_ankle_x_stance: float) -> float:
+    """+1 when the pitcher is to image-right of the batter (front ankle right of
+    back ankle at stance), else -1. Multiply any image-x delta by this to get a
+    'toward the pitcher = positive' value — the shared convention for both
+    stride direction and head drift."""
+    return 1.0 if (front_ankle_x_stance - back_ankle_x_stance) >= 0 else -1.0
+
+
 def stride_direction(front_ankle_x, back_ankle_x, stance_idx, foot_plant_idx,
                      torso_px, eps=0.04):
     """Did the front foot stride toward the pitcher?
@@ -238,6 +246,6 @@ def stride_direction(front_ankle_x, back_ankle_x, stance_idx, foot_plant_idx,
     fx_stance = _avg(front_ankle_x, stance_idx)
     bx_stance = _avg(back_ankle_x, stance_idx)
     fx_plant = _avg(front_ankle_x, foot_plant_idx)
-    pitcher_side = 1.0 if (fx_stance - bx_stance) >= 0 else -1.0
+    pitcher_side = pitcher_sign(fx_stance, bx_stance)
     dx_norm = ((fx_plant - fx_stance) * pitcher_side) / torso_px
     return {"toward_pitcher": bool(dx_norm > eps), "dx_norm": float(dx_norm)}
