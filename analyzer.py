@@ -204,6 +204,39 @@ def parse_birth_year(value, today_year: Optional[int] = None) -> Optional[int]:
     return yr
 
 
+def tempo_ratio(timing: dict) -> Optional[float]:
+    """Gather:fire ratio = load_duration / launch_to_contact — the exact ratio
+    the Timing pillar already grades internally, surfaced as a coach-legible
+    number. Pass the slow-mo-CORRECTED timing dict. None when either component
+    is missing or non-positive."""
+    try:
+        load = float((timing or {}).get("load_duration"))
+        fire = float((timing or {}).get("launch_to_contact"))
+    except (TypeError, ValueError):
+        return None
+    if load <= 0 or fire <= 0:
+        return None
+    return round(load / fire, 2)
+
+
+def xfactor_timing_ms(player: dict) -> Optional[float]:
+    """When peak hip-shoulder separation occurs relative to contact, in
+    slow-mo-corrected milliseconds. Negative = separation peaks BEFORE contact
+    (the elite "stretch then unwind" pattern); near-zero/positive = peaks at or
+    after contact (stuck/late). None when inputs are missing.
+
+    Uses the peak-separation TIME — a within-clip temporal landmark that is
+    robust to camera viewpoint — rather than the separation magnitude (which is
+    view-sensitive and only reported categorically)."""
+    try:
+        sep_t = float((player.get("rotation_deg") or {}).get("peak_separation_t"))
+        contact_t = float((player.get("phases_t") or {}).get("contact"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    slow_mo = float(player.get("slow_mo_factor", 1.0)) or 1.0
+    return round((sep_t - contact_t) * 1000.0 / slow_mo, 1)
+
+
 def age_bracket(age) -> str:
     """Map a player's age (int-ish) to one of swing_score.BRACKETS.
 
@@ -920,6 +953,11 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
             "ref_raw_swing_ms":          reference.get("timing_ms", {}).get("total_swing", 0.0),
             "ref_corrected_swing_ms":    ref_timing.get("total_swing", 0.0),
         },
+        # Accurate, phone-reliable insights derived from data already computed:
+        # gather:fire tempo (the Timing pillar's own ratio) and when peak
+        # hip-shoulder separation lands relative to contact.
+        "tempo_ratio": tempo_ratio(player_timing),
+        "xfactor_timing_ms": xfactor_timing_ms(player),
         "camera_view": {
             "have_view": have_view,
             "player_ratio": player_view,
