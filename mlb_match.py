@@ -17,24 +17,43 @@ def _g(d, *path, default=0.0):
 def movement_vector(fp: dict) -> list:
     t = fp.get("timing_ms") or {}
     total = (t.get("total_swing") or 0) or _EPS
+    load = float(t.get("load_duration") or 0)
     rot = fp.get("rotation_deg") or {}
     ph = fp.get("phases_t") or {}
     kn = fp.get("knee_deg") or {}
     plant_to_contact = ((ph.get("contact") or 0) - (ph.get("foot_plant") or 0)) or _EPS
     return [
-        float((t.get("load_duration") or 0) / total),
-        float((t.get("foot_plant_to_launch") or 0) / total),
+        # 0: load:swing tempo as a true fraction in [0,1). (Was load/downswing,
+        #    which exceeded 1 and let one short-swing outlier dominate.)
+        float(load / (load + total)),
+        # 1: downswing split. The companion foot_plant_to_launch ratio was
+        #    DROPPED — it summed to 1.0 with this one (collinear, double-counted).
         float((t.get("launch_to_contact") or 0) / total),
+        # 2: X-factor timing — when peak separation lands within plant→contact.
         float(((rot.get("peak_separation_t") or 0) - (ph.get("foot_plant") or 0)) / plant_to_contact),
+        # 3: separation retention into contact.
         float((rot.get("separation_at_contact") or 0) / ((rot.get("peak_separation") or 0) or _EPS)),
+        # 4: rotational vs linear lean.
         float((rot.get("peak_hip") or 0) / (abs(rot.get("peak_separation") or 0) + _EPS)),
+        # 5: knee re-extension (brace).
         float((kn.get("re_extension") or 0) / (((kn.get("at_foot_plant") or 0) - (kn.get("min_during_load") or 0)) + _EPS)),
+        # 6: head stability.
         float(_g(fp, "head_movement_normalized_foot_plant_to_contact", "total_drift_torso")),
     ]
 
 
+# Winsorize each standardized dim so a single outlier feature (e.g. one pro's
+# mis-measured short swing) can't dominate the Euclidean match distance over a
+# small 17-exemplar reference set.
+_Z_CLAMP = 3.0
+
+
 def zscore(vec, stats):
-    return [(v - m) / (s or _EPS) for v, m, s in zip(vec, stats["means"], stats["stds"])]
+    out = []
+    for v, m, s in zip(vec, stats["means"], stats["stds"]):
+        z = (v - m) / (s or _EPS)
+        out.append(max(-_Z_CLAMP, min(_Z_CLAMP, z)))
+    return out
 
 
 def _dist(a, b):

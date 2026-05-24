@@ -12,7 +12,7 @@ import sys
 
 # Allow importing mlb_match from repo root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from mlb_match import movement_vector
+from mlb_match import movement_vector, zscore
 
 _EPS = 1e-6
 REFS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "references")
@@ -58,9 +58,11 @@ def compute_stats(pros):
 
 
 def zscore_pros(pros, means, stds):
-    dim = len(means)
+    # Use the runtime zscore (incl. winsorization) so stored pro vectors match
+    # exactly how a live player's vector is standardized.
+    stats = {"means": means, "stds": stds}
     for p in pros:
-        p["z"] = [(p["raw_vec"][i] - means[i]) / (stds[i] or _EPS) for i in range(dim)]
+        p["z"] = zscore(p["raw_vec"], stats)
     return pros
 
 

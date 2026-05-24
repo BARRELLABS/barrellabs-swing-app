@@ -13,24 +13,32 @@ _FP = {
 }
 
 def test_movement_vector_len_and_finite():
+    # 7 dims: the redundant foot_plant_to_launch ratio was dropped (it was
+    # collinear with launch_to_contact — the two summed to 1.0).
     v = movement_vector(_FP)
-    assert isinstance(v, list) and len(v) == 8
+    assert isinstance(v, list) and len(v) == 7
     assert all(isinstance(x, float) and abs(x) < 1000 for x in v)
 
+
+def test_load_ratio_is_a_proper_fraction():
+    # dim 0 = load / (load + downswing): a real tempo fraction in [0, 1), not
+    # the old load/downswing which exceeded 1 and was outlier-driven.
+    v = movement_vector(_FP)
+    assert 0.0 <= v[0] < 1.0
+
+
 def test_movement_vector_scale_invariant():
-    # Scaling all *_torso/degree magnitudes does NOT change the ratio vector,
-    # because every feature is a ratio. Doubling raw separation/hip together
-    # keeps rotational_linear_lean stable; timing ratios unchanged.
+    # Every feature is a ratio, so doubling raw separation/hip magnitudes
+    # together leaves the vector unchanged.
     import copy
     fp2 = copy.deepcopy(_FP)
     fp2["rotation_deg"]["peak_separation"] *= 2
     fp2["rotation_deg"]["separation_at_contact"] *= 2
     fp2["rotation_deg"]["peak_hip"] *= 2
     v1, v2 = movement_vector(_FP), movement_vector(fp2)
-    # sep_retention (idx 4) and timing ratios unchanged; lean (idx 5) unchanged
-    assert v1[4] == pytest.approx(v2[4])
-    assert v1[5] == pytest.approx(v2[5])
-    assert v1[0] == pytest.approx(v2[0])
+    assert v1[3] == pytest.approx(v2[3])  # separation retention
+    assert v1[4] == pytest.approx(v2[4])  # rotational/linear lean
+    assert v1[0] == pytest.approx(v2[0])  # load ratio (timing-only)
 
 
 def test_match_identical_pro_is_high():
