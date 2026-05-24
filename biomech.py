@@ -206,3 +206,31 @@ def compute_sequence(
         "shoulder_peak_frame":       sho_peak_frame,
         "rating":                    rating,
     }
+
+
+def stride_direction(front_ankle_x, back_ankle_x, stance_idx, foot_plant_idx,
+                     torso_px, eps=0.04):
+    """Did the front foot stride toward the pitcher?
+
+    Pitcher side = sign(front − back ankle x at stance). A real stride moves
+    the front foot further toward that side by foot plant. `dx_norm` is the
+    signed forward displacement in torso lengths (positive = toward pitcher).
+    Fail-soft to the lenient gate (toward_pitcher=True, dx_norm=0.0) on
+    degenerate input so a bad camera read never unfairly punishes the brace.
+    """
+    n = len(front_ankle_x)
+    if (n == 0 or len(back_ankle_x) != n or torso_px is None or torso_px <= 1.0
+            or not (0 <= stance_idx < n) or not (0 <= foot_plant_idx < n)):
+        return {"toward_pitcher": True, "dx_norm": 0.0}
+
+    def _avg(arr, i, w=2):
+        lo, hi = max(0, i - w), min(len(arr), i + w + 1)
+        seg = arr[lo:hi]
+        return float(sum(seg) / len(seg)) if seg else float(arr[i])
+
+    fx_stance = _avg(front_ankle_x, stance_idx)
+    bx_stance = _avg(back_ankle_x, stance_idx)
+    fx_plant = _avg(front_ankle_x, foot_plant_idx)
+    pitcher_side = 1.0 if (fx_stance - bx_stance) >= 0 else -1.0
+    dx_norm = ((fx_plant - fx_stance) * pitcher_side) / torso_px
+    return {"toward_pitcher": bool(dx_norm > eps), "dx_norm": float(dx_norm)}

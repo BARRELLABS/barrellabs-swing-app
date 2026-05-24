@@ -385,5 +385,83 @@ class PlayerSettingsPageImportTest(unittest.TestCase):
                     sys.modules[k] = v
 
 
+# =========================================================
+# Group 7 — birth_year persists via auth.update_profile
+# =========================================================
+class BirthYearPersistenceTest(unittest.TestCase):
+    """Saving Settings forwards an int birth_year to auth.update_profile."""
+
+    @classmethod
+    def setUpClass(cls):
+        stub = _make_streamlit_stub()
+        cls._stub = stub
+        cls._prev = {k: sys.modules.get(k) for k in
+                     ("streamlit", "streamlit.components", "streamlit.components.v1")}
+        sys.modules["streamlit"] = stub
+        try:
+            cls.ps = importlib.import_module("player_settings_page")
+            importlib.reload(cls.ps)
+        finally:
+            for k, v in cls._prev.items():
+                if v is None:
+                    sys.modules.pop(k, None)
+                else:
+                    sys.modules[k] = v
+
+    def _install_stub(self):
+        """Re-install the streamlit stub for the duration of the test."""
+        sys.modules["streamlit"] = self._stub
+
+    def _remove_stub(self):
+        for k, v in self._prev.items():
+            if v is None:
+                sys.modules.pop(k, None)
+            else:
+                sys.modules[k] = v
+
+    def test_birth_year_persists_via_update_profile(self):
+        """When the birth-year widget holds '2014', _do_save calls
+        update_profile with birth_year=2014."""
+        from unittest.mock import patch
+
+        user = {
+            "slug": "p1",
+            "name": "Test",
+            "handedness": "RIGHT",
+            "height_in": 60,
+            "weight_lb": 120,
+            "birth_year": None,
+        }
+
+        # Build a realistic cur dict derived from _saved_defaults, with
+        # birth_year overridden to "2014".
+        self._install_stub()
+        try:
+            base = self.ps._saved_defaults(user)
+        finally:
+            self._remove_stub()
+        base["birth_year"] = "2014"
+
+        captured = {}
+
+        def _fake_update(slug, **fields):
+            captured.update(fields)
+            return {"slug": slug, **fields}
+
+        self._install_stub()
+        try:
+            with patch.object(self.ps, "_current_field_values",
+                              return_value=base), \
+                 patch("auth.update_profile", _fake_update):
+                self.ps._do_save(user)
+        finally:
+            self._remove_stub()
+
+        self.assertEqual(
+            captured.get("birth_year"), 2014,
+            f"Expected birth_year=2014 in update_profile call, got: {captured}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

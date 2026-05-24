@@ -16,6 +16,7 @@ Where reference_arg is one of:
 import json
 import math
 import os
+from typing import Optional
 
 from drills import (
     DRILL_DB,
@@ -23,8 +24,18 @@ from drills import (
     build_drill_plan,
     build_narratives,
     classify_gap,
+    gaps_from_pillars,
+    pro_relative_line,
 )
 from reference_library import find_best_match, list_references, load_reference
+from swing_score import (
+    aggregate_score,
+    score_sequence,
+    score_stability,
+    score_stride,
+    score_timing,
+)
+from mlb_match import match_pro, movement_vector, zscore
 
 
 # ---- LOAD HELPERS ----
@@ -119,6 +130,189 @@ def _synthesize_sequence_gaps(sequence_block: dict) -> list:
     # _add("Stay closed (front-side stability)", "front_side_stability",
     #      sequence_block.get("front_side_stability_pct"))
     return gaps
+
+
+# ---- SWING SCORE / MLB MATCH HELPERS ----
+
+# Default age bracket when the player's age is genuinely unavailable. 13-14 is
+# the middle of the supported range, so the age-fair ramps in swing_score.py
+# neither over- nor under-reward an unknown-age player.
+_DEFAULT_BRACKET = "13-14"
+
+# The headline pillar order + display labels for the report.
+_PILLAR_LABELS = {
+    "sequence":  "Power Sequence",
+    "stability": "Head Stability",
+    "timing":    "Timing & Tempo",
+    "stride":    "Front-Side Brace",
+}
+
+# Structural reliability ceilings per pillar. The app's input is always
+# single-camera phone video, where hips-lead sequencing and front-leg-brace
+# (knee re-extension) are intrinsically noisy (see biomech verification
+# 2026-05-23). Cap their confidence so a low/zero read — which may be a
+# measurement artifact rather than a real flaw — drags the Swing Score less.
+# Head Stability and gross Timing are robust on phone video → no cap.
+_PILLAR_RELIABILITY = {
+    "sequence":  0.5,
+    "stability": 1.0,
+    "timing":    1.0,
+    "stride":    0.5,
+}
+
+
+def age_from_birth_year(birth_year, today_year: Optional[int] = None) -> Optional[int]:
+    """Compute a player's current age from a 4-digit birth year.
+
+    Returns None for missing/blank/unparseable input, and for ages outside a
+    plausible youth-baseball range (typo guard) so a bad value falls back to
+    the default bracket rather than skewing the score.
+    """
+    import datetime
+    if birth_year is None:
+        return None
+    try:
+        by = int(str(birth_year).strip())
+    except (TypeError, ValueError):
+        return None
+    yr = today_year if today_year is not None else datetime.date.today().year
+    age = yr - by
+    if age < 4 or age > 25:
+        return None
+    return age
+
+
+def age_bracket(age) -> str:
+    """Map a player's age (int-ish) to one of swing_score.BRACKETS.
+
+    8-10 / 11-12 / 13-14 / 15-17. Ages below 8 fold into "8-10" and ages
+    above 17 fold into "15-17" so the function always returns a valid bracket
+    (never raises). Unknown/None age falls back to the middle bracket.
+    """
+    try:
+        a = int(age)
+    except (TypeError, ValueError):
+        return _DEFAULT_BRACKET
+    if a <= 10:
+        return "8-10"
+    if a <= 12:
+        return "11-12"
+    if a <= 14:
+        return "13-14"
+    return "15-17"
+
+
+def _pose_visibility(player_fp: dict) -> float:
+    """Mean lower-body landmark visibility across the player's pose frames, in
+    [0,1]. Used to soften pillar confidence when the legs/feet are poorly
+    tracked (the parts the brace + stability pillars lean on). Returns 1.0 when
+    no pose frames are available (no penalty rather than a false one)."""
+    frames = player_fp.get("pose_frames") or []
+    if not frames:
+        return 1.0
+    names = ((player_fp.get("pose_meta") or {}).get("lm_names")) or []
+    lower = {"l_hip", "r_hip", "l_knee", "r_knee", "l_ankle", "r_ankle",
+             "l_heel", "r_heel", "l_foot_index", "r_foot_index"}
+    idxs = [i for i, nm in enumerate(names) if nm in lower]
+    if not idxs:
+        return 1.0
+    vis = []
+    for fr in frames:
+        kp = fr.get("kp") or []
+        for i in idxs:
+            if i < len(kp) and len(kp[i]) >= 3:
+                vis.append(float(kp[i][2]))
+    if not vis:
+        return 1.0
+    return max(0.0, min(1.0, sum(vis) / len(vis)))
+
+
+# Movement-match stats are loaded once and cached (frozen file written by
+# scripts/build_match_stats.py). Kept module-level so repeated analyze() calls
+# don't re-read it.
+_MATCH_STATS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "mlb_match_stats.json")
+_MATCH_STATS_UNSET = object()  # sentinel: distinct from a failed/empty load
+_MATCH_STATS_CACHE = _MATCH_STATS_UNSET
+
+
+def _load_match_stats():
+    """Load + cache the frozen movement-match stats. Returns None if missing.
+
+    A failed load is NOT cached — we leave the sentinel in place so a later
+    call retries, rather than permanently disabling the MLB match for the
+    process lifetime after a single transient I/O error.
+    """
+    global _MATCH_STATS_CACHE
+    if _MATCH_STATS_CACHE is _MATCH_STATS_UNSET:
+        try:
+            with open(_MATCH_STATS_PATH) as f:
+                _MATCH_STATS_CACHE = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return None  # leave cache unset → retry on the next call
+    return _MATCH_STATS_CACHE or None
+
+
+# Positive one-liners keyed by the strongest pillar.
+_WELL_LINES = {
+    "sequence":  "Your power sequence is already a strength — the hips are leading the way.",
+    "stability": "Your head stays quiet through contact — that's real plate coverage.",
+    "timing":    "Your timing is already a strength — a real gather into a crisp fire.",
+    "stride":    "Your front-side brace is firm — you're letting that leg post up.",
+}
+
+
+def _build_what_you_did_well(pillars: dict, pro_name) -> str:
+    """Return a non-empty positive one-liner.
+
+    Anchored on the strongest CONFIDENT pillar (max compliance × confidence
+    with confidence > 0). When nothing is confident, fall back to a line tied
+    to the player's MLB movement match so the field is never empty.
+    """
+    scored = [
+        (name, (p.get("compliance") or 0.0) * p.get("confidence", 0.0))
+        for name, p in pillars.items()
+        if p.get("confidence", 0.0) > 0 and p.get("compliance") is not None
+    ]
+    if scored:
+        best_name = max(scored, key=lambda t: t[1])[0]
+        return _WELL_LINES.get(best_name, "You've got a strong foundation to build on.")
+    if pro_name:
+        return f"Great base to build on — you already move like {pro_name}."
+    return "Great base to build on."
+
+
+def _pillar_confidence(signal, *, rotation_dependent: bool,
+                       rotation_view_sensitive: bool,
+                       pose_visibility: float,
+                       reliability_ceiling: float = 1.0) -> float:
+    """Per-pillar confidence in [0,1].
+
+    Rules (kept deliberately simple but real, reusing the camera flags the
+    analyzer already computes):
+      - signal is None  → 0.0 (nothing measurable, pillar drops out).
+      - else base 1.0.
+      - halved for a rotation-dependent pillar (Sequence) when the rotation
+        read is view-sensitive (mixed method or large camera-view delta).
+      - scaled by lower-body pose visibility when that's poor (legs/feet not
+        well tracked → less trust in the head/brace reads).
+      - capped by reliability_ceiling: a structural ceiling per pillar that
+        reflects how trustworthy a metric is on single-camera phone video.
+        Sequence and Stride are intrinsically noisy on phone clips; their
+        ceiling keeps a zero/low read from unfairly tanking the Swing Score.
+    """
+    if signal is None:
+        return 0.0
+    conf = 1.0
+    if rotation_dependent and rotation_view_sensitive:
+        conf *= 0.5
+    # Only let visibility REDUCE confidence (>=0.8 visibility = no penalty);
+    # below that, scale down proportionally so a half-tracked clip is trusted
+    # roughly half as much.
+    if pose_visibility < 0.8:
+        conf *= max(0.25, pose_visibility / 0.8)
+    conf *= reliability_ceiling
+    return max(0.0, min(1.0, conf))
 
 
 # ---- MAIN ENTRY POINT ----
@@ -436,19 +630,23 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # categories.
     narratives = build_narratives(gaps_ranked_raw, ref_name, top_n=2)
 
-    # Inject Power Sequence ratings into gaps_ranked so the drill
-    # generator routes to the new categories alongside metric-similarity gaps.
-    gaps_ranked = gaps_ranked_raw
+    # Inject Power Sequence ratings into gaps_ranked_legacy so the legacy
+    # path still works (e.g. strengths display). This is kept for back-compat
+    # but the DRILL PLAN is now sourced from the Score pillars, not pro-difference.
+    gaps_ranked_legacy = gaps_ranked_raw
     sequence_gaps = _synthesize_sequence_gaps(sequence_block)
     if sequence_gaps:
-        gaps_ranked = gaps_ranked + sequence_gaps
-        gaps_ranked.sort(key=lambda g: g.get("similarity", g.get("sim", 100)))
+        gaps_ranked_legacy = gaps_ranked_raw + sequence_gaps
+        gaps_ranked_legacy.sort(key=lambda g: g.get("similarity", g.get("sim", 100)))
 
-    drill_plan = build_drill_plan(
-        gaps_ranked,
-        top_n_categories=2,
-        preferred_goal=preferred_goal,
-    )
+    # ----- PILLAR-SOURCED DRILL PLAN (new) -----
+    # The drill plan is now built from the Score pillars, not pro-difference gaps.
+    # pillars is computed below in the SWING SCORE block, so we need to do a
+    # two-pass approach: compute pillars first, then build the drill plan.
+    # We defer to after the pillars block — the actual call is below.
+    # (drill_plan is assigned after pillars are computed.)
+
+    # ----- METRIC TABLE (for expanders) -----
 
     # ----- METRIC TABLE (for expanders) -----
     # Group metrics by group so the UI can show them in collapsible sections.
@@ -500,6 +698,176 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
         "slug": picked_slug,
     }
 
+    # ----- SWING SCORE (age-fair, independent of the MLB comparison) -----
+    # The new HEADLINE score. Unlike `overall_score` above (which measures
+    # similarity to the chosen MLB reference), the Swing Score grades the
+    # player's swing on its own merits against age-appropriate biomechanical
+    # targets. Both are returned; the report leads with swing_score and falls
+    # back to `score` for older saved reports that predate this field.
+    #
+    # Age source: the player fingerprint's `age` field. detect_phases / app.py
+    # can stamp it onto the fingerprint; when it's genuinely absent we fall
+    # back to the middle "13-14" bracket (see age_bracket()).
+    bracket = age_bracket(player.get("age"))
+    # Did we resolve a real age, or fall back to the default bracket? Drives
+    # the report's honest "set your birth year" nudge.
+    def _age_is_known(_a) -> bool:
+        try:
+            int(_a)
+            return True
+        except (TypeError, ValueError):
+            return False
+    age_known = _age_is_known(player.get("age"))
+
+    seq_lag = (sequence_block or {}).get("sequencing_lag_ms")
+    total_drift = _get(player,
+                       "head_movement_normalized_foot_plant_to_contact",
+                       "total_drift_torso", default=None)
+    load_ms = player_timing.get("load_duration")
+    ltc_ms = player_timing.get("launch_to_contact")
+    knee_reext = _get(player, "knee_deg", "re_extension", default=None)
+
+    # Stride direction comes from the fingerprint (detect_phases serializes it
+    # as `stride.toward_pitcher`). Default True for older fingerprints that
+    # predate the field so they keep their prior (lenient) brace scoring.
+    _stride_blk = player.get("stride") or {}
+    stride_toward_pitcher = bool(_stride_blk.get("toward_pitcher", True))
+
+    pose_vis = _pose_visibility(player)
+
+    pillar_signals = {
+        "sequence":  (score_sequence(seq_lag, bracket),                       True),
+        "stability": (score_stability(total_drift, bracket),                 False),
+        "timing":    (score_timing(load_ms, ltc_ms, bracket),               False),
+        "stride":    (score_stride(knee_reext, stride_toward_pitcher, bracket), False),
+    }
+
+    pillars: dict = {}
+    for name, (compliance, rotation_dependent) in pillar_signals.items():
+        confidence = _pillar_confidence(
+            compliance,
+            rotation_dependent=rotation_dependent,
+            rotation_view_sensitive=rotation_view_sensitive,
+            pose_visibility=pose_vis,
+            reliability_ceiling=_PILLAR_RELIABILITY.get(name, 1.0),
+        )
+        pillars[name] = {
+            "compliance": compliance,
+            "confidence": confidence,
+            "label": _PILLAR_LABELS[name],
+        }
+
+    swing_score = aggregate_score(pillars)
+
+    # ----- MLB MOVEMENT MATCH -----
+    # Locked-pro replay: when the caller resolved a specific reference (the
+    # locked-slug flow from app.py, or a manual sidebar pick), the MLB match
+    # REPLAYS that exact pro instead of recomputing a movement match — the
+    # player is building toward one swing model. Otherwise compute the match
+    # from the player's movement vector. `confident` gates whether the report
+    # shows the %.
+    locked = ref_source in ("library", "file") and picked_slug is not None
+
+    try:
+        _stats = _load_match_stats()
+    except Exception:
+        _stats = None
+
+    # Camera quality gate for showing the match %: a well-conditioned (roughly
+    # side-on) stance ratio AND a rotation read that isn't view-sensitive. Also
+    # require the frozen stats to have loaded — otherwise match_pct stays 0 and
+    # a True here would render a confident "0% movement match".
+    stance_ratio = player_view  # camera_view.hip_to_torso_ratio_stance
+    well_conditioned = 0.20 <= stance_ratio <= 0.70
+    match_confident = bool(well_conditioned and not rotation_view_sensitive
+                           and _stats is not None)
+
+    if locked:
+        # Replay the locked pro: the resolved `reference` IS that pro. Still
+        # compute a movement_match_pct so the report can show how close the
+        # player actually moves to their locked model.
+        match_slug = picked_slug
+        match_name = ref_name
+        match_pct = 0
+        if _stats is not None:
+            try:
+                z_player = zscore(movement_vector(player), _stats)
+                z_ref = zscore(movement_vector(reference), _stats)
+                dist = math.sqrt(sum((a - b) ** 2 for a, b in zip(z_player, z_ref)))
+                match_pct = max(0, min(100, round(100.0 * math.exp(-dist / 3.0))))
+            except Exception:
+                match_pct = 0
+        mlb_match = {
+            "pro_name": match_name,
+            "slug": match_slug,
+            "movement_match_pct": int(match_pct),
+            "confident": match_confident,
+            "locked": True,
+            "cluster": None,  # uniform shape; replay path has no cluster read
+        }
+    else:
+        # Auto-pick path: compute the closest-moving pro from the frozen stats.
+        mlb_match = {
+            "pro_name": ref_name,
+            "slug": picked_slug or "",
+            "movement_match_pct": 0,
+            "confident": match_confident,
+            "locked": False,
+            "cluster": None,
+        }
+        if _stats is not None:
+            try:
+                z_player = zscore(movement_vector(player), _stats)
+                m = match_pro(z_player, _stats)
+                mlb_match = {
+                    "pro_name": m["name"],
+                    "slug": m["slug"],
+                    "movement_match_pct": int(m["movement_match_pct"]),
+                    "confident": match_confident,
+                    "locked": False,
+                    "cluster": m.get("cluster"),
+                }
+            except Exception:
+                # Fail-soft to the reference attribution computed above.
+                pass
+
+    # ----- WHAT YOU DID WELL -----
+    # A positive one-liner anchored on the player's strongest *confident*
+    # pillar (highest compliance × confidence with confidence > 0). When no
+    # pillar is confident, fall back to a line tied to their MLB match so the
+    # field is never empty.
+    what_you_did_well = _build_what_you_did_well(pillars, mlb_match["pro_name"])
+
+    # ----- PILLAR-SOURCED DRILL PLAN -----
+    # Build the drill plan from the Score pillars (weakest confident pillar
+    # drives the top drill category). This replaces the former pro-difference
+    # gap source. The legacy gap fields are still present on the result for
+    # backward-compat but the drill plan is now pillar-sourced.
+    pillar_gaps = gaps_from_pillars(pillars)
+    drill_plan = build_drill_plan(
+        pillar_gaps,
+        top_n_categories=2,
+        preferred_goal=preferred_goal,
+    )
+    # Inject the pro-relative motivation line into each fix card.
+    # Each category maps back to a pillar via _PILLAR_TO_CATEGORY (inverted).
+    _CAT_TO_PILLAR = {
+        "sequencing":    "sequence",
+        "head_stability": "stability",
+        "timing":        "timing",
+        "knee_extension": "stride",
+        # secondary fold-in categories default to their closest pillar
+        "hip_shoulder_separation": "sequence",
+        "hip_rotation":             "sequence",
+        "rotational_speed":         "sequence",
+        "front_side_stability":     "stride",
+    }
+    for cat_entry in drill_plan.get("categories", []):
+        pillar_key = _CAT_TO_PILLAR.get(cat_entry["category"], "sequence")
+        cat_entry["pro_relative_line"] = pro_relative_line(
+            pillar_key, mlb_match["pro_name"]
+        )
+
     # ----- FINAL RESULT DICT -----
     return {
         "player_name": player_name,
@@ -547,4 +915,15 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
         # callers that don't render the comparison ignore this field.
         "phases_t": player.get("phases_t", {}) or {},
         "sequence": sequence_block,
+
+        # ----- NEW: Swing Score + movement Match (the new headline) -----
+        # KEEP the legacy `score` + `reference` above for back-compat; the
+        # report leads with these and falls back to the old fields for saved
+        # reports that predate them.
+        "swing_score": swing_score,        # int 0-100, or None if unmeasurable
+        "age_bracket": bracket,            # which age-fair bracket was used
+        "age_known": age_known,            # False → report shows the age nudge
+        "pillars": pillars,                # {sequence|stability|timing|stride}
+        "mlb_match": mlb_match,            # {pro_name, slug, movement_match_pct, confident, locked}
+        "what_you_did_well": what_you_did_well,
     }

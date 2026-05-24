@@ -75,6 +75,7 @@ def _profile_from_row(row: dict) -> dict:
         # Body / metadata
         "height_in":   row.get("height_in"),
         "weight_lb":   row.get("weight_lb"),
+        "birth_year":  row.get("birth_year"),
         "team":        row.get("team"),
         "position":    row.get("position"),
         "throws":      row.get("throws"),
@@ -386,11 +387,18 @@ def current_profile() -> Optional[dict]:
 #  Update profile
 # --------------------------------------------------------------------
 ALLOWED_PROFILE_UPDATES = {
-    "name", "handedness", "height_in", "weight_lb",
+    "name", "handedness", "height_in", "weight_lb", "birth_year",
     "team", "position", "throws", "level", "primary_goal",
     "profile_pic_path",
     "locked_mlb_slug",
 }
+
+# Columns whose migration is apply-gated: the code ships before the SQL
+# runs against prod, so an UPDATE that names them can be rejected wholesale
+# by PostgREST ("could not find the 'X' column"). update_profile strips
+# these and retries once so the rest of the profile still saves. Drop a
+# name from this set once its migration is confirmed applied everywhere.
+_APPLY_GATED_PROFILE_COLUMNS = {"birth_year"}
 
 
 # --------------------------------------------------------------------
@@ -512,12 +520,30 @@ def update_profile(player_id: str, **fields) -> Optional[dict]:
     safe["updated_at"] = datetime.utcnow().isoformat()
 
     sb = get_client()
-    resp = (
-        sb.table("players")
-          .update(safe)
-          .eq("id", player_id)
-          .execute()
-    )
+
+    def _run(payload: dict):
+        return (
+            sb.table("players")
+              .update(payload)
+              .eq("id", player_id)
+              .execute()
+        )
+
+    try:
+        resp = _run(safe)
+    except Exception as exc:
+        # An apply-gated column missing from the live schema makes PostgREST
+        # reject the entire UPDATE. Strip those columns and retry once so a
+        # plain profile save still works before the migration has run.
+        msg = str(exc).lower()
+        retry = {k: v for k, v in safe.items()
+                 if k not in _APPLY_GATED_PROFILE_COLUMNS}
+        schema_err = any(s in msg for s in
+                         ("does not exist", "schema cache", "could not find"))
+        if schema_err and retry != safe:
+            resp = _run(retry)
+        else:
+            raise
     rows = resp.data or []
     if not rows:
         return None
