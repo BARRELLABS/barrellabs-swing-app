@@ -995,7 +995,7 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
   </div>
   <div class="tier-price-sub{sub_line_cls}">{sub_line}</div>
   <ul class="tier-features">{base_lis}{extra_lis}</ul>
-  <a class="tier-cta" href="/?page=pricing">Upgrade now ↗</a>
+  <a class="tier-cta">Upgrade now ↗</a>
 </div>'''.strip()
 
 
@@ -1098,7 +1098,7 @@ def _build_comp_radar_html(latest: Dict[str, Any], ref_name: str, ref_last: str)
         <div class="row"><span class="swatch you"></span><span>your shape</span></div>
         <div class="row"><span class="swatch comp"></span><span>{ref_name}</span></div>
       </div>
-      <a class="comp-radar-cta" href="/?page=drills">Open my plan to close the gap →</a>
+      <a class="comp-radar-cta">Open my plan to close the gap →</a>
     </div>
   </div>'''
 
@@ -1138,7 +1138,7 @@ def _build_pricing_band_html(current_plan_id: str) -> str:
       <span class="badge" style="background:var(--gold); color:var(--bg); border-color:var(--gold);">★ {cur_name}</span>
       <span>Top-tier subscriber · all features unlocked · {cur_seats} seats</span>
     </span>
-    <a href="/?page=pricing" style="font-family: var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--bone); text-decoration:none; padding-bottom:2px; border-bottom: 1px solid var(--red);">Manage subscription ↗</a>
+    <a style="font-family: var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--bone); text-decoration:none; padding-bottom:2px; border-bottom: 1px solid var(--red);">Manage subscription ↗</a>
   </div>
 </section>'''.strip()
 
@@ -1163,7 +1163,7 @@ def _build_pricing_band_html(current_plan_id: str) -> str:
     <span class="badge">Your plan</span>
     <span><span class="v">{cur_name}</span> · ready to scale up</span>
   </span>
-  <a href="/?page=pricing" style="font-family: var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gray-1); text-decoration:none;">Manage subscription ↗</a>
+  <a style="font-family: var(--mono); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--gray-1); text-decoration:none;">Manage subscription ↗</a>
 </div>'''.strip()
 
     # Title varies by audience.
@@ -2165,3 +2165,30 @@ def render_dashboard_v3(user: Dict[str, Any],
     # page. The 5800 here is just a no-clip ceiling for the brief
     # moment before the in-iframe script reports the true height.
     components.html(html, height=5800, scrolling=False)
+
+    # Working conversion CTAs. The pricing/drill links inside the dashboard
+    # live in the components.html iframe, where an <a href> can't navigate the
+    # parent app (and target="_top" would full-reload → logout, since auth is
+    # session-state only). Render them as native in-session buttons here so the
+    # upgrade and drill-plan paths actually work. Skipped when viewing a past
+    # swing via the open-report flow.
+    if force_record is None:
+        from entitlements import FREE_PLAN_ID
+        _plan_id = _current_plan_id()
+        _cta_l, _cta_r, _cta_sp = st.columns([1, 1, 2])
+        with _cta_l:
+            if _plan_id == FREE_PLAN_ID:
+                if st.button("⚡ Upgrade to Pro", key="dash_v3_upgrade_cta",
+                             type="primary", use_container_width=True):
+                    st.session_state["page"] = "pricing"
+                    st.rerun()
+            else:
+                if st.button("Manage subscription", key="dash_v3_manage_cta",
+                             use_container_width=True):
+                    st.session_state["page"] = "pricing"
+                    st.rerun()
+        with _cta_r:
+            if st.button("Open my drill plan  →", key="dash_v3_drills_cta",
+                         use_container_width=True):
+                st.session_state["page"] = "development_tracker"
+                st.rerun()
