@@ -130,6 +130,7 @@ def create_account(
     handedness: str,
     height_in=None,
     weight_lb=None,
+    birth_year=None,
 ) -> dict:
     """Legacy-compatible signup. Wraps auth.sign_up()."""
     return _sign_up(
@@ -139,6 +140,7 @@ def create_account(
         handedness=handedness,
         height_in=height_in,
         weight_lb=weight_lb,
+        birth_year=birth_year,
     )
 
 

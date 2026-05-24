@@ -186,3 +186,64 @@ class TestActivePlayerDrivesAge:
         _stub_streamlit["user"] = _stub_streamlit["player"]
         assert (age_from_birth_year(_stub_streamlit["user"]["birth_year"])
                 == datetime.date.today().year - 2014)
+
+
+class TestCreateHouseholdPlayerBirthYear:
+    """Adding a household child captures birth year so their FIRST swing is
+    scored on the right age band (the create RPC has no birth_year param, so
+    it's applied via an owner-scoped follow-up update on the new row)."""
+
+    def test_birth_year_applied_after_create(self, monkeypatch, _stub_streamlit):
+        import auth
+        created = {"id": "p9", "user_id": "u", "name": "Kid",
+                   "handedness": "RIGHT", "birth_year": None}
+        updates = []
+
+        class _RPC:
+            def execute(self):
+                return types.SimpleNamespace(data=[dict(created)])
+
+        class _Tbl:
+            def update(self, payload): self._p = payload; return self
+            def eq(self, *a, **k): return self
+            def execute(self):
+                updates.append(self._p)
+                merged = dict(created); merged.update(self._p)
+                return types.SimpleNamespace(data=[merged])
+
+        class _Client:
+            def rpc(self, *a, **k): return _RPC()
+            def table(self, *a, **k): return _Tbl()
+
+        monkeypatch.setattr(auth, "get_client", lambda: _Client())
+
+        res = auth.create_household_player("Kid", "RIGHT", None, True,
+                                           birth_year=2015)
+        assert res["ok"] is True
+        assert updates == [{"birth_year": 2015}]
+        assert res["player"]["birth_year"] == 2015
+
+    def test_blank_birth_year_skips_update(self, monkeypatch, _stub_streamlit):
+        import auth
+        created = {"id": "p9", "user_id": "u", "name": "Kid",
+                   "handedness": "RIGHT"}
+        updates = []
+
+        class _RPC:
+            def execute(self):
+                return types.SimpleNamespace(data=[dict(created)])
+
+        class _Tbl:
+            def update(self, payload): updates.append(payload); return self
+            def eq(self, *a, **k): return self
+            def execute(self): return types.SimpleNamespace(data=[dict(created)])
+
+        class _Client:
+            def rpc(self, *a, **k): return _RPC()
+            def table(self, *a, **k): return _Tbl()
+
+        monkeypatch.setattr(auth, "get_client", lambda: _Client())
+
+        res = auth.create_household_player("Kid", birth_year="")
+        assert res["ok"] is True
+        assert updates == []  # no valid birth year → no follow-up write

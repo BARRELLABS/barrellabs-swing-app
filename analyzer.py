@@ -182,6 +182,28 @@ def age_from_birth_year(birth_year, today_year: Optional[int] = None) -> Optiona
     return age
 
 
+def parse_birth_year(value, today_year: Optional[int] = None) -> Optional[int]:
+    """Validate a plausible 4-digit birth year for storage, else None.
+
+    Bounds are generous (the last ~100 years) so both youth players and adult
+    coaches validate; typos like 1500 / next year are rejected. Use this at
+    every birth-year entry point (signup, add-player, settings) so the rule is
+    consistent. age_from_birth_year() handles bracket fallback for ages that
+    fall outside the scored 8-17 range.
+    """
+    import datetime
+    if value is None:
+        return None
+    try:
+        yr = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    cur = today_year if today_year is not None else datetime.date.today().year
+    if yr < cur - 100 or yr > cur:
+        return None
+    return yr
+
+
 def age_bracket(age) -> str:
     """Map a player's age (int-ish) to one of swing_score.BRACKETS.
 

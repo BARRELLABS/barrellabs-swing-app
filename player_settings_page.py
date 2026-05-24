@@ -1259,6 +1259,12 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
                 placeholder="e.g. SS, 2B, CF",
                 key="ps_hh_add_position",
             )
+            add_birth_year = st.text_input(
+                "Birth year (optional)",
+                value="",
+                placeholder="e.g. 2014 — makes the Swing Score age-fair",
+                key="ps_hh_add_birth_year",
+            )
             if st.button("Add player", key="ps_hh_add_submit"):
                 raw_name = (add_name or "").strip()
                 if not raw_name:
@@ -1269,7 +1275,8 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
                     position = (add_position or "").strip() or None
                     try:
                         result = _auth.create_household_player(
-                            raw_name, handedness, position
+                            raw_name, handedness, position,
+                            birth_year=add_birth_year,
                         )
                         if result.get("ok"):
                             st.success("Added " + raw_name)
@@ -1914,12 +1921,9 @@ def _do_save(user: Dict[str, Any]) -> bool:
     cur = _current_field_values(user)
 
     def _parse_birth_year(v):
-        import datetime
-        try:
-            y = int(str(v).strip())
-        except (TypeError, ValueError):
-            return None
-        return y if 1990 <= y <= datetime.date.today().year else None
+        # Shared validation so signup, add-player, and settings agree.
+        from analyzer import parse_birth_year
+        return parse_birth_year(v)
 
     db_bats = {"Right": "RIGHT", "Left": "LEFT",
                 "Switch": "SWITCH"}.get(cur["bats"], "RIGHT")

@@ -174,11 +174,13 @@ def current_household_seats() -> int:
 
 def create_household_player(name: str, handedness: str = "RIGHT",
                             position: Optional[str] = None,
-                            is_minor: bool = True) -> dict:
+                            is_minor: bool = True,
+                            birth_year=None) -> dict:
     """Create a new profile under the household via the seat-capped RPC.
     Returns {ok, player?, error?}."""
     if not (name or "").strip():
         return {"ok": False, "error": "Enter a name."}
+    from analyzer import parse_birth_year
     try:
         sb = get_client()
         resp = sb.rpc("create_household_player", {
@@ -189,6 +191,22 @@ def create_household_player(name: str, handedness: str = "RIGHT",
         }).execute()
         data = resp.data
         row = data[0] if isinstance(data, list) and data else data
+        # The RPC has no birth_year param; stamp it via an owner-scoped update
+        # on the new row so the child's first swing is age-bracketed correctly.
+        by = parse_birth_year(birth_year)
+        if isinstance(row, dict) and by is not None and row.get("id"):
+            try:
+                upd = (sb.table("players")
+                         .update({"birth_year": by})
+                         .eq("id", row["id"])
+                         .execute())
+                urows = upd.data or []
+                if urows:
+                    row = urows[0]
+            except Exception:
+                # Non-fatal: the player exists; birth year can still be set in
+                # their settings. Don't fail the whole add over it.
+                pass
         return {"ok": True, "player": _profile_from_row(row) if row else None}
     except Exception as exc:
         msg = str(exc)
@@ -222,6 +240,7 @@ def sign_up(
     handedness: str,
     height_in=None,
     weight_lb=None,
+    birth_year=None,
 ) -> dict:
     """
     Create a Supabase auth user and the matching players row.
@@ -263,6 +282,7 @@ def sign_up(
 
     # 3. Insert the players row. Re-fetch the client so the auth header
     #    picks up the new session above.
+    from analyzer import parse_birth_year
     sb = get_client()
     try:
         insert_resp = (
@@ -274,6 +294,7 @@ def sign_up(
                   "handedness": handedness,
                   "height_in":  int(height_in) if height_in else None,
                   "weight_lb":  int(weight_lb) if weight_lb else None,
+                  "birth_year": parse_birth_year(birth_year),
               })
               .execute()
         )

@@ -1151,6 +1151,17 @@ def _render_signup_form() -> None:
                 key="su_wt_v4",
             )
 
+        st.markdown(
+            '<div class="au-group-label">Age · powers the age-fair Swing Score</div>',
+            unsafe_allow_html=True,
+        )
+        su_birth_year = st.text_input(
+            "Birth year",
+            placeholder="Birth year — e.g. 2014 (optional, makes the score age-fair)",
+            key="su_birth_year_v4",
+            label_visibility="collapsed",
+        )
+
         submitted = st.form_submit_button(
             "Begin your free analysis  →",
             type="primary",
@@ -1184,6 +1195,7 @@ def _render_signup_form() -> None:
                         handedness=hand,
                         height_in=height_in,
                         weight_lb=int(su_wt),
+                        birth_year=su_birth_year,
                     )
                     st.session_state.user = user
                     st.success("Account created — taking you to your lab…")
