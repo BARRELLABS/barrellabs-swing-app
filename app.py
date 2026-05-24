@@ -4550,6 +4550,15 @@ if cam["rotation_view_sensitive"]:
             f"hip & shoulder rotation.",
             icon="⚠️",
         )
+    elif cam["rotation_flag_reason"] == "off_profile":
+        st.warning(
+            f"**Camera angle confidence is low.** Your clip looks filmed too "
+            f"front-on (hip/torso ratio {cam['player_ratio']:.2f}); 2D rotation "
+            f"isn't reliable from this angle, so rotation is excluded from the "
+            f"score. **Re-film from the side, perpendicular to the pitcher** for "
+            f"a clean read on hip & shoulder rotation.",
+            icon="⚠️",
+        )
     else:
         st.warning(
             f"**Camera angle confidence is medium.** Both clips use 2D rotation measurement, "

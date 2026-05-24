@@ -252,6 +252,39 @@ def pose_coverage_confidence(coverage) -> float:
     return 0.25 + (c - 0.3) / (0.8 - 0.3) * 0.75
 
 
+# Above this stance hip-to-torso ratio a clip is too front-on for trustworthy
+# 2D-width rotation (profile clips sit ~0.30-0.45). Tighter than the overall
+# match's well_conditioned band because width-based rotation is the most
+# viewpoint-sensitive signal.
+_OFF_PROFILE_RATIO = 0.55
+_VIEW_DIFF_MAX = 0.45
+
+
+def rotation_view_flag(player_view, ref_view, player_method, ref_method):
+    """Decide whether 2D-width rotation metrics are viewpoint-unreliable for
+    this comparison. Returns (sensitive: bool, reason: Optional[str]).
+
+    - mixed measurement methods (one 2D, one 3D) -> always sensitive
+    - both 3D world -> trustworthy
+    - both 2D-width -> sensitive when the player's OWN clip is off-profile
+      (ABSOLUTE: ratio > _OFF_PROFILE_RATIO) or player/reference viewpoints
+      differ a lot. The absolute check is what matters: the reference pool is
+      all near-profile, so a relative diff alone never fires on a genuinely
+      off-profile upload, leaving its unreliable rotation ungated."""
+    have_view = (player_view or 0) > 0 and (ref_view or 0) > 0
+    pm = player_method or "2d_width_ratio"
+    rm = ref_method or "2d_width_ratio"
+    if pm != rm:
+        return True, "mixed_method"
+    if pm == "3d_world" and rm == "3d_world":
+        return False, None
+    if have_view and player_view > _OFF_PROFILE_RATIO:
+        return True, "off_profile"
+    if have_view and abs(player_view - ref_view) > _VIEW_DIFF_MAX:
+        return True, "view_diff"
+    return False, None
+
+
 def age_bracket(age) -> str:
     """Map a player's age (int-ish) to one of swing_score.BRACKETS.
 
@@ -553,23 +586,17 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     ref_view    = _get(reference, "camera_view", "hip_to_torso_ratio_stance")
     have_view   = player_view > 0 and ref_view > 0
     view_diff   = abs(player_view - ref_view) if have_view else 0.0
-    view_warning = have_view and view_diff > 0.45
 
     player_rot_method = player.get("rotation_method", "2d_width_ratio")
     ref_rot_method    = reference.get("rotation_method", "2d_width_ratio")
-    methods_match     = (player_rot_method == ref_rot_method)
     both_3d           = (player_rot_method == "3d_world"
                          and ref_rot_method == "3d_world")
 
-    if not methods_match:
-        rotation_view_sensitive = True
-        rotation_flag_reason = "mixed_method"
-    elif both_3d:
-        rotation_view_sensitive = False
-        rotation_flag_reason = None
-    else:
-        rotation_view_sensitive = view_warning
-        rotation_flag_reason = "view_diff" if view_warning else None
+    # Flag 2D-width rotation as unreliable when the clip is off-profile
+    # (absolute) or viewpoints differ — not just relative to the (near-zero-
+    # variance) reference pool. Also gates the MLB match-% confidence below.
+    rotation_view_sensitive, rotation_flag_reason = rotation_view_flag(
+        player_view, ref_view, player_rot_method, ref_rot_method)
 
     # ----- BUILD METRIC RESULTS -----
     results = []
