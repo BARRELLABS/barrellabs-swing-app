@@ -1121,6 +1121,15 @@ if not st.session_state.get("_profile_picked"):
 if st.session_state.get("player"):
     st.session_state["user"] = st.session_state["player"]
     user = st.session_state["user"]
+    # When the active player changes (household child-switch, re-pick, or a new
+    # login), drop the per-player Player Settings "extras" (display name,
+    # position slugs, grad year, default view/hand/focus, privacy toggles).
+    # They live only in a single session-state dict keyed by nothing, so
+    # without this they bleed from one child into another child's settings.
+    _active_pid = (user or {}).get("id")
+    if st.session_state.get("_active_player_id") != _active_pid:
+        st.session_state["_active_player_id"] = _active_pid
+        st.session_state.pop("player_settings_extras", None)
 
 
 # ---------- STRIPE CHECKOUT RETURN HANDLER ----------
