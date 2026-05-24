@@ -63,6 +63,17 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 UPLOAD_DIR   = PROJECT_ROOT / "uploads_streamlit"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# Bound local disk growth: drop stale uploads + analysis artifacts once per
+# session (only files older than the cutoff, so in-flight analyses are
+# untouched). Durable copies of swings live in Supabase.
+try:
+    from cleanup_utils import prune_stale_files
+    if not st.session_state.get("_pruned_stale_files"):
+        prune_stale_files(UPLOAD_DIR, PROJECT_ROOT)
+        st.session_state["_pruned_stale_files"] = True
+except Exception:
+    pass
+
 PROFILE_PIC_DIR = PROJECT_ROOT / "profile_pics"
 PROFILE_PIC_DIR.mkdir(exist_ok=True)
 
