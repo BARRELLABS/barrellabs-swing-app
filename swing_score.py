@@ -32,11 +32,14 @@ def score_sequence(lag_ms: Optional[float], bracket: str) -> Optional[float]:
 _STAB_WIDEN = {"8-10": 0.10, "11-12": 0.05, "13-14": 0.0, "15-17": 0.0}
 
 def score_stability(total_drift_torso: Optional[float], bracket: str) -> Optional[float]:
-    """Lower head drift = better. good <= 0.15T (+widen), ~0 by 0.6T."""
+    """Lower head drift = better. Re-anchored on the pro distribution: every MLB
+    reference sits below 0.09T, so the old good=0.15 handed a perfect score to
+    worse-than-pro amateurs (zero discrimination). good <= 0.05T (+widen) is
+    elite; ~0 by 0.45T (a clear head lurch)."""
     if total_drift_torso is None:
         return None
     w = _STAB_WIDEN.get(bracket, 0.0)
-    return _ramp(abs(total_drift_torso), good=0.15 + w, bad=0.60 + w)
+    return _ramp(abs(total_drift_torso), good=0.05 + w, bad=0.45 + w)
 
 
 def score_timing(load_ms, launch_to_contact_ms, bracket: str) -> Optional[float]:
@@ -44,6 +47,11 @@ def score_timing(load_ms, launch_to_contact_ms, bracket: str) -> Optional[float]
     # Distinguish "not measured" (None → drop the pillar) from a genuine 0ms
     # gather (a real, poorly-timed swing that should score low, not vanish).
     if load_ms is None or launch_to_contact_ms is None or launch_to_contact_ms <= 0:
+        return None
+    # A sub-40ms launch->contact isn't a real downswing at phone frame rates
+    # (~1-2 frames) — it's a contact/launch mis-index. Drop the pillar rather
+    # than reward the artifact as elite tempo.
+    if launch_to_contact_ms < 40.0:
         return None
     ratio = load_ms / launch_to_contact_ms
     floor = {"8-10": 0.5, "11-12": 0.6, "13-14": 0.8, "15-17": 0.8}.get(bracket, 0.8)

@@ -20,7 +20,14 @@ def test_sequence_none_passthrough():
     assert score_sequence(None, "13-14") is None
 
 def test_stability_quiet_head_full():
-    assert score_stability(total_drift_torso=0.10, bracket="13-14") == pytest.approx(1.0, abs=0.01)
+    # A genuinely quiet head (within the elite range) scores ~1.0.
+    assert score_stability(total_drift_torso=0.03, bracket="13-14") == pytest.approx(1.0, abs=0.01)
+
+def test_stability_mediocre_amateur_not_full():
+    # Re-anchored: a mediocre amateur (0.12T drift) must NOT score a perfect
+    # 1.0 the way the old good=0.15 threshold let it. The pillar has to
+    # discriminate in the amateur range (every pro is below 0.09T).
+    assert score_stability(0.12, "13-14") < 0.95
 
 def test_stability_big_drift_low():
     assert score_stability(0.7, "13-14") < 0.2
@@ -33,6 +40,12 @@ def test_timing_no_gather_low():
 
 def test_timing_none_when_missing():
     assert score_timing(load_ms=0, launch_to_contact_ms=0, bracket="13-14") is None
+
+def test_timing_implausible_downswing_dropped():
+    # A sub-40ms launch->contact can't be a real downswing at phone frame
+    # rates — it's a contact/launch mis-index. Drop the pillar (None) rather
+    # than rewarding the artifact as elite tempo (the Machado 18ms case).
+    assert score_timing(load_ms=488, launch_to_contact_ms=18, bracket="13-14") is None
 
 def test_timing_zero_gather_scores_low_not_none():
     # A genuine 0ms gather is *measured* (a real, badly-timed swing) and must
