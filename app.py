@@ -1039,6 +1039,14 @@ elif (
             refresh_token=_qp.get("refresh_token"),
         ):
             st.session_state["recovery_mode"] = True
+            # Strip the access/refresh tokens from the URL so they don't
+            # linger in browser history / Referer / proxy logs (a leaked
+            # refresh token is account-takeover). Mirrors the token_hash
+            # branch above.
+            try:
+                st.query_params.clear()
+            except Exception:
+                pass
     except Exception:
         pass
 

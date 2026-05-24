@@ -191,10 +191,16 @@ def store_session(session_obj):
 
 
 def clear_session():
-    """Sign the user out — drop their tokens locally."""
-    st.session_state.pop("supabase_session", None)
-    st.session_state.pop("player", None)
-    st.session_state.pop("auth_user", None)
+    """Sign the user out — drop their tokens AND every per-identity cache so a
+    second login on a shared device (a family iPad) never inherits the prior
+    user's profile, plan, or swing-usage snapshot."""
+    for _k in ("supabase_session", "player", "user", "auth_user",
+               "_session_expired", "_profile_picked"):
+        st.session_state.pop(_k, None)
+    # Plan / entitlement snapshot caches (any _my_plan* key).
+    for _k in [k for k in list(st.session_state.keys())
+               if str(k).startswith("_my_plan")]:
+        st.session_state.pop(_k, None)
     try:
         _build_client().auth.sign_out()
     except Exception:
