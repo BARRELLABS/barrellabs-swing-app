@@ -137,3 +137,121 @@ def test_power_sequence_hidden_when_lag_unmeasured():
         },
     }
     assert _srd._render_power_sequence(record) == ""
+
+
+# ───────────────────────── X-Factor timing tile ─────────────────────────
+# Approved "Balanced" band: good <= -20ms (peaks before contact),
+# marginal -20 < ms <= 10, poor ms > 10 (peaks after contact).
+
+def test_xfactor_rating_band_boundaries():
+    assert _srd._xfactor_rating(-45.0) == "good"
+    assert _srd._xfactor_rating(-20.0) == "good"      # inclusive good edge
+    assert _srd._xfactor_rating(-19.9) == "marginal"
+    assert _srd._xfactor_rating(0.0) == "marginal"
+    assert _srd._xfactor_rating(10.0) == "marginal"   # inclusive marginal edge
+    assert _srd._xfactor_rating(10.1) == "poor"
+    assert _srd._xfactor_rating(30.0) == "poor"
+    assert _srd._xfactor_rating(None) is None
+
+
+def test_xfactor_value_maps_sign_to_early_late():
+    assert _srd._xfactor_value(-45.0) == ("45", "ms early")
+    assert _srd._xfactor_value(15.0) == ("15", "ms late")
+    assert _srd._xfactor_value(0.0) == ("0", "ms")
+    assert _srd._xfactor_value(None) == ("—", "")
+
+
+# ───────────────────────── Tempo (gather:fire) tile ─────────────────────
+# Rating REUSES the Timing pillar so the tile can never contradict the bar.
+
+def test_tempo_rating_tracks_timing_pillar():
+    def rec(compliance, confidence=1.0):
+        return {"pillars": {"timing": {"compliance": compliance,
+                                       "confidence": confidence}}}
+    assert _srd._tempo_rating(rec(0.90)) == "good"
+    assert _srd._tempo_rating(rec(0.66)) == "good"     # inclusive good edge
+    assert _srd._tempo_rating(rec(0.50)) == "marginal"
+    assert _srd._tempo_rating(rec(0.33)) == "marginal"  # inclusive marginal edge
+    assert _srd._tempo_rating(rec(0.10)) == "poor"
+
+
+def test_tempo_rating_none_when_pillar_unmeasured():
+    assert _srd._tempo_rating({}) is None
+    assert _srd._tempo_rating({"pillars": {"timing": {"compliance": None,
+                                                      "confidence": 1.0}}}) is None
+    assert _srd._tempo_rating({"pillars": {"timing": {"compliance": 0.9,
+                                                      "confidence": 0}}}) is None
+
+
+# ───────────────────── render integration (all three tiles) ─────────────
+
+def _full_record():
+    return {
+        "sequence": {"sequencing_lag_ms": 32.0,
+                     "rating": {"sequencing_lag": "good"}},
+        "tempo_ratio": 1.8,
+        "pillars": {"timing": {"compliance": 0.9, "confidence": 1.0}},
+        "xfactor_timing_ms": -45.0,
+    }
+
+
+def test_tempo_tile_renders_with_value_and_pillar_rating():
+    html = _srd._render_power_sequence(_full_record())
+    assert "TEMPO" in html.upper()
+    assert "1.8" in html                      # the gather:fire value
+    assert "A real gather" in html            # good coach copy
+    # Pillar is good -> tempo tile carries the good class.
+    assert "srd-power-tile good" in html
+
+
+def test_xfactor_tile_renders_early_and_good():
+    html = _srd._render_power_sequence(_full_record())
+    assert "X-FACTOR" in html.upper()
+    assert "45" in html and "ms early" in html
+    assert "unwinds into the ball" in html    # good coach copy
+
+
+def test_section_shows_with_tempo_only_no_sequencing():
+    """Section is no longer all-or-nothing on sequencing: tempo alone shows it."""
+    record = {"tempo_ratio": 1.8,
+              "pillars": {"timing": {"compliance": 0.9, "confidence": 1.0}}}
+    html = _srd._render_power_sequence(record)
+    assert html != ""
+    assert "TEMPO" in html.upper()
+    assert "Hips lead" not in html            # sequencing tile absent
+
+
+def test_three_tiles_render_without_fullwidth_span():
+    html = _srd._render_power_sequence(_full_record())
+    # Count actual tile <div>s (the class token is followed by a rating word),
+    # not the sub-element classes (srd-power-tile-label, etc.).
+    assert html.count('class="srd-power-tile ') == 3
+    # With >=2 tiles they sit in the grid — no full-width override.
+    assert "grid-column: 1 / -1" not in html
+
+
+def test_single_sequencing_tile_keeps_fullwidth_span():
+    record = {"sequence": {"sequencing_lag_ms": 32.0,
+                           "rating": {"sequencing_lag": "good"}}}
+    html = _srd._render_power_sequence(record)
+    assert html.count('class="srd-power-tile ') == 1
+    assert "grid-column: 1 / -1" in html
+
+
+def test_two_tiles_use_two_column_modifier():
+    """Two tiles should fill the row 50/50 (modifier class), not hug the left
+    third of a 3-col grid."""
+    record = {"sequence": {"sequencing_lag_ms": 20.0,
+                           "rating": {"sequencing_lag": "marginal"}},
+              "tempo_ratio": 2.1,
+              "pillars": {"timing": {"compliance": 0.7, "confidence": 1.0}}}
+    html = _srd._render_power_sequence(record)
+    assert html.count('class="srd-power-tile ') == 2
+    assert "srd-power-tiles--two" in html
+
+
+def test_three_and_one_tile_omit_two_column_modifier():
+    assert "srd-power-tiles--two" not in _srd._render_power_sequence(_full_record())
+    one = {"sequence": {"sequencing_lag_ms": 32.0,
+                        "rating": {"sequencing_lag": "good"}}}
+    assert "srd-power-tiles--two" not in _srd._render_power_sequence(one)

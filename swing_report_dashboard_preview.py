@@ -1006,6 +1006,11 @@ _DASHBOARD_CSS = """
 @media (max-width: 760px) {
     .srd-power-tiles { grid-template-columns: 1fr; }
 }
+/* Two tiles fill the row evenly instead of hugging the left 1/3. Scoped to
+   desktop so the mobile 1-col rule above still wins on narrow screens. */
+@media (min-width: 761px) {
+    .srd-power-tiles--two { grid-template-columns: 1fr 1fr; }
+}
 .srd-power-tile {
     border: 1px solid var(--srd-line);
     border-radius: 12px;
@@ -1884,6 +1889,18 @@ _POWER_COPY = {
         "poor":     "Front shoulder flew open early. #1 amateur fault.",
         None:       "Not enough shoulder rotation to characterize.",
     },
+    "tempo_ratio": {
+        "good":     "A real gather into a crisp fire — pro tempo.",
+        "marginal": "Lengthen the gather (or sharpen the fire) and the barrel jumps.",
+        "poor":     "Rushed — not enough gather before you fire.",
+        None:       "Gather-to-fire ratio — grade needs a cleaner read.",
+    },
+    "xfactor_timing": {
+        "good":     "Stretch holds, then unwinds into the ball — elite.",
+        "marginal": "Separation peaks right around contact — a hair earlier adds power.",
+        "poor":     "Separation peaks after contact — you're unwinding late.",
+        None:       "Need a cleaner side angle to read this.",
+    },
 }
 
 
@@ -1900,50 +1917,138 @@ def _format_pwr_value(metric: str, value):
     return (f"{value}", "")
 
 
+def _xfactor_rating(ms):
+    """Good/marginal/poor for X-Factor timing (peak hip-shoulder separation
+    relative to contact, ms; negative = before contact). "Balanced" band:
+    good <= -20 (unwinds into the ball), marginal -20 < ms <= 10 (~at contact),
+    poor > 10 (peaks after contact). None when unmeasured."""
+    if ms is None:
+        return None
+    if ms <= -20:
+        return "good"
+    if ms <= 10:
+        return "marginal"
+    return "poor"
+
+
+def _xfactor_value(ms):
+    """(value, unit) for the X-Factor tile. Sign mapped to early/late so the
+    number stays coach-legible (no raw negatives). None -> ("—", "")."""
+    if ms is None:
+        return ("—", "")
+    n = f"{abs(ms):.0f}"
+    if ms < 0:
+        return (n, "ms early")
+    if ms > 0:
+        return (n, "ms late")
+    return ("0", "ms")
+
+
+def _tempo_rating(record):
+    """Good/marginal/poor for the Tempo (gather:fire) tile, derived from the
+    Timing PILLAR's compliance so the tile can never contradict the Timing bar
+    shown elsewhere. None when the pillar is unmeasured (no compliance, or zero
+    confidence)."""
+    p = ((record.get("pillars") or {}).get("timing")) or {}
+    comp = p.get("compliance")
+    if comp is None or (p.get("confidence", 0) or 0) <= 0:
+        return None
+    if comp >= 0.66:
+        return "good"
+    if comp >= 0.33:
+        return "marginal"
+    return "poor"
+
+
 def _render_power_sequence(record) -> str:
     """Return the HTML for the Kinetic-Chain section, or empty string.
 
-    Only sequencing-lag (the hips-vs-shoulders firing ORDER) is reliable from a
-    single-camera phone video, so it's the only metric we surface — presented
-    CATEGORICALLY (not a false-precise ms). Peak hip speed and front-side
-    stability need sensors / multi-angle capture (Barrel Lock) and read
-    backwards from 2D, so they are intentionally not shown: we never display a
-    number we can't stand behind. The section hides entirely when we couldn't
-    get a clean sequencing read (bad angle / not a single swing)."""
+    Surfaces up to three phone-reliable reads, each as its own tile:
+      1. SEQUENCING — the hips-vs-shoulders firing ORDER (categorical, never a
+         false-precise ms).
+      2. TEMPO — the gather:fire ratio (`tempo_ratio`); its grade REUSES the
+         Timing pillar so the tile can never contradict the Timing bar.
+      3. X-FACTOR — when peak hip-shoulder SEPARATION lands vs contact
+         (`xfactor_timing_ms`); negative = unwinds into the ball.
+
+    Each tile is independent: the section shows if ANY has data, and a tile
+    with no data is omitted (never faked). Peak hip speed + front-side
+    stability stay hidden — unreliable from a single phone video, and we never
+    display a number we can't stand behind. One tile -> spans full width
+    (preserves the legacy sequencing-only look); two or more -> the 3-col grid.
+    The bottom verdict line is driven by sequencing only."""
+    # Each tile: (rating_class, label, value, unit, coach)
+    tiles = []
+    verdict = ""
+
+    # 1. Sequencing — categorical firing order.
     seq = (record.get("sequence") or {})
-    rating = (seq.get("rating") or {})
-    lag_rating = rating.get("sequencing_lag")
-    if lag_rating is None or seq.get("sequencing_lag_ms") is None:
+    lag_rating = (seq.get("rating") or {}).get("sequencing_lag")
+    if lag_rating is not None and seq.get("sequencing_lag_ms") is not None:
+        category = {
+            "good":     "Hips lead",
+            "marginal": "Nearly synced",
+            "poor":     "Shoulders fire early",
+        }.get(lag_rating, "—")
+        tiles.append((
+            lag_rating, "Sequencing — hips vs. shoulders", category, "",
+            _POWER_COPY["sequencing_lag"].get(lag_rating, ""),
+        ))
+        verdict = {
+            "good":     "Your chain fired in the right order — pelvis first, then torso. "
+                        "That sequence is where real bat speed comes from.",
+            "marginal": "Your chain is close. Get the hips to clearly lead the shoulders "
+                        "and the barrel will jump.",
+            "poor":     "Your shoulders are firing before your hips — that's casting, and "
+                        "it's the single biggest power leak available to fix.",
+        }.get(lag_rating, "")
+
+    # 2. Tempo (gather:fire) — grade tracks the Timing pillar.
+    tempo = record.get("tempo_ratio")
+    if tempo is not None:
+        t_rating = _tempo_rating(record)
+        tiles.append((
+            t_rating or "marginal",          # neutral border when grade uncertain
+            "Tempo — gather : fire", f"{float(tempo):.1f} : 1", "",
+            _POWER_COPY["tempo_ratio"].get(t_rating, _POWER_COPY["tempo_ratio"][None]),
+        ))
+
+    # 3. X-Factor timing — separation peak vs contact.
+    xms = record.get("xfactor_timing_ms")
+    if xms is not None:
+        x_rating = _xfactor_rating(xms)
+        x_val, x_unit = _xfactor_value(xms)
+        tiles.append((
+            x_rating or "marginal",
+            "X-Factor — separation timing", x_val, x_unit,
+            _POWER_COPY["xfactor_timing"].get(x_rating, ""),
+        ))
+
+    if not tiles:
         return ""
 
-    category = {
-        "good":     "Hips lead",
-        "marginal": "Nearly synced",
-        "poor":     "Shoulders fire early",
-    }.get(lag_rating, "—")
-    verdict = {
-        "good":     "Your chain fired in the right order — pelvis first, then torso. "
-                    "That sequence is where real bat speed comes from.",
-        "marginal": "Your chain is close. Get the hips to clearly lead the shoulders "
-                    "and the barrel will jump.",
-        "poor":     "Your shoulders are firing before your hips — that's casting, and "
-                    "it's the single biggest power leak available to fix.",
-    }.get(lag_rating, "")
-    coach = _POWER_COPY["sequencing_lag"].get(lag_rating, "")
-    rating_class = lag_rating or "marginal"
+    # 1 tile -> the tile itself spans full width; 2 tiles -> fill the row 50/50
+    # via a modifier class (not inline grid-template-columns, which would beat
+    # the mobile 1-col media query); 3 -> the default responsive 3-col grid.
+    span = ' style="grid-column: 1 / -1;"' if len(tiles) == 1 else ""
+    tiles_cls = "srd-power-tiles" + (" srd-power-tiles--two" if len(tiles) == 2 else "")
+    tiles_html = ""
+    for cls, label, value, unit, coach in tiles:
+        unit_html = f'<span class="srd-power-tile-unit">{unit}</span>' if unit else ""
+        tiles_html += f"""
+        <div class="srd-power-tile {cls}"{span}>
+          <div class="srd-power-tile-label">{label}</div>
+          <div class="srd-power-tile-value">{value}{unit_html}</div>
+          <div class="srd-power-tile-coach">{coach}</div>
+        </div>"""
+    verdict_html = f'\n      <p class="srd-power-verdict">{verdict}</p>' if verdict else ""
 
     return f"""
     <div class="srd-power-section">
       <div class="srd-power-eyebrow">§ 01 · Kinetic Chain</div>
       <h2 class="srd-power-title">How your body <span class="ital">fired.</span></h2>
-      <div class="srd-power-tiles">
-        <div class="srd-power-tile {rating_class}" style="grid-column: 1 / -1;">
-          <div class="srd-power-tile-label">Sequencing — hips vs. shoulders</div>
-          <div class="srd-power-tile-value">{category}</div>
-          <div class="srd-power-tile-coach">{coach}</div>
-        </div>
-      </div>
-      <p class="srd-power-verdict">{verdict}</p>
+      <div class="{tiles_cls}">{tiles_html}
+      </div>{verdict_html}
     </div>
     """
 
