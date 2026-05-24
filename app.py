@@ -4377,8 +4377,15 @@ with st.spinner("Tracking pose and detecting swing phases (~30–60 seconds)..."
     rc, out, err = run_subprocess(_detect_cmd, cwd=PROJECT_ROOT)
 
 if rc != 0:
-    st.error("Pose detection failed.")
-    with st.expander("Show error log"):
+    st.error("We couldn't find a clear view of the hitter in that clip.")
+    st.markdown(
+        "This is almost always a filming issue, not your swing. For a clean read:\n\n"
+        "- **Film from the side**, perpendicular to the pitcher\n"
+        "- Keep the **whole body in frame** with good lighting\n"
+        "- A **3–6 second** clip of the swing is plenty\n\n"
+        "Your free analysis was **not** used — re-film and upload again."
+    )
+    with st.expander("Technical details (for support)"):
         st.code(err or out, language="text")
     st.stop()
 
@@ -4387,8 +4394,10 @@ fingerprint_path = PROJECT_ROOT / f"{out_base}_fingerprint.json"
 phase_chart_path = PROJECT_ROOT / f"{out_base}_phases.png"
 
 if not fingerprint_path.is_file():
-    st.error(f"Couldn't find the generated fingerprint at {fingerprint_path}.")
-    st.code(out, language="text")
+    st.error("Something went wrong processing that clip — your free analysis "
+             "was not used. Please try uploading again.")
+    with st.expander("Technical details (for support)"):
+        st.code(out, language="text")
     st.stop()
 
 

@@ -1582,8 +1582,9 @@ def _build_filming_guide() -> str:
 <div class="srd-filming-guide">
   <div class="srd-filming-label">Film it like this</div>
   <div class="srd-filming-text">
-    120/240fps slow-mo &nbsp;&middot;&nbsp; ~45° three-quarter angle
-    &nbsp;&middot;&nbsp; full body in frame &nbsp;&middot;&nbsp; good light
+    Film side-on, perpendicular to the pitcher &nbsp;&middot;&nbsp; full body in
+    frame &nbsp;&middot;&nbsp; good light &nbsp;&middot;&nbsp; slow-mo
+    (120/240fps) if your phone supports it
   </div>
 </div>
 """
