@@ -16,7 +16,6 @@ authenticated (st.session_state.user) before they can upload a video.
 
 import html
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -28,6 +27,7 @@ from reportlab.pdfgen import canvas
 from analyzer import analyze, age_from_birth_year
 from bl_theme import inject_global_theme
 from upload_paths import unique_upload_name
+from proc_utils import run_subprocess
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
 from pricing import render_pricing_page
@@ -1294,11 +1294,6 @@ def list_library_references():
         except Exception:
             continue
     return refs
-
-
-def run_subprocess(args, cwd):
-    proc = subprocess.run(args, cwd=str(cwd), capture_output=True, text=True)
-    return proc.returncode, proc.stdout, proc.stderr
 
 
 def score_color(band_color):
@@ -4254,6 +4249,18 @@ if upload is None:
   </div>
 </div>
 """, unsafe_allow_html=True)
+    st.stop()
+
+# Reject oversized uploads before writing them — a too-large clip wastes disk
+# + compute and usually means a very long or unsupported video. (Pose
+# detection itself is additionally bounded by run_subprocess's timeout.)
+_MAX_UPLOAD_MB = 150
+if getattr(upload, "size", 0) and upload.size > _MAX_UPLOAD_MB * 1024 * 1024:
+    st.error(
+        f"That video is {upload.size / (1024 * 1024):.0f} MB — please upload a "
+        f"clip under {_MAX_UPLOAD_MB} MB. A 3–6 second swing filmed from the "
+        f"side is all we need."
+    )
     st.stop()
 
 # Persist upload under a collision-resistant per-user name. Streamlit shares
