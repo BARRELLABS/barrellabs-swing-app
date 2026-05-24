@@ -768,16 +768,19 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     # shows the %.
     locked = ref_source in ("library", "file") and picked_slug is not None
 
-    # Camera quality gate for showing the match %: a well-conditioned (roughly
-    # side-on) stance ratio AND a rotation read that isn't view-sensitive.
-    stance_ratio = player_view  # camera_view.hip_to_torso_ratio_stance
-    well_conditioned = 0.20 <= stance_ratio <= 0.70
-    match_confident = bool(well_conditioned and not rotation_view_sensitive)
-
     try:
         _stats = _load_match_stats()
     except Exception:
         _stats = None
+
+    # Camera quality gate for showing the match %: a well-conditioned (roughly
+    # side-on) stance ratio AND a rotation read that isn't view-sensitive. Also
+    # require the frozen stats to have loaded — otherwise match_pct stays 0 and
+    # a True here would render a confident "0% movement match".
+    stance_ratio = player_view  # camera_view.hip_to_torso_ratio_stance
+    well_conditioned = 0.20 <= stance_ratio <= 0.70
+    match_confident = bool(well_conditioned and not rotation_view_sensitive
+                           and _stats is not None)
 
     if locked:
         # Replay the locked pro: the resolved `reference` IS that pro. Still
