@@ -27,6 +27,7 @@ from reportlab.pdfgen import canvas
 
 from analyzer import analyze, age_from_birth_year
 from bl_theme import inject_global_theme
+from upload_paths import unique_upload_name
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
 from pricing import render_pricing_page
@@ -4255,8 +4256,12 @@ if upload is None:
 """, unsafe_allow_html=True)
     st.stop()
 
-# Persist upload.
-video_path = UPLOAD_DIR / upload.name
+# Persist upload under a collision-resistant per-user name. Streamlit shares
+# one process + working dir across all users, and every artifact derives from
+# this stem, so a raw client filename (phone exports collide constantly) would
+# let concurrent users overwrite each other's video/fingerprint mid-analysis.
+video_path = UPLOAD_DIR / unique_upload_name(upload.name,
+                                             owner=(user or {}).get("slug"))
 with open(video_path, "wb") as f:
     f.write(upload.getbuffer())
 
