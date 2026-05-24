@@ -1140,6 +1140,18 @@ if detector_v4_result is not None:
 if PLAYER_AGE is not None:
     fingerprint["age"] = int(PLAYER_AGE)
 
+# Lower-body tracking quality (mean front-ankle visibility, the key brace /
+# stability landmark) so analyzer._pose_visibility can soften pillar confidence
+# when the legs/feet aren't well tracked. Additive; defaults to fully-visible.
+try:
+    _fa_vis = [float(r.get("front_ankle_visibility", 1.0)) for r in records]
+    if _fa_vis:
+        fingerprint["lower_body_visibility"] = max(
+            0.0, min(1.0, sum(_fa_vis) / len(_fa_vis))
+        )
+except Exception:
+    pass
+
 with open(OUTPUT_FINGERPRINT, "w") as f:
     json.dump(fingerprint, f, indent=2)
 

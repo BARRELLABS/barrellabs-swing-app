@@ -229,6 +229,12 @@ def _pose_visibility(player_fp: dict) -> float:
     [0,1]. Used to soften pillar confidence when the legs/feet are poorly
     tracked (the parts the brace + stability pillars lean on). Returns 1.0 when
     no pose frames are available (no penalty rather than a false one)."""
+    # Preferred: the scalar detect_phases stamps onto the fingerprint. The live
+    # upload path's fingerprint carries this (mean front-ankle visibility), not
+    # raw per-frame pose_frames, so this is what actually gates real uploads.
+    stamped = player_fp.get("lower_body_visibility")
+    if isinstance(stamped, (int, float)) and not isinstance(stamped, bool):
+        return max(0.0, min(1.0, float(stamped)))
     frames = player_fp.get("pose_frames") or []
     if not frames:
         return 1.0
