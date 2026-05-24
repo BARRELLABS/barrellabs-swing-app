@@ -237,6 +237,21 @@ def xfactor_timing_ms(player: dict) -> Optional[float]:
     return round((sep_t - contact_t) * 1000.0 / slow_mo, 1)
 
 
+def pose_coverage_confidence(coverage) -> float:
+    """Global confidence multiplier from pose-detection coverage (fraction of
+    frames where a pose was found). Full confidence at >=0.8; ramps to a 0.25
+    floor by 0.3. Missing/None/non-numeric -> 1.0 (no penalty — older
+    fingerprints predate the field)."""
+    if not isinstance(coverage, (int, float)) or isinstance(coverage, bool):
+        return 1.0
+    c = float(coverage)
+    if c >= 0.8:
+        return 1.0
+    if c <= 0.3:
+        return 0.25
+    return 0.25 + (c - 0.3) / (0.8 - 0.3) * 0.75
+
+
 def age_bracket(age) -> str:
     """Map a player's age (int-ish) to one of swing_score.BRACKETS.
 
@@ -795,6 +810,9 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
     stride_toward_pitcher = bool(_stride_blk.get("toward_pitcher", True))
 
     pose_vis = _pose_visibility(player)
+    # Global gate: when few frames were tracked, soften every pillar rather than
+    # presenting a confident grade built on sparse pose data.
+    coverage_factor = pose_coverage_confidence(player.get("pose_coverage"))
 
     pillar_signals = {
         "sequence":  (score_sequence(seq_lag, bracket),                       True),
@@ -812,6 +830,7 @@ def analyze(player_fp_path, reference_arg=None, *, preferred_goal=None):
             pose_visibility=pose_vis,
             reliability_ceiling=_PILLAR_RELIABILITY.get(name, 1.0),
         )
+        confidence *= coverage_factor
         pillars[name] = {
             "compliance": compliance,
             "confidence": confidence,

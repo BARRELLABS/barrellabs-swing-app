@@ -1153,6 +1153,19 @@ try:
 except Exception:
     pass
 
+# Pose-detection coverage: fraction of frames where a pose was found. Low
+# coverage (poor light / distance / motion blur) is the cheapest global signal
+# that every metric is unreliable; analyzer softens all pillars accordingly.
+# Additive; absent -> analyzer applies no penalty.
+try:
+    _total_frames = int(frame_idx)
+    if _total_frames > 0:
+        fingerprint["pose_coverage"] = max(
+            0.0, min(1.0, len(records) / _total_frames)
+        )
+except Exception:
+    pass
+
 with open(OUTPUT_FINGERPRINT, "w") as f:
     json.dump(fingerprint, f, indent=2)
 
