@@ -1100,6 +1100,20 @@ if not st.session_state.get("_profile_picked"):
         st.session_state["_profile_picked"] = True
 
 
+# --- Active player = single source of truth --------------------------
+# auth writes BOTH profile edits (update_profile) and household
+# child-switches (set_active_player) to st.session_state["player"]. The
+# app-level `user` copy is only refreshed at login and on MLB lock-save,
+# so it silently drifts: a freshly-entered birth year — or a switch to a
+# different child — never reaches the upload flow, and the analysis would
+# run the wrong age bracket. Re-point `user` at the active player on every
+# render so age, the MLB lock, swing ownership and the settings form all
+# read the player actually being trained.
+if st.session_state.get("player"):
+    st.session_state["user"] = st.session_state["player"]
+    user = st.session_state["user"]
+
+
 # ---------- STRIPE CHECKOUT RETURN HANDLER ----------
 # After a successful Checkout, Stripe redirects to ?checkout=success.
 # We invalidate the plan cache (so the next entitlement check sees the

@@ -111,3 +111,78 @@ class TestNeedsProfilePick:
         monkeypatch.setattr(auth, "_query_household_rows", lambda uid: rows)
         monkeypatch.setattr(auth, "_current_user_id", lambda: "u")
         assert auth.needs_profile_pick() is False
+
+
+class TestActivePlayerDrivesAge:
+    """The active player (st.session_state['player']) — not a stale app-level
+    'user' copy — must drive the age bracket. Regression guard for the
+    session-drift bug where a freshly-saved birth year, or a switch to a
+    different household child, never reached the analysis age path."""
+
+    @staticmethod
+    def _rows():
+        return [
+            {"id": "p1", "user_id": "u", "name": "Ann",
+             "handedness": "RIGHT", "birth_year": 2010, "removed_at": None},
+            {"id": "p2", "user_id": "u", "name": "Ben",
+             "handedness": "RIGHT", "birth_year": 2016, "removed_at": None},
+        ]
+
+    def test_switch_child_updates_age_source(self, monkeypatch, _stub_streamlit):
+        import datetime
+        import auth
+        from analyzer import age_from_birth_year
+
+        monkeypatch.setattr(auth, "_query_household_rows",
+                            lambda uid: self._rows())
+        monkeypatch.setattr(auth, "_current_user_id", lambda: "u")
+
+        # App started on the first child and cached a stale `user` copy.
+        _stub_streamlit["user"] = {"id": "p1", "birth_year": 2010}
+
+        # Household switches to the younger child.
+        assert auth.set_active_player("p2") is True
+        assert _stub_streamlit["player"]["birth_year"] == 2016
+
+        # app.py reconcile: `user` follows the active player every render.
+        if _stub_streamlit.get("player"):
+            _stub_streamlit["user"] = _stub_streamlit["player"]
+
+        # Age now derives from the ACTIVE child, not the stale 2010 copy.
+        user = _stub_streamlit["user"]
+        assert user["birth_year"] == 2016
+        assert (age_from_birth_year(user["birth_year"])
+                == datetime.date.today().year - 2016)
+
+    def test_birth_year_edit_reaches_age_source(self, monkeypatch,
+                                                _stub_streamlit):
+        import datetime
+        import auth
+        from analyzer import age_from_birth_year
+
+        # Solo player saved with no birth year; app cached a stale copy.
+        _stub_streamlit["user"] = {"id": "p1", "birth_year": None}
+        _stub_streamlit["player"] = {"id": "p1", "birth_year": None}
+
+        # update_profile writes the new birth year to the canonical ["player"].
+        class _Resp:
+            data = [{"id": "p1", "name": "Solo", "handedness": "RIGHT",
+                     "birth_year": 2014}]
+
+        class _Tbl:
+            def update(self, p): return self
+            def eq(self, *a, **k): return self
+            def execute(self): return _Resp()
+
+        monkeypatch.setattr(
+            auth, "get_client",
+            lambda: types.SimpleNamespace(table=lambda _n: _Tbl()))
+
+        prof = auth.update_profile("p1", birth_year=2014)
+        assert prof["birth_year"] == 2014
+        assert _stub_streamlit["player"]["birth_year"] == 2014
+
+        # Reconcile → `user` reflects the edit, so analysis sees the new age.
+        _stub_streamlit["user"] = _stub_streamlit["player"]
+        assert (age_from_birth_year(_stub_streamlit["user"]["birth_year"])
+                == datetime.date.today().year - 2014)
