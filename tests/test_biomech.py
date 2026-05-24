@@ -71,6 +71,22 @@ class TestSequencingLag:
             f"Expected ~33ms; got {result['sequencing_lag_ms']}"
         )
 
+    def test_slow_mo_factor_corrects_lag(self):
+        """Same mechanics filmed at 3x slow-mo must report real-time-equivalent
+        lag — otherwise a slow-mo clip's lag inflates ~3x and tanks Sequence."""
+        from biomech import compute_sequence
+        n = 200
+        hip_vel, shoulder_rotation = self._make_signals(
+            n=n, hip_peak=60, shoulder_peak=62,
+        )
+        kwargs = dict(hip_vel=hip_vel, shoulder_rotation=shoulder_rotation,
+                      load_start=40, launch=58, contact=70, fps=60.0)
+        base = compute_sequence(**kwargs)
+        slow = compute_sequence(**kwargs, slow_mo_factor=3.0)
+        assert base["sequencing_lag_ms"] is not None
+        assert abs(slow["sequencing_lag_ms"]
+                   - base["sequencing_lag_ms"] / 3.0) < 1e-6
+
     def test_simultaneous_fire_zero_lag(self):
         """Hip + shoulder peak on same frame → ~0ms."""
         from biomech import compute_sequence

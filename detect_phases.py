@@ -1011,6 +1011,7 @@ try:
         launch=int(phases["launch"]),
         contact=int(phases["contact"]),
         fps=float(fps),
+        slow_mo_factor=float(slow_mo_factor),
     )
 except Exception as _seq_exc:
     # Biomech failure must not break the pipeline — fall back to empty block.

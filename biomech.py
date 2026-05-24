@@ -130,8 +130,14 @@ def compute_sequence(
     launch: int,
     contact: int,
     fps: float,
+    slow_mo_factor: float = 1.0,
 ) -> dict:
     """Compute the Power Sequence block from per-frame signals.
+
+    `slow_mo_factor` (>1 for high-capture-FPS slow-mo clips) divides the
+    sequencing lag back to real-time-equivalent ms, consistent with
+    timing_ms_corrected — otherwise a slow-mo clip's lag inflates ~Nx and the
+    rating (thresholded at -50 ms) wrongly tanks the Sequence pillar.
 
     See module docstring + the design spec for full algorithm rationale.
     """
@@ -169,7 +175,8 @@ def compute_sequence(
         # that made raw lags cluster on exact frame multiples.
         hip_pos = _subframe_peak(hip_abs, hip_peak_frame, lo, hi)
         sho_pos = _subframe_peak(sho_abs, sho_peak_frame, lo, hi)
-        sequencing_lag_ms = (sho_pos - hip_pos) * 1000.0 / fps
+        _sm = slow_mo_factor if slow_mo_factor and slow_mo_factor > 0 else 1.0
+        sequencing_lag_ms = (sho_pos - hip_pos) * 1000.0 / fps / _sm
 
     # M2 — peak hip angular velocity (within the downswing window)
     if len(hip_window):
