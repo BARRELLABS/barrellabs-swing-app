@@ -4608,6 +4608,21 @@ except Exception as _post_analyze_render_err:
 
 
 # ============================================================
+# ---------- SAVED CONFIRMATION ----------
+# ============================================================
+# The first report is the highest-emotion moment; make it explicit that the
+# swing is saved and reachable (the Sessions report page has the PDF/Print
+# export bar), so it doesn't feel like a throwaway one-off.
+st.success(
+    "✓ Saved to your Sessions — reopen this report (and download a PDF for "
+    "your coach) anytime."
+)
+if st.button("Go to Sessions →", key="post_analyze_to_sessions"):
+    st.session_state["page"] = "saved_reports"
+    st.rerun()
+
+
+# ============================================================
 # ---------- POST-ANALYSIS UPGRADE NUDGE (Free tier only) ----------
 # ============================================================
 # Conversion-funnel audit quick-win: the old report renderer had a
