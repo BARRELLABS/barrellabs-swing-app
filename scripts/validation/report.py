@@ -244,6 +244,36 @@ def _cutover_block(rows: list[SwingResult], summary: Summary) -> str:
     return "\n".join(lines)
 
 
+def _fps_block(summary: Summary) -> str:
+    """Honest accuracy: failures quarantined, then split by frame rate."""
+    lines = ["## Accuracy by frame rate (detection failures excluded)", ""]
+    if summary.n_detection_failures:
+        ids = ", ".join(f"`{i}`" for i in summary.detection_failure_ids)
+        lines.append(
+            f"⚠ **{summary.n_detection_failures} detection failure(s)** — the "
+            f"detector returned frame ≈0 (a crash, not mis-timing). Excluded from "
+            f"the numbers below: {ids}."
+        )
+        lines.append("")
+    lines.append(
+        f"Failure-excluded foot-plant MAE — v3 "
+        f"**{_fmt_abs(summary.v3_clean.mean_abs_error_frames, unit=' frames', decimals=1)}**"
+        f" (median {_fmt_abs(summary.v3_clean.median_abs_error_frames, unit='f', decimals=1)}), "
+        f"v4 **{_fmt_abs(summary.v4_clean.mean_abs_error_frames, unit=' frames', decimals=1)}**."
+    )
+    lines.append("")
+    lines.append("| Frame-rate band | N | v3 MAE | v3 median | v3 ±3 | v4 MAE | v4 ±3 |")
+    lines.append("|---|---|---|---|---|---|---|")
+    for b in summary.fps_buckets:
+        lines.append(
+            f"| {b.label} | {b.v3.n} | {b.v3.mean_abs_error_frames:.1f}f | "
+            f"{b.v3.median_abs_error_frames:.1f}f | {_fmt_pct(b.v3.pct_within_tight)} | "
+            f"{b.v4.mean_abs_error_frames:.1f}f | {_fmt_pct(b.v4.pct_within_tight)} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def render(
     rows: list[SwingResult],
     summary: Summary,
@@ -263,7 +293,8 @@ def render(
     parts.append("")
     parts.append(_executive_summary(summary))
     parts.append(_cutover_block(rows, summary))
-    parts.append("## Per-detector metrics (foot plant)")
+    parts.append(_fps_block(summary))
+    parts.append("## Per-detector metrics (foot plant, all scored swings)")
     parts.append("")
     parts.append(_detector_block("v3 (legacy)", summary.v3))
     parts.append(_detector_block("v4 (toe-tap-aware)", summary.v4))

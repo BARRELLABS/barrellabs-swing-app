@@ -39,6 +39,14 @@ from .manifest import Manifest, SwingEntry, GroundTruth, VALID_STRIDE_STYLES
 THRESHOLD_FRAMES_TIGHT = 3   # "near match"
 THRESHOLD_FRAMES_LOOSE = 10  # "in the ballpark"
 
+# A foot_plant at/below this frame means the detector returned ~0 — it didn't
+# find a plant at all. Those are crashes, not mis-timing, and must be excluded
+# from accuracy aggregates so the headline isn't dominated by them.
+DETECTION_FAILURE_MAX_FRAME = 1
+# Clips at/above this fps behave very differently from ~30fps phone video, so
+# accuracy is reported split at this boundary.
+FPS_SPLIT = 40.0
+
 
 @dataclass
 class SwingResult:
@@ -107,6 +115,16 @@ class DetectorMetrics:
 
 
 @dataclass
+class FpsBucketMetrics:
+    """v3/v4 foot-plant accuracy for a frame-rate band (failures excluded)."""
+    label: str
+    fps_lo: float
+    fps_hi: float
+    v3: "DetectorMetrics" = field(default_factory=lambda: DetectorMetrics())
+    v4: "DetectorMetrics" = field(default_factory=lambda: DetectorMetrics())
+
+
+@dataclass
 class HeadToHead:
     """Pairwise comparison of v3 vs v4."""
     n: int = 0
@@ -144,6 +162,12 @@ class Summary:
     v4: DetectorMetrics = field(default_factory=DetectorMetrics)
     v3_contact: DetectorMetrics = field(default_factory=DetectorMetrics)
     v4_contact: DetectorMetrics = field(default_factory=DetectorMetrics)
+    # Accuracy with detection-failures excluded (the honest headline).
+    v3_clean: DetectorMetrics = field(default_factory=DetectorMetrics)
+    v4_clean: DetectorMetrics = field(default_factory=DetectorMetrics)
+    n_detection_failures: int = 0
+    detection_failure_ids: list[str] = field(default_factory=list)
+    fps_buckets: list[FpsBucketMetrics] = field(default_factory=list)
     head_to_head: HeadToHead = field(default_factory=HeadToHead)
     v4_activity: V4Activity = field(default_factory=V4Activity)
     stride_style: StrideStyleMetrics = field(default_factory=StrideStyleMetrics)
@@ -294,15 +318,24 @@ def evaluate_swing(
 # ---------------------------------------------------------------------------
 
 
+def _detector_failed(r: SwingResult, which: str = "v3") -> bool:
+    """The detector returned no real plant (frame ≈0) for this swing."""
+    fp = getattr(r, f"{which}_foot_plant")
+    return fp is None or fp <= DETECTION_FAILURE_MAX_FRAME
+
+
 def _detector_metrics(
-    rows: list[SwingResult], *, which: str
+    rows: list[SwingResult], *, which: str, predicate=None
 ) -> DetectorMetrics:
-    """Compute aggregate timing metrics for one detector ('v3' or 'v4')."""
+    """Compute aggregate timing metrics for one detector ('v3'/'v4', or the
+    contact variants 'v3_contact'/'v4_contact'). `predicate` optionally filters
+    which scored rows are included (used for fps buckets / failure exclusion)."""
     err_field = f"{which}_error_frames"
     ms_field = f"{which}_error_ms"
     scored = [
         r for r in rows
         if r.status == "scored" and getattr(r, err_field) is not None
+        and (predicate is None or predicate(r))
     ]
     n = len(scored)
     if n == 0:
@@ -361,6 +394,32 @@ def _v4_activity(rows: list[SwingResult]) -> V4Activity:
     a.pct_fallback = a.n_fallback / a.n_scored
     a.pct_diverged = a.n_diverged / a.n_scored
     return a
+
+
+def _fps_buckets(rows: list[SwingResult]) -> list[FpsBucketMetrics]:
+    """Foot-plant accuracy split by frame rate, detection-failures excluded —
+    the ~30fps phone clips and the 50-60fps clips behave so differently that a
+    blended number is meaningless."""
+    specs = [
+        ("≤40 fps (real-time, ~30fps phone)", 0.0, FPS_SPLIT),
+        (">40 fps (high-fps / slow-mo)",      FPS_SPLIT, float("inf")),
+    ]
+    out: list[FpsBucketMetrics] = []
+    for label, lo, hi in specs:
+        def in_range(r, lo=lo, hi=hi):
+            return r.fps is not None and lo <= r.fps < hi
+        out.append(FpsBucketMetrics(
+            label=label, fps_lo=lo, fps_hi=hi,
+            v3=_detector_metrics(
+                rows, which="v3",
+                predicate=lambda r, ir=in_range: ir(r) and not _detector_failed(r, "v3"),
+            ),
+            v4=_detector_metrics(
+                rows, which="v4",
+                predicate=lambda r, ir=in_range: ir(r) and not _detector_failed(r, "v4"),
+            ),
+        ))
+    return out
 
 
 def _stride_style_metrics(rows: list[SwingResult]) -> StrideStyleMetrics:
@@ -424,6 +483,16 @@ def summarize(rows: list[SwingResult]) -> Summary:
     s.v4 = _detector_metrics(rows, which="v4")
     s.v3_contact = _detector_metrics(rows, which="v3_contact")
     s.v4_contact = _detector_metrics(rows, which="v4_contact")
+    # Detection failures (detector returned frame ≈0) + failure-excluded metrics.
+    scored = [r for r in rows if r.status == "scored"]
+    failures = [r for r in scored if _detector_failed(r, "v3")]
+    s.n_detection_failures = len(failures)
+    s.detection_failure_ids = [r.id for r in failures]
+    s.v3_clean = _detector_metrics(
+        rows, which="v3", predicate=lambda r: not _detector_failed(r, "v3"))
+    s.v4_clean = _detector_metrics(
+        rows, which="v4", predicate=lambda r: not _detector_failed(r, "v4"))
+    s.fps_buckets = _fps_buckets(rows)
     s.head_to_head = _head_to_head(rows)
     s.v4_activity = _v4_activity(rows)
     s.stride_style = _stride_style_metrics(rows)
@@ -589,6 +658,11 @@ def summary_as_dict(summary: Summary) -> dict:
         "v4": asdict(summary.v4),
         "v3_contact": asdict(summary.v3_contact),
         "v4_contact": asdict(summary.v4_contact),
+        "v3_clean": asdict(summary.v3_clean),
+        "v4_clean": asdict(summary.v4_clean),
+        "n_detection_failures": summary.n_detection_failures,
+        "detection_failure_ids": list(summary.detection_failure_ids),
+        "fps_buckets": [asdict(b) for b in summary.fps_buckets],
         "head_to_head": asdict(summary.head_to_head),
         "v4_activity": asdict(summary.v4_activity),
         "stride_style": {

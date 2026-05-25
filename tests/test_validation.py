@@ -436,6 +436,62 @@ class TestSummarize:
 
 
 # ---------------------------------------------------------------------------
+# Detection failures + frame-rate segmentation (honest headline)
+# ---------------------------------------------------------------------------
+
+
+class TestDetectionFailuresAndFps:
+    """The aggregate MAE is meaningless when it mixes ~30fps and ~60fps clips
+    and includes hard-failures (detector returned frame ~0). Quarantine the
+    failures and segment accuracy by frame rate."""
+
+    def _row(self, rid, fps, v3_plant, gt_plant=100, v4_plant=None):
+        v4_plant = v3_plant if v4_plant is None else v4_plant
+        return SwingResult(
+            id=rid, status="scored", gt_stride_style="standard_stride",
+            gt_final_plant=gt_plant, gt_contact=gt_plant + 20,
+            v3_foot_plant=v3_plant, v4_foot_plant=v4_plant,
+            v4_stride_style="standard_stride", fps=fps,
+            v3_error_frames=v3_plant - gt_plant,
+            v4_error_frames=v4_plant - gt_plant,
+            v3_v4_delta_frames=v4_plant - v3_plant,
+            winner="tie", v4_fallback=False,
+        )
+
+    def test_detection_failures_counted_and_listed(self):
+        rows = [self._row("ok1", 30, 100), self._row("ok2", 30, 102),
+                self._row("fail1", 59, 0, gt_plant=700)]  # detector returned ~0
+        s = summarize(rows)
+        assert s.n_detection_failures == 1
+        assert "fail1" in s.detection_failure_ids
+
+    def test_clean_metrics_exclude_failures(self):
+        rows = [self._row("ok1", 30, 100, gt_plant=100),    # err 0
+                self._row("fail1", 59, 0, gt_plant=700)]     # err -700 (failure)
+        s = summarize(rows)
+        assert s.v3.mean_abs_error_frames == 350.0          # raw includes failure
+        assert s.v3_clean.mean_abs_error_frames == 0.0       # clean excludes it
+        assert s.v3_clean.n == 1
+
+    def test_fps_buckets_split_low_high(self):
+        rows = [self._row("a", 30, 102, gt_plant=100),   # low, err 2
+                self._row("b", 30, 101, gt_plant=100),   # low, err 1
+                self._row("c", 59, 196, gt_plant=100)]   # high, err 96
+        s = summarize(rows)
+        low = [b for b in s.fps_buckets if b.fps_hi <= 40][0]
+        high = [b for b in s.fps_buckets if b.fps_lo >= 40][0]
+        assert low.v3.n == 2 and low.v3.mean_abs_error_frames == 1.5
+        assert high.v3.n == 1 and high.v3.mean_abs_error_frames == 96.0
+
+    def test_report_surfaces_failures_and_fps(self):
+        rows = [self._row("ok", 30, 100, gt_plant=100),
+                self._row("fail", 59, 0, gt_plant=700)]
+        md = render(rows, summarize(rows), manifest_path="m.json").lower()
+        assert "detection failure" in md or "failed" in md
+        assert "frame rate" in md or "fps" in md
+
+
+# ---------------------------------------------------------------------------
 # Cutover criteria (auto promote/don't-promote verdict)
 # ---------------------------------------------------------------------------
 
