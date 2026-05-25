@@ -218,5 +218,49 @@ class TestFindBurstAndBaselineMultiSwing:
         assert 590 <= burst_peak_ <= 610
 
 
+class TestCenterHint:
+    """`center_hint` constrains burst-peak selection to a window around a given
+    frame — used by the reference rebuild to lock onto the ground-truth swing on
+    multi-event broadcast clips. Default None = unchanged behavior."""
+
+    def test_hint_selects_burst_near_the_hint(self):
+        fps = 60.0
+        n = int(fps * 12.0)
+        # First burst is the LOUDER one; default prefer-first would pick it.
+        sig = _two_burst_signal(n=n, peak_a=200, peak_b=600, amp_a=12.0, amp_b=8.0)
+        _, _, bp_default, _, _, _ = _find_burst_and_baseline(sig, fps, n, min_rate=0.0)
+        assert 190 <= bp_default <= 210
+        # Hint near the SECOND burst → pick it instead.
+        _, _, bp_hint, _, _, _ = _find_burst_and_baseline(
+            sig, fps, n, min_rate=0.0, center_hint=600)
+        assert 590 <= bp_hint <= 610
+
+    def test_hint_ignores_louder_burst_outside_window(self):
+        fps = 60.0
+        n = int(fps * 12.0)
+        # Intended swing is the SMALLER burst; a louder distractor sits far off.
+        sig = _two_burst_signal(n=n, peak_a=300, peak_b=650, amp_a=6.0, amp_b=12.0)
+        _, _, bp, _, _, _ = _find_burst_and_baseline(
+            sig, fps, n, min_rate=0.0, center_hint=300)
+        assert 290 <= bp <= 310
+
+    def test_hint_none_matches_default(self):
+        fps = 60.0
+        n = int(fps * 12.0)
+        sig = _two_burst_signal(n=n, peak_a=200, peak_b=600, amp_a=8.0, amp_b=12.0)
+        a = _find_burst_and_baseline(sig, fps, n, min_rate=0.0)
+        b = _find_burst_and_baseline(sig, fps, n, min_rate=0.0, center_hint=None)
+        assert a == b
+
+    def test_hint_clamped_into_range(self):
+        fps = 60.0
+        n = int(fps * 12.0)
+        sig = _gaussian_burst(n, center=300, width=8, amplitude=10.0)
+        # An out-of-range hint shouldn't crash; clamps and still finds the burst.
+        _, _, bp, _, _, _ = _find_burst_and_baseline(
+            sig, fps, n, min_rate=0.0, center_hint=99999)
+        assert 0 <= bp < n
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-v"]))

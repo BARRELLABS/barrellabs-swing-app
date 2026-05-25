@@ -40,6 +40,18 @@ if "--age" in sys.argv:
     except (ValueError, IndexError):
         PLAYER_AGE = None
 
+# Optional swing-center hint (frame index near the swing, typically the
+# ground-truth contact frame). When set, the burst detector locks onto the
+# swing nearest this frame instead of the loudest burst in the clip — used by
+# the reference rebuild on multi-event broadcast clips. Absent → unchanged
+# auto-detection (the live user path never passes this).
+SWING_CENTER_HINT = None
+if "--swing-center" in sys.argv:
+    try:
+        SWING_CENTER_HINT = int(sys.argv[sys.argv.index("--swing-center") + 1])
+    except (ValueError, IndexError):
+        SWING_CENTER_HINT = None
+
 _base = os.path.splitext(os.path.basename(INPUT_VIDEO))[0]
 OUTPUT_CSV = f"{_base}_metrics.csv"
 OUTPUT_CHART = f"{_base}_phases.png"
@@ -448,7 +460,8 @@ if prefer_3d:
     for i in range(1, n_frames_3d):
         rate[i] = abs(_angular_diff_deg(hip_raw_atan[i-1], hip_raw_atan[i]))
     burst_lo, burst_hi, burst_peak_idx, peak_rate, base_start, base_end = (
-        _find_burst_and_baseline(rate, fps, n_frames_3d, min_rate=1.0)
+        _find_burst_and_baseline(rate, fps, n_frames_3d, min_rate=1.0,
+                                 center_hint=SWING_CENTER_HINT)
     )
 
     # ---- (2) STANCE BASELINE VECTOR — frames just before the burst ----
@@ -502,7 +515,8 @@ else:
     n_frames_2d = len(hip_rotation_unsigned)
     rate2d = np.abs(np.gradient(hip_rotation_unsigned))
     burst_lo, burst_hi, burst_peak_idx, peak_rate, base_start, base_end = (
-        _find_burst_and_baseline(rate2d, fps, n_frames_2d, min_rate=0.3)
+        _find_burst_and_baseline(rate2d, fps, n_frames_2d, min_rate=0.3,
+                                 center_hint=SWING_CENTER_HINT)
     )
 
     # 2D width-ratio is unsigned (always 0-90°). Subtract a stance baseline

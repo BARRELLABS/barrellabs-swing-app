@@ -93,6 +93,8 @@ def find_burst_and_baseline(
     *,
     min_rate: float = 1.0,
     prefer_first_burst: bool = True,
+    center_hint: int | None = None,
+    hint_window_s: float = 1.2,
 ):
     """Find the swing burst window in a rate-of-change signal.
 
@@ -121,6 +123,36 @@ def find_burst_and_baseline(
     bit-identical for typical user uploads.
     """
     rate_smooth_ = smooth(rate_arr, window=5)
+
+    if center_hint is not None:
+        # Anchored selection: pick the burst peak nearest a known swing center
+        # (e.g. a ground-truth contact frame), ignoring louder bursts elsewhere
+        # in a multi-event clip. Used by the reference rebuild; OFF by default
+        # so the live auto-detector path is unchanged.
+        hint = int(min(max(0, center_hint), max(0, n_ - 1)))
+        w = max(1, int(fps_ * hint_window_s))
+        lo_h = max(0, hint - w)
+        hi_h = min(n_, hint + w + 1)
+        masked = np.full_like(rate_smooth_, -np.inf)
+        masked[lo_h:hi_h] = rate_smooth_[lo_h:hi_h]
+        burst_peak_ = int(np.argmax(masked))
+        peak_rate_ = float(rate_smooth_[burst_peak_])
+        threshold_ = max(peak_rate_ * 0.3, min_rate)
+        lo_ = burst_peak_
+        while lo_ > 0 and rate_smooth_[lo_ - 1] >= threshold_:
+            lo_ -= 1
+        hi_ = burst_peak_
+        while hi_ < n_ - 1 and rate_smooth_[hi_ + 1] >= threshold_:
+            hi_ += 1
+        burst_lo_ = max(0, lo_ - int(fps_ * 0.15))
+        burst_hi_ = min(n_ - 1, hi_ + int(fps_ * 0.30))
+        pre_gap_ = int(fps_ * 0.05)
+        base_end_ = max(5, burst_lo_ - pre_gap_)
+        base_start_ = max(0, base_end_ - int(fps_ * 1.0))
+        if base_end_ - base_start_ < 5:
+            base_start_, base_end_ = 0, max(5, min(n_, int(fps_ * 0.5)))
+        return burst_lo_, burst_hi_, burst_peak_, peak_rate_, base_start_, base_end_
+
     global_peak_idx = int(np.argmax(rate_smooth_))
     global_peak_val = float(rate_smooth_[global_peak_idx])
 
