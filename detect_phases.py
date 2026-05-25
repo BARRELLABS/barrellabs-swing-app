@@ -52,6 +52,25 @@ if "--swing-center" in sys.argv:
     except (ValueError, IndexError):
         SWING_CENTER_HINT = None
 
+# Optional verified phase-frame overrides (foot_plant / contact), used ONLY by
+# the reference rebuild to anchor on hand-verified labels — bypasses the
+# detector's intra-swing landmark search, which fires early on heavily slowed
+# footage. Absent → normal detection (the live user path never passes these).
+# All other phases (launch, peak_rotation, load_start, finish) cascade from the
+# overridden contact/foot_plant exactly as in normal detection.
+FOOT_PLANT_OVERRIDE = None
+if "--foot-plant" in sys.argv:
+    try:
+        FOOT_PLANT_OVERRIDE = int(sys.argv[sys.argv.index("--foot-plant") + 1])
+    except (ValueError, IndexError):
+        FOOT_PLANT_OVERRIDE = None
+CONTACT_OVERRIDE = None
+if "--contact" in sys.argv:
+    try:
+        CONTACT_OVERRIDE = int(sys.argv[sys.argv.index("--contact") + 1])
+    except (ValueError, IndexError):
+        CONTACT_OVERRIDE = None
+
 _base = os.path.splitext(os.path.basename(INPUT_VIDEO))[0]
 OUTPUT_CSV = f"{_base}_metrics.csv"
 OUTPUT_CHART = f"{_base}_phases.png"
@@ -610,6 +629,8 @@ peak_vel_idx = search_start + int(np.argmax(vel_segment))
 # of the swing burst, well before contact — that produced the cascade bug
 # where launch got clamped to `contact - 1`.)
 contact = peak_vel_idx
+if CONTACT_OVERRIDE is not None:
+    contact = max(1, min(int(CONTACT_OVERRIDE), n - 1))
 
 # PEAK_ROTATION — max hip rotation after contact, but constrained to burst.
 # Using the burst's tail prevents picking up post-swing wandering on long
@@ -632,6 +653,8 @@ if search_back_end > search_back_start + 2:
         foot_plant = max(search_back_start, contact - int(fps * 0.18))
 else:
     foot_plant = max(0, contact - int(fps * 0.18))
+if FOOT_PLANT_OVERRIDE is not None:
+    foot_plant = max(0, min(int(FOOT_PLANT_OVERRIDE), contact - 1))
 
 # LAUNCH — start of the high-velocity rotation burst (when hips fire).
 # We already detected the burst window during rotation analysis, so use its
