@@ -30,7 +30,7 @@ from scripts.validation.manifest import (
 )
 from scripts.validation.compare import (
     evaluate_swing, evaluate_manifest, summarize,
-    SwingResult, summary_as_dict, as_dicts,
+    SwingResult, summary_as_dict, as_dicts, evaluate_cutover,
 )
 from scripts.validation.report import render
 
@@ -44,6 +44,8 @@ def _make_fingerprint(
     *,
     v3_foot_plant: int,
     v4_foot_plant: int | None,
+    v3_contact: int = 100,
+    v4_contact: int = 100,
     stride_style: str | None = None,
     v4_confidence: float = 0.85,
     v4_fallback: bool = False,
@@ -57,13 +59,13 @@ def _make_fingerprint(
         "fps": fps,
         "phases_frame": {
             "load_start": 50, "foot_plant": v3_foot_plant, "launch": 90,
-            "contact": 100, "peak_rotation": 110, "finish": 120,
+            "contact": v3_contact, "peak_rotation": 110, "finish": 120,
         },
         "phases_t": {
             "load_start": 50 / fps,
             "foot_plant": v3_foot_plant / fps,
             "launch": 90 / fps,
-            "contact": 100 / fps,
+            "contact": v3_contact / fps,
             "peak_rotation": 110 / fps,
             "finish": 120 / fps,
         },
@@ -76,7 +78,7 @@ def _make_fingerprint(
     if v4_foot_plant is not None:
         fp["phases_frame_v4"] = {
             "load_start": 60, "foot_plant": v4_foot_plant, "launch": 90,
-            "contact": 100, "peak_rotation": 110, "finish": 120,
+            "contact": v4_contact, "peak_rotation": 110, "finish": 120,
         }
         fp["phases_t_v4"] = {
             k: v / fps for k, v in fp["phases_frame_v4"].items()
@@ -431,6 +433,193 @@ class TestSummarize:
         # v4: 3/3 within both
         assert s.v4.pct_within_tight == 1.0
         assert s.v4.pct_within_loose == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Cutover criteria (auto promote/don't-promote verdict)
+# ---------------------------------------------------------------------------
+
+
+class TestCutoverCriteria:
+    """Auto-evaluate the README's v4-promotion bar so the report answers
+    'should we promote v4?' instead of leaving it to manual inspection."""
+
+    def _std_row(self, i, *, v3_err, v4_err, stride_pred="standard_stride",
+                 gt_plant=100):
+        v3_pick = gt_plant + v3_err
+        v4_pick = gt_plant + v4_err
+        if abs(v4_err) < abs(v3_err):
+            winner = "v4"
+        elif abs(v3_err) < abs(v4_err):
+            winner = "v3"
+        else:
+            winner = "tie"
+        return SwingResult(
+            id=f"s{i}", status="scored",
+            gt_stride_style="standard_stride", gt_final_plant=gt_plant,
+            v3_foot_plant=v3_pick, v4_foot_plant=v4_pick,
+            v4_stride_style=stride_pred,
+            v3_error_frames=v3_err, v4_error_frames=v4_err,
+            v3_v4_delta_frames=v4_pick - v3_pick,
+            stride_style_correct=(stride_pred == "standard_stride"),
+            winner=winner, fps=60.0, v4_fallback=False,
+        )
+
+    def test_all_criteria_pass(self):
+        rows = ([self._std_row(i, v3_err=5, v4_err=0) for i in range(15)]
+                + [self._std_row(i + 15, v3_err=1, v4_err=1) for i in range(15)])
+        rep = evaluate_cutover(rows, summarize(rows))
+        assert rep.min_n_met is True
+        assert rep.all_passed is True
+
+    def test_insufficient_n_blocks_promotion(self):
+        rows = [self._std_row(i, v3_err=5, v4_err=0) for i in range(10)]
+        rep = evaluate_cutover(rows, summarize(rows))
+        assert rep.min_n_met is False
+        assert rep.all_passed is False
+
+    def test_stride_accuracy_failure(self):
+        rows = ([self._std_row(i, v3_err=5, v4_err=0) for i in range(15)]
+                + [self._std_row(i + 15, v3_err=5, v4_err=0, stride_pred="toe_tap")
+                   for i in range(15)])
+        rep = evaluate_cutover(rows, summarize(rows))
+        failed = {c.name: c.passed for c in rep.criteria}
+        assert any("stride" in n.lower() and p is False for n, p in failed.items())
+        assert rep.all_passed is False
+
+    def test_standard_stride_regression_detected(self):
+        # 29 clean wins + 1 std_stride where v3 was correct (+1) but v4 lands
+        # 9 frames off v3 -> a regression on a swing v3 already had right.
+        rows = [self._std_row(i, v3_err=5, v4_err=0) for i in range(29)]
+        rows.append(self._std_row(99, v3_err=1, v4_err=10))
+        rep = evaluate_cutover(rows, summarize(rows))
+        failed = {c.name: c.passed for c in rep.criteria}
+        assert any("regression" in n.lower() and p is False for n, p in failed.items())
+
+    def test_report_includes_promotion_verdict(self):
+        rows = [self._std_row(i, v3_err=5, v4_err=0) for i in range(30)]
+        md = render(rows, summarize(rows), manifest_path="m.json")
+        assert "promot" in md.lower()
+
+
+# ---------------------------------------------------------------------------
+# Contact-frame scoring (parallel to foot-plant)
+# ---------------------------------------------------------------------------
+
+
+class TestContactScoring:
+    """The manifest labels contact_frame too; contact timing drives the Swing
+    Score's launch->contact 'fire'. Score it the same way foot-plant is scored."""
+
+    def test_evaluate_swing_scores_contact_error(self):
+        entry = _make_entry(swing_id="s", stride_style="toe_tap",
+                            final_plant=150, contact=170)
+        fp = _make_fingerprint(
+            v3_foot_plant=148, v4_foot_plant=152,
+            v3_contact=168, v4_contact=171, stride_style="toe_tap",
+        )
+        r = evaluate_swing(entry, fp)
+        assert r.status == "scored"
+        assert r.v3_contact == 168
+        assert r.v4_contact == 171
+        assert r.v3_contact_error_frames == -2   # 168 - 170
+        assert r.v4_contact_error_frames == 1    # 171 - 170
+        # ms uses fps=60
+        assert r.v3_contact_error_ms == pytest.approx(-2 / 60 * 1000)
+        assert r.v4_contact_error_ms == pytest.approx(1 / 60 * 1000)
+
+    def test_summary_aggregates_contact_metrics(self):
+        entries_fps = [
+            (_make_entry(swing_id="a", stride_style="toe_tap",
+                         final_plant=150, contact=170),
+             _make_fingerprint(v3_foot_plant=150, v4_foot_plant=150,
+                               v3_contact=166, v4_contact=170,
+                               stride_style="toe_tap")),
+            (_make_entry(swing_id="b", stride_style="standard_stride",
+                         final_plant=100, contact=120),
+             _make_fingerprint(v3_foot_plant=100, v4_foot_plant=100,
+                               v3_contact=118, v4_contact=120,
+                               stride_style="standard_stride")),
+        ]
+        rows = [evaluate_swing(e, fp) for e, fp in entries_fps]
+        s = summarize(rows)
+        # v3 contact abs errors: |166-170|=4, |118-120|=2 -> mean 3.0
+        assert s.v3_contact.mean_abs_error_frames == 3.0
+        # v4 contact nailed both -> mean 0.0
+        assert s.v4_contact.mean_abs_error_frames == 0.0
+        assert s.v4_contact.n == 2
+
+    def test_contact_serializes_and_reports(self):
+        entry = _make_entry(swing_id="s", stride_style="toe_tap",
+                            final_plant=150, contact=170)
+        fp = _make_fingerprint(v3_foot_plant=150, v4_foot_plant=150,
+                               v3_contact=166, v4_contact=170,
+                               stride_style="toe_tap")
+        s = summarize([evaluate_swing(entry, fp)])
+        blob = json.dumps(summary_as_dict(s))
+        assert "v3_contact" in blob and "v4_contact" in blob
+        md = render([evaluate_swing(entry, fp)], s, manifest_path="m.json")
+        assert "Contact-frame accuracy" in md
+
+
+# ---------------------------------------------------------------------------
+# v4 activity (fallback rate + genuine divergence)
+# ---------------------------------------------------------------------------
+
+
+class TestV4Activity:
+    """A 'tie' is only meaningful when v4 actually ran. When v4 falls back to
+    v3 the picks are identical BY CONSTRUCTION, so those ties say nothing about
+    v4's quality. The summary must separate fallback from genuine divergence so
+    the promotion call isn't fooled by forced ties."""
+
+    def _rows(self):
+        return [
+            # genuinely diverged, v4 closer
+            SwingResult(id="a", status="scored", gt_final_plant=150,
+                        v3_foot_plant=125, v4_foot_plant=152,
+                        v3_error_frames=-25, v4_error_frames=2,
+                        v3_v4_delta_frames=27, v4_fallback=False,
+                        winner="v4", fps=60.0),
+            # v4 fell back -> identical picks, "tie" is forced
+            SwingResult(id="b", status="scored", gt_final_plant=100,
+                        v3_foot_plant=99, v4_foot_plant=99,
+                        v3_error_frames=-1, v4_error_frames=-1,
+                        v3_v4_delta_frames=0, v4_fallback=True,
+                        winner="tie", fps=60.0),
+            # genuinely diverged, v3 closer
+            SwingResult(id="c", status="scored", gt_final_plant=100,
+                        v3_foot_plant=101, v4_foot_plant=110,
+                        v3_error_frames=1, v4_error_frames=10,
+                        v3_v4_delta_frames=9, v4_fallback=False,
+                        winner="v3", fps=60.0),
+            # not scored -> ignored entirely
+            SwingResult(id="d", status="missing_fingerprint"),
+        ]
+
+    def test_aggregates_fallback_and_divergence(self):
+        s = summarize(self._rows())
+        act = s.v4_activity
+        assert act.n_scored == 3
+        assert act.n_fallback == 1            # b
+        assert act.n_diverged == 2            # a, c (delta != 0)
+        assert act.diverged_v4_better == 1    # a
+        assert act.diverged_v3_better == 1    # c
+
+    def test_v4_activity_serializes(self):
+        s = summarize(self._rows())
+        d = summary_as_dict(s)
+        blob = json.dumps(d)
+        assert "v4_activity" in blob
+        assert d["v4_activity"]["n_fallback"] == 1
+        assert d["v4_activity"]["n_diverged"] == 2
+
+    def test_report_surfaces_v4_activity(self):
+        s = summarize(self._rows())
+        md = render(self._rows(), s, manifest_path="m.json")
+        low = md.lower()
+        assert "fell back" in low or "fallback" in low
+        assert "diverg" in low
 
 
 # ---------------------------------------------------------------------------

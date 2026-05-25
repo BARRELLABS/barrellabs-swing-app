@@ -56,16 +56,26 @@ class SwingResult:
     # Detector outputs
     v3_foot_plant: Optional[int] = None
     v4_foot_plant: Optional[int] = None
+    v3_contact: Optional[int] = None
+    v4_contact: Optional[int] = None
     v4_confidence: Optional[float] = None
     v4_stride_style: Optional[str] = None
     v4_fallback: Optional[bool] = None
     fps: Optional[float] = None
 
-    # Errors (signed: detector - ground_truth)
+    # Foot-plant errors (signed: detector - ground_truth)
     v3_error_frames: Optional[int] = None
     v4_error_frames: Optional[int] = None
     v3_error_ms: Optional[float] = None
     v4_error_ms: Optional[float] = None
+
+    # Contact errors (signed: detector - ground_truth). Field names follow the
+    # `{which}_error_frames` / `{which}_error_ms` convention so _detector_metrics
+    # can aggregate them via which="v3_contact" / "v4_contact".
+    v3_contact_error_frames: Optional[int] = None
+    v4_contact_error_frames: Optional[int] = None
+    v3_contact_error_ms: Optional[float] = None
+    v4_contact_error_ms: Optional[float] = None
 
     # Cross-detector
     v3_v4_delta_frames: Optional[int] = None
@@ -109,6 +119,21 @@ class HeadToHead:
 
 
 @dataclass
+class V4Activity:
+    """Did v4 actually do anything? A tie only means something when v4 ran its
+    own detection — when v4 falls back to v3 the picks are identical by
+    construction. Divergence (v4 pick != v3 pick) is the real signal for
+    whether promoting v4 would change any outcomes."""
+    n_scored: int = 0
+    n_fallback: int = 0          # v4 punted to v3 (detector_v4.fallback_to_v3)
+    n_diverged: int = 0          # v4 pick differs from v3 pick
+    diverged_v4_better: int = 0  # of diverged, v4 closer to ground truth
+    diverged_v3_better: int = 0  # of diverged, v3 closer
+    pct_fallback: float = 0.0
+    pct_diverged: float = 0.0
+
+
+@dataclass
 class Summary:
     """Aggregate validation report."""
     n_total: int = 0
@@ -117,7 +142,10 @@ class Summary:
     skipped_by_reason: dict[str, int] = field(default_factory=dict)
     v3: DetectorMetrics = field(default_factory=DetectorMetrics)
     v4: DetectorMetrics = field(default_factory=DetectorMetrics)
+    v3_contact: DetectorMetrics = field(default_factory=DetectorMetrics)
+    v4_contact: DetectorMetrics = field(default_factory=DetectorMetrics)
     head_to_head: HeadToHead = field(default_factory=HeadToHead)
+    v4_activity: V4Activity = field(default_factory=V4Activity)
     stride_style: StrideStyleMetrics = field(default_factory=StrideStyleMetrics)
     per_stride_style: dict[str, DetectorMetrics] = field(default_factory=dict)
 
@@ -172,12 +200,14 @@ def evaluate_swing(
     # v3 phases — always present
     phases_frame = fingerprint.get("phases_frame") or {}
     result.v3_foot_plant = phases_frame.get("foot_plant")
+    result.v3_contact = phases_frame.get("contact")
 
     # v4 phases — only present when DETECTOR_V4 was on at processing time
     phases_frame_v4 = fingerprint.get("phases_frame_v4")
     detector_v4_block = fingerprint.get("detector_v4")
     if phases_frame_v4 and detector_v4_block:
         result.v4_foot_plant = phases_frame_v4.get("foot_plant")
+        result.v4_contact = phases_frame_v4.get("contact")
         result.v4_confidence = detector_v4_block.get("confidence")
         result.v4_fallback = detector_v4_block.get("fallback_to_v3", False)
     # phase_debug stride_style — comes from analysis_debug, not detector_v4
@@ -222,6 +252,25 @@ def evaluate_swing(
         result.v3_error_ms = result.v3_error_frames * 1000.0 / result.fps
         result.v4_error_ms = result.v4_error_frames * 1000.0 / result.fps
     result.v3_v4_delta_frames = result.v4_foot_plant - result.v3_foot_plant
+
+    # Contact-frame scoring (parallel to foot-plant). Opportunistic: only when
+    # the contact label and detector contact picks are all present.
+    gt_contact = entry.ground_truth.contact_frame
+    if gt_contact is not None:
+        if result.v3_contact is not None:
+            result.v3_contact_error_frames = result.v3_contact - gt_contact
+        if result.v4_contact is not None:
+            result.v4_contact_error_frames = result.v4_contact - gt_contact
+        if result.fps:
+            if result.v3_contact_error_frames is not None:
+                result.v3_contact_error_ms = (
+                    result.v3_contact_error_frames * 1000.0 / result.fps
+                )
+            if result.v4_contact_error_frames is not None:
+                result.v4_contact_error_ms = (
+                    result.v4_contact_error_frames * 1000.0 / result.fps
+                )
+
     if result.v4_stride_style is not None:
         result.stride_style_correct = (
             result.v4_stride_style == entry.ground_truth.stride_style
@@ -297,6 +346,23 @@ def _head_to_head(rows: list[SwingResult]) -> HeadToHead:
     return h
 
 
+def _v4_activity(rows: list[SwingResult]) -> V4Activity:
+    """How often v4 fell back to v3 vs genuinely diverged, and who won the
+    divergent calls. Computed over scored swings only."""
+    scored = [r for r in rows if r.status == "scored"]
+    a = V4Activity(n_scored=len(scored))
+    if not scored:
+        return a
+    a.n_fallback = sum(1 for r in scored if r.v4_fallback)
+    diverged = [r for r in scored if r.v3_v4_delta_frames not in (None, 0)]
+    a.n_diverged = len(diverged)
+    a.diverged_v4_better = sum(1 for r in diverged if r.winner == "v4")
+    a.diverged_v3_better = sum(1 for r in diverged if r.winner == "v3")
+    a.pct_fallback = a.n_fallback / a.n_scored
+    a.pct_diverged = a.n_diverged / a.n_scored
+    return a
+
+
 def _stride_style_metrics(rows: list[SwingResult]) -> StrideStyleMetrics:
     """Confusion matrix + per-class accuracy for the v4/phase_debug
     stride_style classifier."""
@@ -356,10 +422,114 @@ def summarize(rows: list[SwingResult]) -> Summary:
     s.skipped_by_reason = skipped
     s.v3 = _detector_metrics(rows, which="v3")
     s.v4 = _detector_metrics(rows, which="v4")
+    s.v3_contact = _detector_metrics(rows, which="v3_contact")
+    s.v4_contact = _detector_metrics(rows, which="v4_contact")
     s.head_to_head = _head_to_head(rows)
+    s.v4_activity = _v4_activity(rows)
     s.stride_style = _stride_style_metrics(rows)
     s.per_stride_style = _per_stride_style_breakdown(rows)
     return s
+
+
+# ---------------------------------------------------------------------------
+# Cutover criteria — auto promote/don't-promote verdict for v4
+# ---------------------------------------------------------------------------
+
+MIN_CUTOVER_SWINGS = 30
+STRIDE_OVERALL_MIN = 0.90
+STRIDE_PER_CLASS_MIN = 0.80
+WIN_OR_TIE_MIN = 0.75
+
+
+@dataclass
+class CutoverCriterion:
+    name: str
+    passed: bool
+    detail: str
+
+
+@dataclass
+class CutoverReport:
+    """Whether v4 clears the documented promotion bar. `all_passed` requires
+    every criterion AND the minimum-sample gate."""
+    n_scored: int = 0
+    min_n_met: bool = False
+    criteria: list[CutoverCriterion] = field(default_factory=list)
+    all_passed: bool = False
+
+
+def evaluate_cutover(rows: list[SwingResult], summary: Summary) -> CutoverReport:
+    """Evaluate the README's v4 cutover criteria against the scored rows.
+
+    'v3 was already correct' (for the no-regression check) is defined as v3
+    within ±THRESHOLD_FRAMES_TIGHT frames of ground truth — consistent with the
+    report's tight tolerance band."""
+    scored = [r for r in rows if r.status == "scored"]
+    rep = CutoverReport(n_scored=len(scored))
+    rep.min_n_met = len(scored) >= MIN_CUTOVER_SWINGS
+    crit: list[CutoverCriterion] = []
+
+    # 1. Stride-style accuracy ≥ 90% overall, ≥ 80% per class.
+    sm = summary.stride_style
+    per_class = sm.per_class_accuracy
+    stride_ok = (
+        sm.n_evaluated > 0
+        and sm.overall_accuracy >= STRIDE_OVERALL_MIN
+        and all(a >= STRIDE_PER_CLASS_MIN for a in per_class.values())
+    )
+    worst = min(per_class.items(), key=lambda kv: kv[1]) if per_class else None
+    crit.append(CutoverCriterion(
+        "Stride-style accuracy",
+        stride_ok,
+        f"overall {sm.overall_accuracy:.0%} (need ≥{STRIDE_OVERALL_MIN:.0%}); "
+        + (f"weakest class `{worst[0]}` {worst[1]:.0%} (need ≥{STRIDE_PER_CLASS_MIN:.0%})"
+           if worst else "no classes evaluated"),
+    ))
+
+    # 2. v4 foot-plant MAE < v3 MAE.
+    mae_ok = (
+        summary.v3.n > 0 and summary.v4.n > 0
+        and summary.v4.mean_abs_error_frames < summary.v3.mean_abs_error_frames
+    )
+    crit.append(CutoverCriterion(
+        "v4 foot-plant MAE < v3 MAE",
+        mae_ok,
+        f"v4 {summary.v4.mean_abs_error_frames:.2f}f vs v3 "
+        f"{summary.v3.mean_abs_error_frames:.2f}f",
+    ))
+
+    # 3. v4 wins or ties ≥ 75% of head-to-head.
+    h2h = summary.head_to_head
+    wot = (h2h.v4_better + h2h.tie) / h2h.n if h2h.n else 0.0
+    crit.append(CutoverCriterion(
+        "v4 wins or ties ≥ 75%",
+        h2h.n > 0 and wot >= WIN_OR_TIE_MIN,
+        f"{wot:.0%} ({h2h.v4_better} wins + {h2h.tie} ties of {h2h.n})",
+    ))
+
+    # 4. No regression on standard_stride: among swings where v3 was already
+    #    correct, v4 must stay within ±tight of v3's pick.
+    std_correct = [
+        r for r in scored
+        if r.gt_stride_style == "standard_stride"
+        and r.v3_error_frames is not None
+        and abs(r.v3_error_frames) <= THRESHOLD_FRAMES_TIGHT
+    ]
+    regressions = [
+        r for r in std_correct
+        if r.v3_v4_delta_frames is not None
+        and abs(r.v3_v4_delta_frames) > THRESHOLD_FRAMES_TIGHT
+    ]
+    crit.append(CutoverCriterion(
+        "No standard_stride regression",
+        len(regressions) == 0,
+        f"{len(regressions)} of {len(std_correct)} v3-correct standard_stride "
+        f"swings moved >±{THRESHOLD_FRAMES_TIGHT}f under v4",
+    ))
+
+    rep.criteria = crit
+    rep.all_passed = rep.min_n_met and all(c.passed for c in crit)
+    return rep
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +587,10 @@ def summary_as_dict(summary: Summary) -> dict:
         "skipped_by_reason": dict(summary.skipped_by_reason),
         "v3": asdict(summary.v3),
         "v4": asdict(summary.v4),
+        "v3_contact": asdict(summary.v3_contact),
+        "v4_contact": asdict(summary.v4_contact),
         "head_to_head": asdict(summary.head_to_head),
+        "v4_activity": asdict(summary.v4_activity),
         "stride_style": {
             "n_evaluated": summary.stride_style.n_evaluated,
             "n_correct": summary.stride_style.n_correct,

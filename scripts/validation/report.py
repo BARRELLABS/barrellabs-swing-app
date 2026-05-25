@@ -21,6 +21,7 @@ from typing import Iterable
 from .compare import (
     Summary, SwingResult, DetectorMetrics,
     THRESHOLD_FRAMES_TIGHT, THRESHOLD_FRAMES_LOOSE,
+    evaluate_cutover, MIN_CUTOVER_SWINGS,
 )
 
 
@@ -194,6 +195,26 @@ def _executive_summary(summary: Summary) -> str:
         lines.append(f"- Ties: **{h2h.tie}** ({_fmt_pct(h2h.pct_tie)})")
         lines.append("")
 
+    act = summary.v4_activity
+    if act.n_scored > 0:
+        lines.append("**v4 activity** (is v4 actually doing anything?):")
+        lines.append("")
+        lines.append(
+            f"- v4 fell back to v3: **{act.n_fallback}** of {act.n_scored} "
+            f"({_fmt_pct(act.pct_fallback)}) — identical picks, so those ties are "
+            f"forced, not earned"
+        )
+        lines.append(
+            f"- v4 diverged from v3 (different pick): **{act.n_diverged}** "
+            f"({_fmt_pct(act.pct_diverged)})"
+        )
+        if act.n_diverged > 0:
+            lines.append(
+                f"  - of those, v4 closer: **{act.diverged_v4_better}**, "
+                f"v3 closer: **{act.diverged_v3_better}**"
+            )
+        lines.append("")
+
     if sm.n_evaluated > 0:
         lines.append(
             f"**Stride-style accuracy:** {_fmt_pct(sm.overall_accuracy)} "
@@ -201,6 +222,25 @@ def _executive_summary(summary: Summary) -> str:
         )
         lines.append("")
 
+    return "\n".join(lines)
+
+
+def _cutover_block(rows: list[SwingResult], summary: Summary) -> str:
+    """Turn the documented cutover criteria into an explicit PASS/FAIL verdict
+    so the report answers 'should we promote v4?' directly."""
+    rep = evaluate_cutover(rows, summary)
+    verdict = ("✅ PROMOTE v4 — clears every criterion" if rep.all_passed
+               else "⛔ NOT YET — keep v3 as the default detector")
+    lines = ["## v4 promotion readiness", "", f"**Verdict: {verdict}**", ""]
+    if not rep.min_n_met:
+        lines.append(
+            f"- ⚠ Sample gate: only **{rep.n_scored}** scored swings — need "
+            f"≥ {MIN_CUTOVER_SWINGS} before the verdict is trustworthy."
+        )
+    for c in rep.criteria:
+        mark = "✓" if c.passed else "✗"
+        lines.append(f"- {mark} **{c.name}** — {c.detail}")
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -222,10 +262,15 @@ def render(
     parts.append(f"_Generated {generated_at}._  _Manifest: `{manifest_path or '(in-memory)'}`._")
     parts.append("")
     parts.append(_executive_summary(summary))
-    parts.append("## Per-detector metrics")
+    parts.append(_cutover_block(rows, summary))
+    parts.append("## Per-detector metrics (foot plant)")
     parts.append("")
     parts.append(_detector_block("v3 (legacy)", summary.v3))
     parts.append(_detector_block("v4 (toe-tap-aware)", summary.v4))
+    parts.append("## Contact-frame accuracy")
+    parts.append("")
+    parts.append(_detector_block("v3 (legacy)", summary.v3_contact))
+    parts.append(_detector_block("v4 (toe-tap-aware)", summary.v4_contact))
     parts.append("## Stride-style + per-class breakdown")
     parts.append("")
     parts.append(_stride_style_block(summary))
