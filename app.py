@@ -3316,16 +3316,9 @@ def _render_coming_soon(eyebrow: str, title: str, sub: str) -> None:
 
 
 if st.session_state.get("page") == "compare_swings":
-    # Unified Edge masthead so the Compare page carries the same shared
-    # top nav/header (logo, spacing, active state) as every other page.
-    from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
-    _render_edge_masthead(user, active_page="compare_swings")
-    _render_coming_soon(
-        "COMPARE SWINGS",
-        "Side-by-side, swing-by-swing.",
-        "Pick any two swings from your history and we'll align them frame-by-frame "
-        "with synced biomechanical overlays so you can see exactly what changed.",
-    )
+    # Full editorial side-by-side comparison of the player's own swings.
+    from compare_swings_page import render_compare_swings_page
+    render_compare_swings_page(user)
     st.stop()
 
 
