@@ -465,6 +465,15 @@ class TestDetectionFailuresAndFps:
         assert s.n_detection_failures == 1
         assert "fail1" in s.detection_failure_ids
 
+    def test_v4_only_failure_counted_in_union(self):
+        """A v4 crash on a clip v3 handled must still appear in the failure
+        callout — the count is the union of both detectors, not v3-only."""
+        rows = [self._row("ok", 30, 100, gt_plant=100),
+                self._row("v4fail", 30, 100, gt_plant=100, v4_plant=0)]
+        s = summarize(rows)
+        assert s.n_detection_failures == 1
+        assert "v4fail" in s.detection_failure_ids
+
     def test_clean_metrics_exclude_failures(self):
         rows = [self._row("ok1", 30, 100, gt_plant=100),    # err 0
                 self._row("fail1", 59, 0, gt_plant=700)]     # err -700 (failure)

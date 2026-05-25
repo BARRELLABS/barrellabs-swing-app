@@ -250,9 +250,9 @@ def _fps_block(summary: Summary) -> str:
     if summary.n_detection_failures:
         ids = ", ".join(f"`{i}`" for i in summary.detection_failure_ids)
         lines.append(
-            f"⚠ **{summary.n_detection_failures} detection failure(s)** — the "
-            f"detector returned frame ≈0 (a crash, not mis-timing). Excluded from "
-            f"the numbers below: {ids}."
+            f"⚠ **{summary.n_detection_failures} detection failure(s)** — v3 and/or "
+            f"v4 returned frame ≈0 (a crash, not mis-timing). Excluded from each "
+            f"detector's numbers below: {ids}."
         )
         lines.append("")
     lines.append(

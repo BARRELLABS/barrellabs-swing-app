@@ -398,9 +398,15 @@ def _kpi_html(k: Dict[str, Any]) -> str:
 
 def _card_html(rec: Dict[str, Any], role: str, is_b: bool) -> str:
     s = score_of(rec)
-    band = band_of(rec)
-    ring = _ring_svg(int(round(s)) if s is not None else 0, band, size=120)
-    band_label = {"green": "Elite", "amber": "Strong", "red": "Rebuild"}[band]
+    if s is None:
+        # No score on this record — show a neutral state, not a red "Rebuild".
+        ring = _ring_svg(0, "amber", size=120)
+        band_html = '<span class="cmp-band amber"><span class="d"></span>No score</span>'
+    else:
+        band = band_of(rec)
+        ring = _ring_svg(int(round(s)), band, size=120)
+        band_label = {"green": "Elite", "amber": "Strong", "red": "Rebuild"}[band]
+        band_html = f'<span class="cmp-band {band}"><span class="d"></span>{band_label}</span>'
     ref = rec.get("reference_name") or rec.get("mlb_comp")
     fa = focus_area(rec)
     bits = []
@@ -415,7 +421,7 @@ def _card_html(rec: Dict[str, Any], role: str, is_b: bool) -> str:
   {ring}
   <div class="lab">{html.escape(swing_label(rec))}</div>
   <div class="date">{html.escape(fmt_date(rec))}</div>
-  <span class="cmp-band {band}"><span class="d"></span>{band_label}</span>
+  {band_html}
   {foot}
 </div>
 """
@@ -600,27 +606,35 @@ def render_compare_swings_page(user: Dict[str, Any]) -> None:
         b_idx = st.selectbox("Swing B (later)", idxs, index=total - 1,
                              format_func=lambda i: labels[i], key="cmp_swing_b")
 
-    older, newer = history[a_idx], history[b_idx]
+    # Enforce earlier→later regardless of pick order, so "improved/regressed"
+    # and the score delta are always computed in the right direction. History
+    # is oldest-first, so the smaller index is the earlier swing.
+    lo, hi = sorted((a_idx, b_idx))
+    older, newer = history[lo], history[hi]
     rows = compare_metric_rows(older, newer)
 
     st.markdown(_versus_html(older, newer), unsafe_allow_html=True)
     st.markdown(_summary_html(older, newer, rows), unsafe_allow_html=True)
     st.markdown(_metric_rows_html(rows), unsafe_allow_html=True)
     st.markdown(_split_html(rows), unsafe_allow_html=True)
-    st.markdown(_timeline_html(history, a_idx, b_idx), unsafe_allow_html=True)
+    st.markdown(_timeline_html(history, lo, hi), unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
     render_edge_page_wrapper_close()
 
 
 def _load_history(user: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Player swing history (oldest-first). Resilient — returns [] on any error
-    so the page degrades to its empty state rather than crashing."""
+    """Player swing history (oldest-first). Degrades to [] (empty state) rather
+    than crashing. `load_swing_history` already surfaces real storage errors via
+    st.error, so anything reaching the except here is an unexpected bug in this
+    page's path — surface it (don't masquerade a broken import / bad user shape
+    as 'no swings')."""
+    slug = (user.get("slug") or user.get("id")) if isinstance(user, dict) else None
+    if not slug:
+        return []
     try:
         from player_storage import load_swing_history
-        slug = user.get("slug") or user.get("id")
-        if not slug:
-            return []
         return list(load_swing_history(slug) or [])
-    except Exception:
+    except Exception as exc:  # noqa: BLE001 — surface, then degrade
+        st.warning(f"Couldn't load your swing history: {exc}")
         return []

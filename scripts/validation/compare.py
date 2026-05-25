@@ -483,9 +483,11 @@ def summarize(rows: list[SwingResult]) -> Summary:
     s.v4 = _detector_metrics(rows, which="v4")
     s.v3_contact = _detector_metrics(rows, which="v3_contact")
     s.v4_contact = _detector_metrics(rows, which="v4_contact")
-    # Detection failures (detector returned frame ≈0) + failure-excluded metrics.
+    # Detection failures (EITHER detector returned frame ≈0) + failure-excluded
+    # metrics. Union so a v4-only crash can't hide behind a v3-only count.
     scored = [r for r in rows if r.status == "scored"]
-    failures = [r for r in scored if _detector_failed(r, "v3")]
+    failures = [r for r in scored
+                if _detector_failed(r, "v3") or _detector_failed(r, "v4")]
     s.n_detection_failures = len(failures)
     s.detection_failure_ids = [r.id for r in failures]
     s.v3_clean = _detector_metrics(
