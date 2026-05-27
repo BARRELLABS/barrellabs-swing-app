@@ -27,28 +27,37 @@ firing). Most existing plant labels look roughly OK, but please glance at each.
 
 ---
 
-## Workflow
+## Workflow — simple keyboard tool
 
 ```bash
-./scripts/validation/launch_labeling.sh
+.venv/bin/python scripts/validation/relabel_refs.py
 ```
-(or `python3 -m streamlit run scripts/validation/labeling_app.py`)
 
-Then in the app, for each of the 17 IDs below:
+A native OpenCV window opens on each of the 17 clips in turn, starting at the
+current saved contact frame. Scrub with the keys, mark, save, auto-advances.
 
-1. Open the clip from the sidebar.
-2. **First check `validation/_relabel_aids/<slug>.jpg`** — a 10-frame montage
-   spanning the swing region (with current labels marked) so you can see the
-   bat-in-zone area at a glance before scrubbing.
-3. Scrub to the bat-in-zone frame → click **📌 Set contact_frame**.
-4. Step backward to the foot-plant frame (front foot down, pre-rotation) →
-   click **📌 Set foot_plant_frame** if it needs adjustment.
-5. Click **💾 SAVE LABELS**.
-6. Move to the next.
+| Key | Action |
+|---|---|
+| `.` `,` | +1 / −1 frame |
+| `>` `<` | +10 / −10 frames *(Shift + `.` / `,`)* |
+| `]` `[` | +30 / −30 frames |
+| `/` | jump to a specific frame (type digits + Enter) |
+| **`c`** | mark **CONTACT** at current frame |
+| **`p`** | mark **PLANT** at current frame |
+| **`s`** | save this clip + advance to next |
+| `n` | skip this clip (no save) |
+| `b` | go back one clip |
+| `r` | reset marks to the saved values |
+| `h` | toggle help overlay |
+| `q` | quit |
 
-Tip: arrow keys / the `−1` `+1` buttons step one frame at a time. On heavy
-slo-mo clips, neighboring frames look almost identical — use the `−10` `+10`
-buttons to make bigger jumps, then fine-tune.
+Saves are atomic (writes to `manifest.json.tmp` then renames). Each `s` is
+durable; you can quit mid-batch and resume later — un-changed clips keep their
+existing labels.
+
+Optional: glance at `validation/_relabel_aids/<slug>.jpg` first (a 10-frame
+montage spanning the swing region) to see the bat-in-zone area at a glance
+before scrubbing.
 
 ---
 
