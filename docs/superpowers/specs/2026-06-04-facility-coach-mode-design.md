@@ -25,13 +25,17 @@ v1 "Facility / Coach Mode" that makes that tier real.
   *outcome* (exit velo, launch angle). BarrelLabs = the *cause* (body
   mechanics, sequencing, what to fix). The pitch is "the *why* behind your
   HitTrax numbers."
-- **Self-onboard, not coach-managed profiles.** A facility may eventually have
-  *hundreds* of kids. No coach hand-creates 300 profiles, and BarrelLabs
-  should not own 300 coach-managed seats (support + COPPA burden). Instead the
+- **Self-onboard, not coach-managed profiles.** A facility may have *hundreds
+  or thousands* of kids. No coach hand-creates that many profiles. Instead the
   facility is an **org that kids/parents join via a code**; each kid owns their
-  own account (and is therefore also a consumer user feeding the flywheel). The
-  coach gets a **read-mostly roster view** across everyone linked to the
-  facility.
+  own account (data is portable — see §6). The coach gets a **read-mostly
+  roster view** across everyone linked.
+- **Facility sponsors everyone (Model B) — every rostered kid gets the FULL
+  product**, co-branded with the academy logo, priced in flat roster-size
+  brackets (§6). This is the decided business model; the facility is an
+  *additive* B2B acquisition channel, not a cannibalization of consumer subs,
+  and departing sponsored kids convert to full-price direct subs via account
+  portability.
 - **Engine-first sequencing.** Facility owners are hitting experts who will
   spot a bad analysis instantly. The MLB-reference rebuild (already in flight)
   and single-swing accuracy must be trustworthy **before** the cold-email
@@ -43,9 +47,8 @@ v1 "Facility / Coach Mode" that makes that tier real.
 - Multi-coach hierarchy / sub-coach permissions within one facility.
 - Team/group splits inside a facility roster.
 - Drill *assignment as homework* + completion tracking.
-- Hundreds-scale billing optimization (bulk seat sponsorship math).
-- Parent self-serve dashboards (parents get a shareable report link in v1; the
-  existing Family Pro flow can be bolted on later if a facility asks).
+- Multi-site / League (1,000+) custom tier — quote-only, later.
+- Weekly cohort digest email — nice retention loop, but v2 unless cheap.
 
 ---
 
@@ -70,11 +73,16 @@ COACH (facility owner login)
   grants the coach a roster view, not ownership.
 - The **coach** is the facility `owner_user_id`. v1 = single coach per facility
   (multi-coach is v2).
-- **Billing is decoupled from the link.** Whether the family pays their own
-  consumer sub, the facility sponsors seats, or both, is a billing-layer
-  decision (see §6) and does NOT change the membership model. v1 ships with a
-  single, simple billing path (TBD by pricing research — see §6); the model
-  supports either without rework.
+- **The facility sponsors every rostered kid** (Model B, §6): a linked player
+  is granted **full Pro-equivalent entitlement for as long as the membership is
+  active**, regardless of whether they ever had their own sub. Billing is at the
+  facility level by roster bracket — the family pays nothing while sponsored.
+- **Entitlement resolution + portability:** a player's effective plan = the
+  best of (their own sub) OR (facility-sponsored Pro). When the membership ends
+  or the facility lapses, the sponsored grant is removed → the player falls back
+  to their own sub or to Free **with full history retained** (§6 portability).
+  This is a new entitlement state to add in `entitlements.py` (a sponsored
+  grant), not a change to the membership model.
 
 ### Reuse vs. new
 - **Reuse:** the roster card UI, sparkline, stale/nudge logic, and
@@ -83,10 +91,9 @@ COACH (facility owner login)
   "facility ≤hundreds."
 - **Reuse:** the swing report renderer (`swing_report_dashboard_preview.py`)
   for the branded + shareable report.
-- **New:** the facility org entity + join-code self-onboard flow; the coach
-  roster page (scaled, searchable); facility-logo branding in the report
-  header; the shareable "send to parent" report link; Coach Pro checkout
-  wiring.
+- **New:** the facility org entity + join-code self-onboard flow; the
+  sponsored-Pro entitlement grant + portability; the coach roster page (scaled,
+  searchable); facility-logo co-branding; facility checkout + bracket SKUs.
 
 ---
 
@@ -111,19 +118,23 @@ COACH (facility owner login)
   don't render as one giant column wall (the family grid currently caps at 4
   cols — needs a scalable layout + pagination).
 
-### 3.3 Branded + shareable report
+### 3.3 Co-branded report (every sponsored kid)
 - Report header shows **BarrelLabs branding + the facility's logo** (light
-  touch — not a reskin).
-- Every report gets a **"Send to parent" shareable link** (public, read-only
-  URL) and/or PDF. This is the retention deliverable — the parent sees the
-  report at home, which is the facility's reason-to-re-enroll.
-- The public link must not require login and must not leak other players' data.
+  touch — not a reskin). Applies to every sponsored kid's report + MLB card,
+  so every athlete who shares one is marketing the academy.
+- Each kid already has their own login + parent-visible view (Model B), so a
+  separate "send to parent" link is **optional polish, not load-bearing** —
+  keep it if cheap (reuses the report renderer), else defer.
+- Any public/shareable link must be read-only, single-report scoped, no auth,
+  no cross-player data leak.
 
-### 3.4 Coach Pro checkout (wire up the existing tier)
-- The `coach_pro` tier exists in `entitlements.py` / `plan_pricing.py` but has
-  no real product or validated price. Wire its checkout to create/activate a
-  Facility, applying the **early-access discount price** (final numbers from
-  the pricing-research agent — see §6).
+### 3.4 Facility checkout + sponsored entitlement (wire up the tier)
+- Replace the unbuilt 20-seat `coach_pro` with the **roster-bracket facility
+  tiers** (§6). v1 launch SKU = **Academy early-access $1,990/yr**.
+- Checkout creates/activates the Facility; the facility's plan + roster ceiling
+  drive a **sponsored Pro grant** on every linked player (§2 entitlement
+  resolution). Reuse the existing Stripe Checkout flow; add the bracket SKUs to
+  `plan_pricing.py`.
 
 ---
 
@@ -136,8 +147,10 @@ COACH (facility owner login)
    reports), owns their data.
 3. **Coach reviews:** opens roster → sees all linked players' latest
    scores/trends/flags → opens any player's report for a lesson.
-4. **Parent retention loop:** coach (or the player) taps "Send to parent" on a
-   report → parent opens the public branded link at home.
+4. **Sponsored access:** while the membership is active, the player has full
+   Pro-equivalent features (co-branded). Parent sees it via the kid's own
+   login. If the facility lapses → grant removed, history retained, win-back
+   offer (§6 portability).
 
 ---
 
@@ -145,61 +158,115 @@ COACH (facility owner login)
 - Backend not configured / query error → roster falls back to empty/safe
   states (follow the `family_storage` "safe by design" pattern — never crash).
 - Invalid / expired join code → clear error, no partial link.
-- A player linked to a facility who later cancels their own sub → still appears
-  on the roster but flagged appropriately (billing edge — final behavior tied
-  to §6 billing decision).
+- **Facility lapses / membership ends** → remove the sponsored Pro grant; player
+  falls back to their own sub or Free **with full history retained**; strip
+  co-branding; surface the win-back offer (§6).
+- **Roster ceiling reached** → block new joins with a clear "upgrade tier"
+  prompt to the coach (don't silently exceed the bracket).
+- **Kid linked to two facilities** → one account, linked to both rosters (both
+  coaches see them); family is never double-charged (they pay nothing while
+  sponsored). Counting against each facility's ceiling is acceptable for v1.
 - Public report link → read-only, single-report scoped, no auth, no data leak
   across players.
 - Large roster → pagination/lazy-load; no unbounded render.
 
 ---
 
-## 6. Pricing & billing (research complete — 2026-06-04)
+## 6. Business model & pricing — MODEL B (research complete — 2026-06-04)
 
-Recommendation from the pricing-research agent (anchored to real comps:
-Upper Hand facility ops software $199/mo, OnForm Academy $79/mo, Hudl Club
-$1K–1.6K/yr/team, per-athlete tools ~$199/yr/athlete; full sources in the
-research output).
+**Decision: the facility pays, and EVERY rostered kid gets the full product**
+(equivalent to Solo/Family Pro), co-branded with the academy logo. This is the
+"facility sponsors everyone" model. We do **NOT** ship the earlier "dashboard
+only + families still hit a paywall" idea — that fights the facility buyer's
+expectation, makes the coach look bad to his parents, and starves the branded
+share loop. Every comparable org-SaaS (TeamBuildr, Hudl club-wide, Blast team,
+CoachNow Academy) is org-pays-everyone-included.
 
-**Model: flat per-location base + low per-active-hitter overage above a
-generous cap. Annual-first (2 months free). "Active hitter" = uploaded ≥1
-swing that month** (fair meter; doesn't charge for dormant join-code signups).
+### Pricing — flat roster-size brackets (NOT per-upload)
+Billing meter = **enrolled roster slots in brackets**, not per-active-upload.
+Bracket pricing is predictable (facility owners hate variable bills), survives
+the Aug–Sep off-season, and never incentivizes the facility to suppress kid
+usage. Anchored to TeamBuildr's public 50→1,000 athlete brackets. Annual = 10×
+monthly (2 months free). **Push annual — it's the seasonality fix.**
 
-| Tier | Price | Roster |
-|---|---|---|
-| **Early-access** (cold-email / founding facility, locked 12 mo) | **$149/mo or $1,490/yr** | Unlimited active hitters (near-costless sweetener; variable cost is pennies/swing) |
-| **Full** (standard) | **$299/mo or $2,990/yr** | 50 active hitters included, **+$2/active hitter/mo** above 50 |
-| **Enterprise** (200+ active hitters / chains) | Custom **~$8K–$15K/yr** | Routed to a quote, not an unbounded meter |
+| Tier | Roster ceiling | Full monthly | Full annual | ≈ $/athlete/mo | **Early-access annual** (founding, 33% off, locked 12 mo) |
+|---|---|---|---|---|---|
+| **Team** | ≤ 25 | $99 | $990 | $3.30 | **$690/yr** |
+| **Academy** | ≤ 100 | $299 | $2,990 | $2.49 | **$1,990/yr** (≈$166/mo) ← cold-email anchor |
+| **Academy Plus** | ≤ 250 | $549 | $5,490 | $1.83 | **$3,490/yr** |
+| **Facility** | ≤ 500 | $899 | $8,990 | $1.50 | **$5,990/yr** |
+| **Facility Pro** | ≤ 1,000 | $1,499 | $14,990 | $1.25 | **$9,990/yr** |
+| **Multi-site / League** | 1,000+ | Custom (~$1.00–1.10/athlete/mo) | Custom | ≤$1.10 | Custom |
 
-**Why these numbers:** $149 reads as "less than the ops software I already pay
-for"; $299 is ~2–3% of a facility's lesson revenue (one facility doing ~20
-lessons/wk at $80–$140 clears $80K–$140K+/yr); the $2/hitter overage stays
-below the ~$16.50/mo per-athlete tools so it always looks cheap per kid while
-letting a big academy pay more without negotiation.
+Per-athlete rate **declines $3.30 → $1.00** as the roster grows — that's the
+answer to "a 1,000-kid academy can't pay 30¢/kid": they pay **$14,990/yr**, a
+real number that's still trivial per kid. **Hold the ~$1.00/athlete/mo floor at
+the top bracket — do not go below it** (see economics).
 
-**Relationship to consumer subs — "both, cleanly separated":**
-- **Default: families pay their own consumer sub** (Solo $14.99 / Family
-  $24.99). The facility tier buys the **coach dashboard + co-branded reports**,
-  NOT 300 free Pro accounts. A facility-linked kid gets a limited "facility
-  view" (swings visible to the coach, basic report); full Pro features still
-  require the family's own sub. This is the ~$0-CAC growth loop — a coach who
-  onboards 20–30 kids drives 20–30 family subs.
-- **Optional add-on: "sponsored seats"** — a facility can pre-buy Pro seats at
-  wholesale (~$8/seat/mo, ~45% off retail) to bundle into a premium lesson
-  package. Upsell revenue, not the default.
+### What "the facility pays" unlocks
+- **Every linked athlete:** full AI biomech breakdown, unlimited uploads, full
+  MLB-match card (co-branded with the academy logo), drill plan + progress
+  tracker, their own login + parent-visible view.
+- **The coach/facility:** roster dashboard (sortable by score / last upload /
+  flagged issue), co-branded reports, weekly cohort progress digest email.
+  *(Drill assignment + multi-coach remain v2 — see non-goals.)*
 
-This keeps the §2 membership model intact (billing is decoupled from the
-facility link). §3.4 checkout applies the **$149/mo early-access** price for
-the launch campaign.
+### Account portability (the critical guardrail — turns Model B into a funnel)
+The **parent/athlete owns the account and data; the facility only *sponsors*
+it.** When a kid leaves the facility (or the facility stops paying), their
+account **downgrades to Free with full swing history retained**, branding
+stripped, and we immediately offer a direct Solo/Family plan ("you've already
+got X swings of history"). So Model B isn't a giveaway — it's **paid customer
+acquisition the facility funds**, with a built-in win-back to full-price direct
+subs. This is also the COPPA-clean answer (parent consents/controls the minor's
+data; the business never owns it).
+
+### Unit economics (from `financial_model.md` COGS; ~60% of roster active/mo)
+| Facility | Tier (annual) | Rev/mo | COGS/mo | Gross margin |
+|---|---|---|---|---|
+| 50 kids | Academy @ $2,990 | $249 | ~$49 | **80%** |
+| 300 kids | Facility @ $8,990 | $749 | ~$294 | **61%** |
+| 1,000 kids | Facility Pro @ $14,990 | $1,249 | ~$980 | **22%** |
+
+Never loses money if the $1/athlete floor holds (worst case = 100%-active
+1,000-kid tier is roughly breakeven; realistic 60%-active is healthily
+positive). Margin is richest at the 50–300 kid facilities — exactly the
+cold-email targets. The 1,000-kid tier is a trophy-logo + consumer-funnel play,
+not a margin play.
+
+### Cannibalization — net additive, not a loss
+Facility buyers (academy owners, reached by cold B2B outbound) and direct
+consumers (travel-ball parents, reached by Reels/ads) are **different channels,
+different buyers**. Of a sponsored roster, only ~10–15% would ever have
+converted to a paid direct sub on their own — and you weren't reaching them
+(they're locked inside an academy). The facility *delivers the whole roster* to
+you at near-zero CAC and absorbs support. The only real risk is a facility
+buying a big tier and reselling cheap slots to families who'd otherwise pay
+direct — prevented by the $1/athlete floor + roster-ceiling brackets +
+co-branding being the actual value.
+
+### Go-to-market
+Lead the cold emails with **Academy ($2,990/yr) at the founding-facility launch
+price $1,990/yr** — "**$166/mo to give every kid in your academy a pro-grade
+AI swing report, co-branded to you, that they share on Instagram, plus a coach
+dashboard.**" Make the launch offer **annual-only, founding-facility,
+locked-rate** ("first 15 facilities lock 33% off for life if you stay annual")
+— urgency + scarcity + the seasonality lock + cash up front. Land-and-expand is
+built into the brackets (Academy → Academy Plus → Facility as they grow).
+
+§3.4 checkout applies the **Academy early-access $1,990/yr** as the default
+launch SKU; the bracket ladder above is the full price book.
 
 ---
 
 ## 7. Build sequence (high level — detailed plan comes next)
 1. Facility org entity + join-code self-onboard (the new primitive).
-2. Generalize family dashboard → scalable searchable coach roster.
-3. Facility-logo branding + public shareable report link.
-4. Wire Coach Pro checkout to the early-access price (pending §6).
-5. (Parallel, not part of this feature) finish the engine/MLB-reference
+2. Sponsored-Pro entitlement grant + portability in `entitlements.py`.
+3. Generalize family dashboard → scalable searchable coach roster.
+4. Facility-logo co-branding on reports + MLB card.
+5. Wire facility checkout (Academy early-access $1,990/yr launch SKU) + bracket
+   SKUs in `plan_pricing.py`.
+6. (Parallel, not part of this feature) finish the engine/MLB-reference
    trust work — the gate on actually sending the cold emails.
 
 ---
@@ -208,8 +275,10 @@ the launch campaign.
 - `family_storage.py` / `family_dashboard.py` — generalize household → facility
   roster; the new facility entity likely lives in a sibling
   `facility_storage.py` to keep concerns separate.
-- `entitlements.py` / `plan_pricing.py` — Coach Pro caps + early-access price.
-- `swing_report_dashboard_preview.py` — logo branding + shareable-link entry.
+- `entitlements.py` — new **sponsored Pro grant** state + portability fallback;
+  effective-plan = best-of(own sub, facility sponsorship). `plan_pricing.py` —
+  replace 20-seat `coach_pro` with the roster-bracket SKUs.
+- `swing_report_dashboard_preview.py` — facility-logo co-branding.
 - `auth.py` — household-player helpers are the pattern for facility membership.
 - `app.py` — routing for the new coach-roster + join-code pages.
 - New: public shareable-report route (no-auth, single-report scoped).
