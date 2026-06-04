@@ -131,10 +131,15 @@ COACH (facility owner login)
 ### 3.4 Facility checkout + sponsored entitlement (wire up the tier)
 - Replace the unbuilt 20-seat `coach_pro` with the **roster-bracket facility
   tiers** (§6). v1 launch SKU = **Academy early-access $1,990/yr**.
-- Checkout creates/activates the Facility; the facility's plan + roster ceiling
-  drive a **sponsored Pro grant** on every linked player (§2 entitlement
-  resolution). Reuse the existing Stripe Checkout flow; add the bracket SKUs to
-  `plan_pricing.py`.
+- **Path A (license):** checkout creates/activates the Facility; the facility's
+  plan + roster ceiling drive a **sponsored Pro grant** on every linked player
+  (§2 entitlement resolution). Annual + monthly SKUs in `plan_pricing.py`.
+- **Path B (rev-share):** facility created with no license; each kid's parent
+  pays the **$12/mo facility-member SKU** (BarrelLabs bills); that sub grants
+  the kid Pro and tags the facility for the 70/30 payout. A **one-time $400
+  setup SKU** (waivable for founders). Payout accounting to the facility can be
+  manual/off-platform for v1 (don't build an automated payout system yet).
+- Reuse the existing Stripe Checkout flow for all SKUs.
 
 ---
 
@@ -203,6 +208,43 @@ answer to "a 1,000-kid academy can't pay 30¢/kid": they pay **$14,990/yr**, a
 real number that's still trivial per kid. **Hold the ~$1.00/athlete/mo floor at
 the top bracket — do not go below it** (see economics).
 
+### Two ways for a facility to buy (offer both — they self-select)
+A facility picks ONE of these. Confident facilities take the license and keep
+the margin; hesitant facilities take rev-share and risk nothing. Offering both
+maximizes "yes" in the cold-email campaign.
+
+**Path A — License (subscription).** The bracket table above. **Annual is the
+default push** (2 months free vs. monthly); **monthly is offered but priced so
+annual clearly wins** (Academy = $299/mo vs $2,990/yr ≈ 2 months saved) — keep
+monthly intentionally less attractive so most pick annual (the seasonality
+lock + cash up front). Facility sponsors every rostered kid; no parent paywall.
+- **Setup fee: optional/none** — the annual prepay already delivers upfront cash.
+
+**Path B — Rev-share (facility pays $0 upfront, only earns).** For facilities
+that won't commit to a license.
+- **Parents pay through BarrelLabs** at a facility-member rate (**$12/mo per
+  kid**, a small discount off $14.99 retail so the facility's offer feels like
+  a perk). **BarrelLabs bills — not the facility** — so we keep the consumer
+  relationship, one clean Stripe flow, the flywheel, and the win-back.
+- **Split: ~70% BarrelLabs / ~30% facility** (≈$8.40 / ≈$3.60 per paying kid/mo).
+  Default 70/30 (we provide the whole product + eat the AI cost; they're
+  distribution); may sweeten to 60/40 for a large facility.
+- **Setup fee: YES — $300–$500 one-time** "onboarding & co-branding setup."
+  Rev-share gives us $0 upfront + zero facility commitment; the fee covers
+  onboarding labor, filters tire-kickers, and gives the facility skin in the
+  game so they actually promote it. **Waive it for founding facilities** as the
+  launch incentive ("normally $400 setup — free for the first 15").
+- **Honest tradeoff vs. license:** rev-share reintroduces a parent paywall, so
+  fewer kids opt in (~20–40% of roster) and fewer branded reports get shared.
+  Revenue ends up *similar* to a license at the same facility but is variable
+  and lower-virality — that's the cost of de-risking the facility. Acceptable
+  because it converts a "no" into a "yes."
+
+Both paths use the **same product + sponsored-entitlement mechanics** (§2): in
+Path A the facility's plan grants every rostered kid Pro; in Path B the grant
+follows each kid whose parent is paying the $12/mo facility rate. The money
+model is config on top of the same build.
+
 ### What "the facility pays" unlocks
 - **Every linked athlete:** full AI biomech breakdown, unlimited uploads, full
   MLB-match card (co-branded with the academy logo), drill plan + progress
@@ -253,6 +295,11 @@ dashboard.**" Make the launch offer **annual-only, founding-facility,
 locked-rate** ("first 15 facilities lock 33% off for life if you stay annual")
 — urgency + scarcity + the seasonality lock + cash up front. Land-and-expand is
 built into the brackets (Academy → Academy Plus → Facility as they grow).
+
+**If they balk at paying upfront, drop to Path B rev-share** (parents pay
+$12/mo, 70/30 split, $400 setup waived for founders) — same product, zero risk
+to them. The two-path offer ("own the margin, or split with us — your call")
+turns the price objection into a choice instead of a dead end.
 
 §3.4 checkout applies the **Academy early-access $1,990/yr** as the default
 launch SKU; the bracket ladder above is the full price book.
