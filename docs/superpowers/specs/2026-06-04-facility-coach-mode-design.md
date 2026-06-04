@@ -154,18 +154,43 @@ COACH (facility owner login)
 
 ---
 
-## 6. Open item: pricing & billing (research in flight)
-A background research agent is determining:
-- **Early-access (launch discount)** facility price
-- **Full** facility price
-- The **model** (per-location flat vs. per-athlete/seat vs. tiered by roster
-  size; monthly vs annual)
-- Whether families pay their own consumer subs, the facility sponsors seats, or
-  both.
+## 6. Pricing & billing (research complete — 2026-06-04)
 
-The membership model in §2 is deliberately billing-agnostic so either outcome
-slots in without rework. Final numbers + model get folded into §3.4 and the
-implementation plan before build.
+Recommendation from the pricing-research agent (anchored to real comps:
+Upper Hand facility ops software $199/mo, OnForm Academy $79/mo, Hudl Club
+$1K–1.6K/yr/team, per-athlete tools ~$199/yr/athlete; full sources in the
+research output).
+
+**Model: flat per-location base + low per-active-hitter overage above a
+generous cap. Annual-first (2 months free). "Active hitter" = uploaded ≥1
+swing that month** (fair meter; doesn't charge for dormant join-code signups).
+
+| Tier | Price | Roster |
+|---|---|---|
+| **Early-access** (cold-email / founding facility, locked 12 mo) | **$149/mo or $1,490/yr** | Unlimited active hitters (near-costless sweetener; variable cost is pennies/swing) |
+| **Full** (standard) | **$299/mo or $2,990/yr** | 50 active hitters included, **+$2/active hitter/mo** above 50 |
+| **Enterprise** (200+ active hitters / chains) | Custom **~$8K–$15K/yr** | Routed to a quote, not an unbounded meter |
+
+**Why these numbers:** $149 reads as "less than the ops software I already pay
+for"; $299 is ~2–3% of a facility's lesson revenue (one facility doing ~20
+lessons/wk at $80–$140 clears $80K–$140K+/yr); the $2/hitter overage stays
+below the ~$16.50/mo per-athlete tools so it always looks cheap per kid while
+letting a big academy pay more without negotiation.
+
+**Relationship to consumer subs — "both, cleanly separated":**
+- **Default: families pay their own consumer sub** (Solo $14.99 / Family
+  $24.99). The facility tier buys the **coach dashboard + co-branded reports**,
+  NOT 300 free Pro accounts. A facility-linked kid gets a limited "facility
+  view" (swings visible to the coach, basic report); full Pro features still
+  require the family's own sub. This is the ~$0-CAC growth loop — a coach who
+  onboards 20–30 kids drives 20–30 family subs.
+- **Optional add-on: "sponsored seats"** — a facility can pre-buy Pro seats at
+  wholesale (~$8/seat/mo, ~45% off retail) to bundle into a premium lesson
+  package. Upsell revenue, not the default.
+
+This keeps the §2 membership model intact (billing is decoupled from the
+facility link). §3.4 checkout applies the **$149/mo early-access** price for
+the launch campaign.
 
 ---
 
