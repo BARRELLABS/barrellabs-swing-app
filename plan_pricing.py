@@ -49,6 +49,64 @@ PLAN_PRICING = {
 }
 
 
+# --------------------------------------------------------------------
+#  FACILITY / ACADEMY pricing — roster-size brackets (spec §6)
+# --------------------------------------------------------------------
+# License path: the facility pays, every rostered kid gets full Pro.
+# Annual = ~2 months free vs monthly. `early_access_annual_cents` is the
+# founding-facility launch price (locked 12 mo). Dollar amounts MUST match
+# whatever stripe_setup.py creates + the SQL plans seed if these become
+# real Stripe products.
+FACILITY_PRICING = {
+    "team": {
+        "name": "Team", "roster_ceiling": 25,
+        "monthly_cents": 9900,  "annual_cents": 99000,  "early_access_annual_cents": 69000,
+    },
+    "academy": {
+        "name": "Academy", "roster_ceiling": 100,
+        "monthly_cents": 29900, "annual_cents": 299000, "early_access_annual_cents": 199000,
+    },
+    "academy_plus": {
+        "name": "Academy Plus", "roster_ceiling": 250,
+        "monthly_cents": 54900, "annual_cents": 549000, "early_access_annual_cents": 349000,
+    },
+    "facility": {
+        "name": "Facility", "roster_ceiling": 500,
+        "monthly_cents": 89900, "annual_cents": 899000, "early_access_annual_cents": 599000,
+    },
+    "facility_pro": {
+        "name": "Facility Pro", "roster_ceiling": 1000,
+        "monthly_cents": 149900, "annual_cents": 1499000, "early_access_annual_cents": 999000,
+    },
+}
+
+# Rev-share path: facility pays $0 upfront; parents pay the member rate
+# through BarrelLabs; the facility earns the split. Setup fee filters
+# tire-kickers (waived for founding facilities).
+REVSHARE = {
+    "member_monthly_cents": 1200,   # $12/mo per kid (discount off $14.99 retail)
+    "platform_split":       0.70,   # BarrelLabs keeps 70%, facility earns 30%
+    "setup_fee_cents":      40000,  # $400 one-time, waived for founders
+}
+
+
+def facility_stripe_price_id(tier: str, interval: str) -> Optional[str]:
+    """Stripe price id for a facility tier × interval, from secrets.toml.
+    Mirrors stripe_price_id(). interval ∈ {monthly, annual, early_access_annual}."""
+    if tier not in FACILITY_PRICING:
+        return None
+    if interval not in ("monthly", "annual", "early_access_annual"):
+        return None
+    try:
+        section = st.secrets.get("stripe", {})
+    except Exception:
+        return None
+    suffix = "_live" if _live_mode() else ""
+    key = f"price_facility_{tier}_{interval}{suffix}"
+    val = section.get(key)
+    return val.strip() if isinstance(val, str) and val.strip() else None
+
+
 def annual_savings_pct(plan_id: str) -> int:
     """How much cheaper is annual vs 12 × monthly? Rounded to nearest int."""
     p = PLAN_PRICING.get(plan_id)
@@ -153,10 +211,13 @@ def stripe_secret_key() -> Optional[str]:
 
 __all__ = [
     "PLAN_PRICING",
+    "FACILITY_PRICING",
+    "REVSHARE",
     "annual_savings_pct",
     "annual_monthly_equivalent_cents",
     "format_cents",
     "stripe_price_id",
+    "facility_stripe_price_id",
     "publishable_key",
     "stripe_secret_key",
 ]
