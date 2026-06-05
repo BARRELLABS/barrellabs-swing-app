@@ -10,3 +10,4 @@ stripe>=8.0
 supabase>=2.4
 Pillow>=10.0
 sentry-sdk>=2.0
+posthog>=3.0

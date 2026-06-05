@@ -310,6 +310,11 @@ def sign_up(
 
     profile = _profile_from_row(rows[0])
     st.session_state["player"] = profile
+    try:
+        import analytics
+        analytics.track("signed_up", profile.get("user_id") or profile.get("id"))
+    except Exception:
+        pass
     return profile
 
 

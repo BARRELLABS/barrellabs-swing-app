@@ -1061,6 +1061,14 @@ def _start_checkout(plan_id: str, interval: str) -> None:
     # fallback link was hidden behind display:none. There was no way to reach
     # Stripe. A direct user click on a real <a target=_blank> opens a new tab
     # with no popup block.)
+    try:
+        import analytics
+        from auth import current_profile
+        _p = current_profile() or {}
+        analytics.track("checkout_started", _p.get("user_id") or _p.get("id"),
+                        plan_id=plan_id, interval=interval)
+    except Exception:
+        pass
     st.session_state["_pending_checkout_url"] = url
     st.rerun()
 

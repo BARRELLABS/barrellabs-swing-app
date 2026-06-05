@@ -4519,6 +4519,18 @@ except Exception as e:
     st.error(f"Analysis failed: {e}")
     st.stop()
 
+# Activation event — running a swing is the core "aha". Best-effort, no-op
+# until PostHog is configured.
+try:
+    import analytics
+    analytics.track(
+        "swing_analyzed",
+        (user or {}).get("user_id") or (user or {}).get("id"),
+        edge_score=(result.get("edge_score") if isinstance(result, dict) else None),
+    )
+except Exception:
+    pass
+
 # After analysis: if the player has no lock yet AND we just auto-picked
 # their reference, persist that slug as the lock so future swings stay
 # anchored to the same hitter. Skip when the user manually overrode
