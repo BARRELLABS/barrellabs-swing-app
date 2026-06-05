@@ -1071,6 +1071,15 @@ if st.session_state.get("recovery_mode"):
 # active Supabase session. This means a refresh / hot-reload doesn't
 # bounce a logged-in user back to the login screen.
 if "user" not in st.session_state:
+    # Durable login: a full reload / new tab has an empty in-memory session, so
+    # first try to rebuild it from the persisted refresh-token cookie. Safe
+    # no-op if there's no cookie or it's expired — we just fall through to the
+    # normal restore + auth gate below.
+    try:
+        from supabase_client import restore_session_from_cookie
+        restore_session_from_cookie()
+    except Exception:
+        pass
     try:
         from auth import current_profile
         _restored = current_profile()

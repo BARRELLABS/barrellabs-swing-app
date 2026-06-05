@@ -115,6 +115,14 @@ def _refresh_stored_session(client) -> bool:
         "user_id":       getattr(user_obj, "id", None) if user_obj else session.get("user_id"),
         "email":         getattr(user_obj, "email", None) if user_obj else session.get("email"),
     }
+    # Durable login: keep the persisted cookie in sync with the rotated refresh
+    # token (Supabase rotates it on every refresh; the old one is single-use).
+    try:
+        import session_persist
+        session_persist.write_refresh_token(
+            st.session_state["supabase_session"].get("refresh_token"))
+    except Exception:
+        pass
     # Invalidate the cached auth_user so the next get_current_user()
     # call picks up the refreshed identity.
     st.session_state.pop("auth_user", None)
@@ -188,6 +196,14 @@ def store_session(session_obj):
         "user_id":       getattr(session_obj.user, "id", None) if getattr(session_obj, "user", None) else None,
         "email":         getattr(session_obj.user, "email", None) if getattr(session_obj, "user", None) else None,
     }
+    # Durable login: persist the refresh token to a browser cookie so a reload
+    # or a new tab (e.g. returning from Stripe) keeps the user signed in.
+    # Best-effort — never let cookie persistence break the in-memory session.
+    try:
+        import session_persist
+        session_persist.write_refresh_token(getattr(session_obj, "refresh_token", None))
+    except Exception:
+        pass
 
 
 def clear_session():
@@ -201,6 +217,13 @@ def clear_session():
     for _k in [k for k in list(st.session_state.keys())
                if str(k).startswith("_my_plan")]:
         st.session_state.pop(_k, None)
+    # Durable login: drop the persisted cookie so the next load doesn't silently
+    # sign them back in.
+    try:
+        import session_persist
+        session_persist.clear_refresh_token()
+    except Exception:
+        pass
     try:
         _build_client().auth.sign_out()
     except Exception:
@@ -229,6 +252,43 @@ def _is_auth_error(exc: Exception) -> bool:
         or "session_not_found" in msg
         or "auth session missing" in msg
     )
+
+
+def restore_session_from_cookie() -> bool:
+    """Durable login: if there's no in-memory session, try to rebuild one from
+    the persisted refresh-token cookie. Returns True if a session was restored.
+
+    SAFE: any failure returns False and (for a rejected token) drops the cookie,
+    so the app cleanly falls back to the auth gate. Never raises.
+    """
+    if st.session_state.get("supabase_session"):
+        return True
+    try:
+        import session_persist
+        refresh_token = session_persist.read_refresh_token()
+    except Exception:
+        return False
+    if not refresh_token:
+        return False
+    try:
+        client = _build_client()
+        resp = client.auth.refresh_session(refresh_token)
+        session = getattr(resp, "session", None)
+        if not session or not getattr(session, "access_token", None):
+            return False
+        # store_session repopulates st.session_state AND re-writes the cookie
+        # with the rotated refresh token, so the next reload works too.
+        store_session(session)
+        return True
+    except Exception:
+        # Expired / revoked / reused token — drop the stale cookie so we don't
+        # keep trying it, and fall through to the login screen.
+        try:
+            import session_persist
+            session_persist.clear_refresh_token()
+        except Exception:
+            pass
+        return False
 
 
 def get_current_user():
