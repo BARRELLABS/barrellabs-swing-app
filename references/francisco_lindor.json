@@ -67,14 +67,14 @@
     "re_extension": 20.635963331335688
   },
   "head_movement_px_foot_plant_to_contact": {
-    "dx": 105.45730018615723,
-    "dy": -46.2461918592453,
-    "total_drift": 115.1518667848481
+    "dx": 25.58847999572754,
+    "dy": -30.748425722122192,
+    "total_drift": 40.00294980224101
   },
   "head_movement_normalized_foot_plant_to_contact": {
-    "dx_torso": 0.23513004213527514,
-    "dy_torso": -0.10311158185602513,
-    "total_drift_torso": 0.256745272648569
+    "dx_torso": 0.05705266841605365,
+    "dy_torso": -0.06855740307094448,
+    "total_drift_torso": 0.08919150457988761
   },
   "camera_view": {
     "hip_to_torso_ratio_stance": 0.3812327804880889
