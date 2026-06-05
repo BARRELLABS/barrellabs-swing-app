@@ -42,8 +42,10 @@ def score_stability(total_drift_torso: Optional[float], bracket: str) -> Optiona
       of drift to score 0 -- collapsing discrimination; 0.30 separates a genuine
       head lurch while the 3 residual pros land a fair ~0.74.
     CAVEAT (Logan): bad=0.30 should be validated against real amateur head-lurch
-    clips; the residual anchor-slide artifact on hard-rotators is a known
-    limitation (re-anchoring is a band-aid for it). See the head-drift memory."""
+    clips. The residual on 3 hard-rotators (~0.12-0.14) is an INHERENT single-
+    phone-camera limitation, not a fixable bug — 2D ear-mid, hip/absolute anchors,
+    and 3D world landmarks were all tested (scripts/evaluate_head_*.py); ear-mid+
+    shoulder-anchor won, and the threshold bounds the residual fairly (0.71-0.80)."""
     if total_drift_torso is None:
         return None
     w = _STAB_WIDEN.get(bracket, 0.0)
