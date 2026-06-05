@@ -62,7 +62,7 @@ def probe(slug, fname):
             def x(i): return lm[i].x * w
             def y(i): return lm[i].y * h
             def v(i): return lm[i].visibility
-            rows.append({
+            row = {
                 "frame": fi,
                 "nose_x": x(NOSE), "nose_y": y(NOSE),
                 "l_ear_x": x(L_EAR), "l_ear_y": y(L_EAR), "l_ear_v": v(L_EAR),
@@ -73,7 +73,18 @@ def probe(slug, fname):
                 "sho_mid_y": (y(L_SHO) + y(R_SHO)) / 2.0,
                 "hip_mid_x": (x(L_HIP) + x(R_HIP)) / 2.0,
                 "hip_mid_y": (y(L_HIP) + y(R_HIP)) / 2.0,
-            })
+            }
+            # 3D world landmarks (meters, hip-centered, camera-invariant)
+            wl = res.pose_world_landmarks.landmark if res.pose_world_landmarks else None
+            if wl is not None:
+                def wx(i): return wl[i].x
+                def wy(i): return wl[i].y
+                def wz(i): return wl[i].z
+                for nm, i in [("nose", NOSE), ("l_ear", L_EAR), ("r_ear", R_EAR),
+                              ("l_sho", L_SHO), ("r_sho", R_SHO),
+                              ("l_hip", L_HIP), ("r_hip", R_HIP)]:
+                    row[f"w_{nm}_x"] = wx(i); row[f"w_{nm}_y"] = wy(i); row[f"w_{nm}_z"] = wz(i)
+            rows.append(row)
         fi += 1
     cap.release(); pose.close()
     os.makedirs(OUT_DIR, exist_ok=True)
