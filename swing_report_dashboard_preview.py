@@ -3066,8 +3066,7 @@ def _render_compare_streamlit(record: Dict[str, Any],
 
     priors = _priors_of(record, history)
     if not priors:
-        st.markdown(_compare_section_html(record, history),
-                     unsafe_allow_html=True)
+        st.html(_compare_section_html(record, history))  # st.html avoids leaks
         return
 
     # Header (eyebrow + title) — same as static path
@@ -3080,7 +3079,7 @@ def _render_compare_streamlit(record: Dict[str, Any],
   <div class="srd-section-sub">{len(priors)} prior {'swings' if len(priors) != 1 else 'swing'} on file</div>
 </div>
 """
-    st.markdown(header_html, unsafe_allow_html=True)
+    st.html(header_html)  # st.html (not markdown) — avoids blank-line HTML leaks
 
     # Selector — built from chronologically-newest-first priors.
     labels = [_opt_label(p, i) for i, p in enumerate(priors)]
@@ -3118,7 +3117,7 @@ def _render_compare_streamlit(record: Dict[str, Any],
   <div class="srd-cmp-footnote">Only metrics that exist in both swings are shown.</div>
 </div>
 """
-    st.markdown(body, unsafe_allow_html=True)
+    st.html(body)  # st.html (not markdown) — the blank line above would leak raw HTML
 
 
 def render_swing_report_dashboard_preview(
@@ -3168,14 +3167,20 @@ def render_swing_report_dashboard_preview(
         # Progress
         + _build_progress(record, history)
     )
-    st.markdown(top_html, unsafe_allow_html=True)
+    # Use st.html (NOT st.markdown) for the big assembled report HTML. The
+    # report body contains blank lines between sections, which break Streamlit's
+    # markdown HTML-block parser — making chunks of raw <div> markup leak onto
+    # the page as literal text (the "report overlap / raw HTML" bug). st.html
+    # renders raw HTML directly, with no markdown processing, so blank lines are
+    # fine. (Same class of bug as the pricing page's CSS leak.)
+    st.html(top_html)
 
     # Live Compare section (selectbox + cards)
     _render_compare_streamlit(record, history)
 
     # Footer — Next Session + closing wrapper
     tail_html = _build_next_session(record) + '</div>'
-    st.markdown(tail_html, unsafe_allow_html=True)
+    st.html(tail_html)
 
 
 def _build_header_production(record: Dict[str, Any]) -> str:
