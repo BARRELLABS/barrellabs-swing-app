@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarrelLabs · Facility Dashboard (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#F4EFE6; --bone-dim:#C8C4BB; --bone-mute:#8a857b; --bone-faint:#5a564f;
+  --ink:#0A0B0E; --ink-elev:#15171c;
+  --gold:#E8C170; --gold-deep:#C9A350; --red:#E64530;
+  --line:rgba(244,239,230,0.10); --line-hi:rgba(244,239,230,0.18);
+  --glass-1:rgba(244,239,230,0.025); --glass-2:rgba(244,239,230,0.05);
+  --serif:'Instrument Serif','Times New Roman',serif;
+  --sans:'Geist','Inter',system-ui,sans-serif;
+  --mono:'Geist Mono','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--ink);color:var(--bone);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;}
+.bg-fx{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(80% 60% at 8% 0%,rgba(232,193,112,0.05),transparent 60%),
+    radial-gradient(80% 60% at 95% 98%,rgba(230,69,48,0.03),transparent 60%);}
+.wrap{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:30px 36px 90px;}
+
+/* top bar: facility co-brand + back to app */
+.topbar{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;margin-bottom:36px;border:1px solid var(--line);
+  border-radius:100px;background:var(--glass-1);font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.14em;color:var(--bone-mute);}
+.cobrand{display:flex;align-items:center;gap:12px;}
+.cobrand .fac{color:var(--bone);font-weight:700;letter-spacing:.20em;text-transform:uppercase;}
+.cobrand .by{color:var(--bone-faint);}
+.cobrand .by b{color:var(--gold-deep);font-weight:600;}
+.topbar .right{display:flex;gap:18px;color:var(--bone-dim);}
+
+/* hero */
+.hero{margin-bottom:34px;}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+.hero h1{font-family:var(--serif);font-weight:400;line-height:1.0;
+  font-size:clamp(3rem,6vw,4.8rem);letter-spacing:-.028em;margin-bottom:14px;}
+.hero h1 .ital{font-style:italic;color:var(--gold);}
+.hero p{font-size:1.02rem;line-height:1.55;color:var(--bone-dim);max-width:62ch;}
+
+/* summary strip */
+.summary{display:flex;margin:26px 0 44px;padding:16px 24px;border:1px solid var(--line);
+  border-radius:14px;background:var(--glass-1);}
+.cell{flex:1;padding:0 16px;border-right:1px solid var(--line);}
+.cell:last-child{border-right:none;}
+.cell .lab{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.20em;
+  text-transform:uppercase;color:var(--bone-mute);margin-bottom:6px;}
+.cell .val{font-family:var(--sans);font-weight:500;font-size:1.5rem;line-height:1;letter-spacing:-.01em;}
+.cell .val.accent{color:var(--gold);font-family:var(--mono);letter-spacing:.08em;font-size:1.3rem;}
+.cell .sub{font-size:.82rem;color:var(--bone-dim);margin-top:5px;}
+
+/* controls */
+.controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;gap:16px;}
+.search{flex:1;max-width:340px;padding:11px 16px;border:1px solid var(--line-hi);border-radius:100px;
+  background:var(--glass-1);color:var(--bone-mute);font-family:var(--mono);font-size:11px;letter-spacing:.10em;}
+.seg{display:flex;gap:6px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;}
+.seg span{padding:8px 14px;border:1px solid var(--line);border-radius:100px;color:var(--bone-mute);cursor:pointer;}
+.seg span.on{background:var(--bone);color:var(--ink);border-color:var(--bone);}
+
+/* team section */
+.team{margin-bottom:14px;}
+.team-head{display:flex;align-items:center;gap:14px;padding:14px 4px 18px;cursor:pointer;}
+.team-head .chev{color:var(--gold);font-size:.9rem;}
+.team-head h2{font-family:var(--serif);font-size:1.85rem;font-weight:400;letter-spacing:-.02em;}
+.team-head .count{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;
+  color:var(--bone-mute);border:1px solid var(--line);border-radius:100px;padding:4px 11px;}
+.team-head .code{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--bone-faint);}
+.team-head .code b{color:var(--gold);}
+.team-head .private-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--gold);border:1px solid rgba(232,193,112,.32);border-radius:100px;padding:3px 9px;}
+
+/* card grid */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:30px;}
+@media(max-width:940px){.grid{grid-template-columns:1fr;}}
+.card{position:relative;padding:24px 24px 20px;border:1px solid var(--line);border-radius:18px;
+  background:radial-gradient(80% 50% at 50% 0%,rgba(232,193,112,.04),transparent 70%),var(--glass-1);
+  transition:.24s;}
+.card:hover{border-color:var(--line-hi);transform:translateY(-3px);box-shadow:0 18px 46px rgba(0,0,0,.45);}
+.card.stale{background:radial-gradient(80% 50% at 50% 0%,rgba(230,69,48,.04),transparent 70%),var(--glass-1);}
+.ctop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:10px;}
+.ident{display:flex;align-items:center;gap:13px;}
+.avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-style:italic;font-size:1.45rem;font-weight:500;flex:0 0 auto;
+  background:linear-gradient(135deg,var(--gold),var(--gold-deep));color:#1a1206;border:1px solid rgba(232,193,112,.4);}
+.avatar.b{background:linear-gradient(135deg,#7a9bb8,#4d6b88);color:#f4f6f8;border-color:rgba(122,155,184,.4);}
+.avatar.w{background:linear-gradient(135deg,#b88a7a,#885d4d);color:#f8f4f2;border-color:rgba(184,138,122,.4);}
+.avatar.m{background:linear-gradient(135deg,var(--ink-elev),#2a2c33);color:var(--bone-dim);border-color:var(--line-hi);}
+.name{font-family:var(--serif);font-size:1.55rem;line-height:1.05;}
+.meta{font-family:var(--mono);font-size:10px;letter-spacing:.10em;color:var(--bone-mute);margin-top:4px;}
+.badge{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  padding:5px 9px;border-radius:100px;white-space:nowrap;}
+.badge.today{background:rgba(232,193,112,.14);color:var(--gold);}
+.badge.recent{background:var(--glass-2);color:var(--bone-dim);}
+.badge.stale{background:rgba(230,69,48,.16);color:var(--red);}
+.verdict{font-family:var(--serif);font-style:italic;font-size:1.12rem;line-height:1.35;margin:12px 0;}
+.verdict.mute{color:var(--bone-mute);}
+.latest{display:flex;align-items:baseline;gap:14px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:12px;}
+.score{font-family:var(--serif);font-style:italic;font-size:2.7rem;line-height:1;letter-spacing:-.035em;}
+.smeta{flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+.smeta .l{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-mute);}
+.delta{font-family:var(--mono);font-size:11px;font-weight:600;}
+.delta.up{color:var(--gold);}.delta.down{color:var(--bone-mute);}.delta.flat{color:var(--bone-mute);}
+.spark{width:100%;height:34px;display:block;margin-bottom:12px;}
+.fix{display:flex;gap:8px;font-size:.9rem;line-height:1.4;color:var(--bone-dim);margin-bottom:16px;}
+.fix .k{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.20em;color:var(--gold);padding-top:2px;flex:0 0 auto;}
+.fix b{color:var(--bone);font-weight:500;}
+.btn{display:block;width:100%;text-align:center;padding:11px;border-radius:100px;background:var(--bone);color:var(--ink);
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.20em;text-transform:uppercase;text-decoration:none;
+  border:none;cursor:pointer;transition:.2s;box-shadow:0 12px 28px -16px rgba(244,239,230,.4);}
+.btn:hover{background:var(--gold);color:#1a1206;}
+.btn.ghost{background:transparent;color:var(--bone);border:1px solid var(--line-hi);box-shadow:none;margin-bottom:8px;}
+.btn.ghost:hover{background:var(--bone);color:var(--ink);}
+
+.foot{text-align:center;max-width:560px;margin:40px auto 0;font-family:var(--serif);font-style:italic;
+  font-size:1rem;color:var(--bone-mute);}
+</style>
+</head>
+<body>
+<div class="bg-fx"></div>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="cobrand">
+      <span class="fac">⬡ HITZ ACADEMY</span>
+      <span class="by">powered by <b>BarrelLabs</b></span>
+    </div>
+    <div class="right"><span>Coach · Logan</span><span>Manage facility ▸</span></div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">Facility roster</div>
+    <h1>Hitz Academy's <span class="ital">lab.</span></h1>
+    <p>Every hitter in your facility — by team, plus your private clients. Latest Swing Score,
+       who's trending, who's gone quiet. Tap any hitter to pull up their full report mid-lesson.</p>
+  </div>
+
+  <div class="summary">
+    <div class="cell"><div class="lab">Roster</div><div class="val">48</div><div class="sub">hitters across 2 teams</div></div>
+    <div class="cell"><div class="lab">Active</div><div class="val">31</div><div class="sub">filmed this week</div></div>
+    <div class="cell"><div class="lab">Needs attention</div><div class="val">6</div><div class="sub">quiet 10+ days</div></div>
+    <div class="cell"><div class="lab">Avg score</div><div class="val">74</div><div class="sub">facility, last 7 days</div></div>
+    <div class="cell"><div class="lab">Top mover</div><div class="val" style="font-family:var(--serif);font-style:italic;">Johnny R.</div><div class="sub">+9 this week</div></div>
+  </div>
+
+  <div class="controls">
+    <div class="search">⌕  Filter hitters by name…</div>
+    <div class="seg"><span class="on">Needs attention first</span><span>Top score</span><span>A–Z</span></div>
+  </div>
+
+  <!-- TEAM 1 -->
+  <div class="team">
+    <div class="team-head">
+      <span class="chev">▾</span><h2>14U Select</h2><span class="count">15 HITTERS</span>
+      <span class="code">JOIN CODE · <b>HX-14U</b></span>
+    </div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar">J</div>
+          <div><div class="name">Johnny R.</div><div class="meta">14 · SS · R</div></div></div>
+          <div class="badge today">● Today</div></div>
+        <div class="verdict">Best swing <span style="color:var(--gold)">this week.</span></div>
+        <div class="latest"><div class="score">82</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta up">Jun 5 · ▲ +9</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,28 40,26 80,22 120,20 160,16 200,12 240,8"/><circle cx="240" cy="8" r="3.5" fill="#E8C170" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Hips firing late</b> — get the lower half started before the hands.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar b">M</div>
+          <div><div class="name">Marcus T.</div><div class="meta">14 · 3B · R</div></div></div>
+          <div class="badge recent">2 days</div></div>
+        <div class="verdict">Holding steady. <span class="mute">Building up.</span></div>
+        <div class="latest"><div class="score">77</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta flat">Jun 3 · +1</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,18 40,20 80,16 120,19 160,17 200,18 240,16"/><circle cx="240" cy="16" r="3.5" fill="#C8C4BB" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Bat path</b> — slightly steep; work the on-plane drill.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card stale">
+        <div class="ctop"><div class="ident"><div class="avatar m">T</div>
+          <div><div class="name">Tyler K.</div><div class="meta">13 · C · R</div></div></div>
+          <div class="badge stale">14 days</div></div>
+        <div class="verdict mute">Hasn't filmed in 14 days.</div>
+        <div class="latest"><div class="score">68</div><div class="smeta"><div class="l">Last swing</div>
+          <div class="delta down">May 22 · —</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.22)" stroke-width="1.5" stroke-linecap="round" points="0,14 40,16 80,18 120,20 160,22 200,24 240,24"/><circle cx="240" cy="24" r="3.5" fill="rgba(244,239,230,.42)" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <a class="btn ghost">Nudge Tyler</a>
+        <a class="btn">View Report →</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TEAM 2 -->
+  <div class="team">
+    <div class="team-head">
+      <span class="chev">▾</span><h2>12U Travel</h2><span class="count">14 HITTERS</span>
+      <span class="code">JOIN CODE · <b>HX-12U</b></span>
+    </div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar w">M</div>
+          <div><div class="name">Maria L.</div><div class="meta">11 · OF · L</div></div></div>
+          <div class="badge today">● Today</div></div>
+        <div class="verdict">Trending up — <span style="color:var(--gold)">+4 since last.</span></div>
+        <div class="latest"><div class="score">74</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta up">Jun 5 · ▲ +4</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,24 40,22 80,23 120,18 160,19 200,15 240,13"/><circle cx="240" cy="13" r="3.5" fill="#E8C170" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Stride direction</b> — keep it to the pitcher, not the plate.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar">D</div>
+          <div><div class="name">Diego S.</div><div class="meta">12 · 2B · R</div></div></div>
+          <div class="badge recent">3 days</div></div>
+        <div class="verdict">Best swing <span style="color:var(--gold)">this week.</span></div>
+        <div class="latest"><div class="score">79</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta up">Jun 2 · ▲ +6</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,26 40,24 80,20 120,21 160,16 200,14 240,11"/><circle cx="240" cy="11" r="3.5" fill="#E8C170" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Head still</b> — staying quiet through contact, keep it up.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar b">A</div>
+          <div><div class="name">Aiden P.</div><div class="meta">11 · SS · L</div></div></div>
+          <div class="badge recent">5 days</div></div>
+        <div class="verdict mute">Slipping — <span class="mute">was 72 last week.</span></div>
+        <div class="latest"><div class="score">69</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta down">May 31 · ▼ -3</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,14 40,13 80,15 120,17 160,16 200,20 240,22"/><circle cx="240" cy="22" r="3.5" fill="#C8C4BB" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Sequence</b> — hands beating the hips again; reset the load.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PRIVATE CLIENTS -->
+  <div class="team">
+    <div class="team-head">
+      <span class="chev">▾</span><h2>Private clients</h2><span class="count">9 HITTERS</span>
+      <span class="private-tag">Your 1-on-1s</span>
+      <span class="code" style="margin-left:14px;">across 2 teams + 3 outside</span>
+    </div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar">J</div>
+          <div><div class="name">Johnny R.</div><div class="meta">14 · SS · R · also 14U</div></div></div>
+          <div class="badge today">● Today</div></div>
+        <div class="verdict">Best swing <span style="color:var(--gold)">this week.</span></div>
+        <div class="latest"><div class="score">82</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta up">Jun 5 · ▲ +9</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,28 40,26 80,22 120,20 160,16 200,12 240,8"/><circle cx="240" cy="8" r="3.5" fill="#E8C170" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Hips firing late</b> — what you drilled Tuesday is showing up.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar w">S</div>
+          <div><div class="name">Sofia R.</div><div class="meta">15 · OF · R · private only</div></div></div>
+          <div class="badge recent">1 day</div></div>
+        <div class="verdict">Trending up — <span style="color:var(--gold)">+5 since last.</span></div>
+        <div class="latest"><div class="score">85</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta up">Jun 4 · ▲ +5</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,22 40,20 80,18 120,15 160,14 200,10 240,7"/><circle cx="240" cy="7" r="3.5" fill="#E8C170" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Barrel control</b> — elite; start chasing exit-velo gains.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+      <div class="card">
+        <div class="ctop"><div class="ident"><div class="avatar b">C</div>
+          <div><div class="name">Caleb M.</div><div class="meta">13 · 1B · L · private only</div></div></div>
+          <div class="badge recent">4 days</div></div>
+        <div class="verdict">Holding steady. <span class="mute">Building up.</span></div>
+        <div class="latest"><div class="score">72</div><div class="smeta"><div class="l">Latest swing</div>
+          <div class="delta flat">Jun 1 · +2</div></div></div>
+        <svg class="spark" viewBox="0 0 240 34" preserveAspectRatio="none"><polyline fill="none" stroke="rgba(244,239,230,.3)" stroke-width="1.5" stroke-linecap="round" points="0,20 40,19 80,21 120,18 160,20 200,17 240,18"/><circle cx="240" cy="18" r="3.5" fill="#C8C4BB" stroke="#0A0B0E" stroke-width="2"/></svg>
+        <div class="fix"><div class="k">ASK</div><div><b>Front-side</b> — staying closed longer; reinforce it.</div></div>
+        <a class="btn">View Report →</a>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="foot">Every hitter, every team, one lab — co-branded to your academy.</div>
+
+</div>
+</body>
+</html>
