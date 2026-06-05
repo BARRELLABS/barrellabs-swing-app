@@ -379,8 +379,8 @@
       "id": "img_8436",
       "ground_truth": {
         "stride_style": "standard_stride",
-        "final_plant_frame": 52,
-        "contact_frame": 57,
+        "final_plant_frame": 53,
+        "contact_frame": 58,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -482,7 +482,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 678,
-        "contact_frame": 765,
+        "contact_frame": 760,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -516,7 +516,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 696,
-        "contact_frame": 821,
+        "contact_frame": 838,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -533,7 +533,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 384,
-        "contact_frame": 501,
+        "contact_frame": 497,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -550,7 +550,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 672,
-        "contact_frame": 749,
+        "contact_frame": 764,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -567,7 +567,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 973,
-        "contact_frame": 1200,
+        "contact_frame": 1185,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -584,7 +584,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 370,
-        "contact_frame": 394,
+        "contact_frame": 402,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -652,7 +652,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 473,
-        "contact_frame": 566,
+        "contact_frame": 572,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -669,7 +669,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 630,
-        "contact_frame": 700,
+        "contact_frame": 693,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -686,7 +686,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 770,
-        "contact_frame": 944,
+        "contact_frame": 948,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -703,7 +703,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 164,
-        "contact_frame": 204,
+        "contact_frame": 210,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -720,7 +720,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 875,
-        "contact_frame": 954,
+        "contact_frame": 956,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -737,7 +737,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 1037,
-        "contact_frame": 1341,
+        "contact_frame": 1317,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -788,7 +788,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 277,
-        "contact_frame": 356,
+        "contact_frame": 373,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -839,7 +839,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 386,
-        "contact_frame": 405,
+        "contact_frame": 413,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null
@@ -856,7 +856,7 @@
       "ground_truth": {
         "stride_style": "standard_stride",
         "final_plant_frame": 550,
-        "contact_frame": 641,
+        "contact_frame": 631,
         "camera_view": "profile",
         "real_time": true,
         "rotation_onset_frame": null

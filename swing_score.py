@@ -32,14 +32,24 @@ def score_sequence(lag_ms: Optional[float], bracket: str) -> Optional[float]:
 _STAB_WIDEN = {"8-10": 0.10, "11-12": 0.05, "13-14": 0.0, "15-17": 0.0}
 
 def score_stability(total_drift_torso: Optional[float], bracket: str) -> Optional[float]:
-    """Lower head drift = better. Re-anchored on the pro distribution: every MLB
-    reference sits below 0.09T, so the old good=0.15 handed a perfect score to
-    worse-than-pro amateurs (zero discrimination). good <= 0.05T (+widen) is
-    elite; ~0 by 0.45T (a clear head lurch)."""
+    """Lower head drift = better. Anchored on the corrected MLB pro distribution
+    (2026-06-05, after the head-drift metric was fixed to use the ear-midpoint
+    instead of the rotation-sweeping nose — see detect_phases.py). Corrected
+    pros: median 0.048T, 14/17 < 0.09T, max 0.136T (3 hard-rotators carry a
+    residual shoulder-anchor/rotation artifact, NOT real lurch). So:
+      good <= 0.07T (+widen) is elite (clean pros score ~1.0; lindor 0.089 -> 0.92);
+      ~0 by 0.30T. The old bad=0.45 was so loose an amateur needed ~half a torso
+      of drift to score 0 -- collapsing discrimination; 0.30 separates a genuine
+      head lurch while the 3 residual pros land a fair ~0.74.
+    CAVEAT (Logan): bad=0.30 should be validated against real amateur head-lurch
+    clips. The residual on 3 hard-rotators (~0.12-0.14) is an INHERENT single-
+    phone-camera limitation, not a fixable bug — 2D ear-mid, hip/absolute anchors,
+    and 3D world landmarks were all tested (scripts/evaluate_head_*.py); ear-mid+
+    shoulder-anchor won, and the threshold bounds the residual fairly (0.71-0.80)."""
     if total_drift_torso is None:
         return None
     w = _STAB_WIDEN.get(bracket, 0.0)
-    return _ramp(abs(total_drift_torso), good=0.05 + w, bad=0.45 + w)
+    return _ramp(abs(total_drift_torso), good=0.07 + w, bad=0.30 + w)
 
 
 def score_timing(load_ms, launch_to_contact_ms, bracket: str) -> Optional[float]:

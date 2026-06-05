@@ -32,6 +32,16 @@ def test_stability_mediocre_amateur_not_full():
 def test_stability_big_drift_low():
     assert score_stability(0.7, "13-14") < 0.2
 
+def test_stability_reanchor_2026_06_05():
+    """After the ear-midpoint head-drift fix + re-anchor (good=0.07, bad=0.30):
+    clean pros score ~1.0, a hard-rotator pro (~0.09T, lindor) still scores well,
+    a residual-artifact pro (~0.13T) is lightly penalized (~0.7), and a genuine
+    amateur lurch (~0.30T+) collapses toward 0."""
+    assert score_stability(0.048, "13-14") == pytest.approx(1.0, abs=0.01)   # median pro
+    assert score_stability(0.089, "13-14") > 0.85                            # lindor (corrected)
+    assert 0.65 < score_stability(0.13, "13-14") < 0.85                      # residual pro
+    assert score_stability(0.30, "13-14") == pytest.approx(0.0, abs=0.01)    # amateur lurch
+
 def test_timing_balanced_tempo_high():
     assert score_timing(load_ms=400, launch_to_contact_ms=150, bracket="13-14") > 0.7
 

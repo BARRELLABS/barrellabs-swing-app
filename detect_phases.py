@@ -99,6 +99,7 @@ OUTPUT_DETECTOR_V4_DEBUG = f"{_base}_detector_v4.json"
 # ----------------
 
 NOSE = 0
+LEFT_EAR, RIGHT_EAR = 7, 8
 LEFT_SHOULDER, RIGHT_SHOULDER = 11, 12
 LEFT_HIP, RIGHT_HIP = 23, 24
 LEFT_KNEE, RIGHT_KNEE = 25, 26
@@ -184,7 +185,18 @@ while True:
         def pt(idx):
             return (lm[idx].x * width, lm[idx].y * height)
 
-        head_x, head_y = pt(NOSE)
+        # Head reference = EAR-MIDPOINT, not the nose. The nose projects
+        # forward of the skull, so it sweeps a large arc as the batter ROTATES
+        # through the swing — the old nose-based head_x counted that rotation as
+        # "head drift" and over-penalized hard rotators (lindor read 0.26 torso,
+        # mookie 0.15, almost all rotation not lurch). The ear-midpoint sits on
+        # the head's rotation axis, so it barely moves during rotation while
+        # still capturing genuine head TRANSLATION (the real stability signal).
+        # Validated on the 17 MLB refs + controls (scripts/evaluate_head_centers.py):
+        # lindor 0.257->0.089, yandy 0.125->0.052; phone controls unchanged.
+        _l_ear, _r_ear = pt(LEFT_EAR), pt(RIGHT_EAR)
+        head_x = (_l_ear[0] + _r_ear[0]) / 2.0
+        head_y = (_l_ear[1] + _r_ear[1]) / 2.0
         left_hip = pt(LEFT_HIP)
         right_hip = pt(RIGHT_HIP)
         left_shoulder = pt(LEFT_SHOULDER)
