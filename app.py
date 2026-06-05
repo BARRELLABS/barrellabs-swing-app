@@ -2602,7 +2602,10 @@ def _render_billing_page():
                     "</div>",
                     unsafe_allow_html=True,
                 )
-                beta_cols = st.columns([3, 1])
+                # bottom-align so the Redeem button lines up with the input
+                # (a collapsed-label input next to a button otherwise sits lower,
+                # making the button look like it overlaps the field).
+                beta_cols = st.columns([3, 1], vertical_alignment="bottom")
                 code_input = beta_cols[0].text_input(
                     "Beta code",
                     key="billing_beta_code_input",
