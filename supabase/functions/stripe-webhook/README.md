@@ -9,20 +9,15 @@ Two files:
 - `index.ts` — the Edge Function (verifies Stripe's signature, calls the RPC).
 - `../../migrations/2026_06_05_stripe_webhook_sync.sql` — the `apply_stripe_subscription` RPC.
 
-## Step 0 — CONFIRM the schema (the one thing that could be wrong)
-The `subscriptions` table was hand-created (not in migration history), so **open
-the migration and check the column names match your real table** (`owner_user_id`,
-`plan_id`, `status`, `stripe_customer_id`, `stripe_subscription_id`,
-`current_period_end`, `cancel_at_period_end`). If any differ, fix them in the SQL
-only — the Edge Function is generic and won't need changes.
-
-> Easiest way to confirm: in Supabase SQL editor run
-> `select column_name from information_schema.columns where table_name='subscriptions';`
-> (or ask me to do it via the Supabase MCP once it's connected).
+## Step 0 — schema VERIFIED ✓
+The `subscriptions` / `subscription_seats` schema and the `v_my_plan` resolution
+were verified live via the Supabase MCP (2026-06-05). The RPC matches the real
+columns and creates the owner seat that `v_my_plan` requires. No guesswork left.
 
 ## Step 1 — Apply the RPC migration
-Via the Supabase MCP (how prod migrations are applied here) or the SQL editor:
-paste `2026_06_05_stripe_webhook_sync.sql` and run it.
+Applied via the Supabase MCP (or paste `2026_06_05_stripe_webhook_sync.sql` into
+the SQL editor). It only adds the `apply_stripe_subscription` function — additive,
+touches no existing data.
 
 ## Step 2 — Deploy the Edge Function
 ```bash

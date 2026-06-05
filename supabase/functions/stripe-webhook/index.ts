@@ -37,20 +37,24 @@ function ids(sub: Stripe.Subscription): { userId: string | null; planId: string 
   return { userId: m.bl_user_id || null, planId: m.bl_plan_id || null };
 }
 
-// Upsert the subscriptions row from a Stripe subscription object.
+// Upsert the subscriptions row (+ owner seat) from a Stripe subscription object.
+// The RPC handles the cancel-downgrade (via status) and owner-seat creation.
 async function syncSubscription(sub: Stripe.Subscription, statusOverride?: string) {
   const { userId, planId } = ids(sub);
   if (!userId) {
     console.warn(`sub ${sub.id}: no bl_user_id metadata — skipping`);
     return;
   }
+  const s = sub as any; // period fields' TS types vary by API version
   const { error } = await supabase.rpc("apply_stripe_subscription", {
     p_user_id: userId,
     p_plan_id: planId,
     p_status: statusOverride ?? sub.status, // active|trialing|past_due|canceled|...
+    p_billing_interval: sub.metadata?.bl_interval || null,
     p_stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
     p_stripe_subscription_id: sub.id,
-    p_current_period_end: iso((sub as any).current_period_end),
+    p_current_period_start: iso(s.current_period_start),
+    p_current_period_end: iso(s.current_period_end),
     p_cancel_at_period_end: sub.cancel_at_period_end ?? false,
   });
   if (error) {
