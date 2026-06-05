@@ -653,7 +653,17 @@ def render_pricing_page() -> None:
     # Keep bl_theme so the broader Streamlit chrome (sidebar, top bar) is
     # consistent. Then layer the editorial pricing CSS on top.
     inject_global_theme()
-    st.markdown(_PRICING_CSS, unsafe_allow_html=True)
+    # Inject the <link> font imports and the <style> block as TWO separate
+    # markdown calls. In one string the leading <link> starts a CommonMark
+    # "type 6" HTML block that TERMINATES at the first blank line inside the
+    # CSS — leaking everything after it onto the page as raw text, with the
+    # styles never applying (this was the "page shows raw CSS / looks basic"
+    # bug). Starting the second call with <style> makes it a "type 1" block
+    # that runs to </style> regardless of blank lines — same as the family
+    # dashboard CSS, which always worked because it starts with <style>.
+    _css_head, _css_style = _PRICING_CSS.split("<style>", 1)
+    st.markdown(_css_head, unsafe_allow_html=True)
+    st.markdown("<style>" + _css_style, unsafe_allow_html=True)
     # Ambient lighting + grain layers behind everything (fixed-position).
     st.markdown('<div class="pr-bg"></div><div class="pr-grain"></div>',
                 unsafe_allow_html=True)
