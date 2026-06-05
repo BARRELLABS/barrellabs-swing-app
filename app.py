@@ -3981,12 +3981,13 @@ st.markdown("""
 <style>
 .bl-up-hero {
     position: relative;
-    border-radius: 24px;
-    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--bl-radius-lg);
+    border: 1px solid var(--bl-line);
     background:
-        radial-gradient(ellipse at 85% -15%, rgba(255,59,48,0.12) 0%, transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.012));
-    padding: 2rem 2.2rem 1.6rem 2.2rem;
+        radial-gradient(ellipse at 85% -15%, rgba(230,69,48,0.11) 0%, transparent 55%),
+        radial-gradient(ellipse at 10% 130%, rgba(232,193,112,0.05) 0%, transparent 50%),
+        linear-gradient(180deg, rgba(244,239,230,0.025), rgba(244,239,230,0.010));
+    padding: 2.2rem 2.4rem 1.9rem 2.4rem;
     margin-bottom: 1.2rem;
     overflow: hidden;
 }
@@ -3999,21 +4000,21 @@ st.markdown("""
             45deg,
             transparent 0,
             transparent 22px,
-            rgba(255,255,255,0.012) 22px,
-            rgba(255,255,255,0.012) 44px
+            rgba(244,239,230,0.012) 22px,
+            rgba(244,239,230,0.012) 44px
         );
     pointer-events: none;
     z-index: 0;
 }
 .bl-up-hero > * { position: relative; z-index: 1; }
 .bl-up-eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.66rem;
     letter-spacing: 0.26em;
-    color: #FF3B30;
-    font-weight: 700;
+    color: var(--red);
+    font-weight: 600;
     text-transform: uppercase;
-    margin-bottom: 0.85rem;
+    margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 0.55rem;
@@ -4023,8 +4024,8 @@ st.markdown("""
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #FF3B30;
-    box-shadow: 0 0 10px rgba(255,59,48,0.7);
+    background: var(--red);
+    box-shadow: 0 0 10px rgba(230,69,48,0.7);
     animation: bl-up-pulse 2s ease-in-out infinite;
 }
 @keyframes bl-up-pulse {
@@ -4032,16 +4033,17 @@ st.markdown("""
     50%      { opacity: 0.55; transform: scale(0.85); }
 }
 .bl-up-title {
-    font-size: 2.45rem;
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 1.05;
-    color: #fafafa;
-    margin-bottom: 0.55rem;
+    font-family: var(--serif);
+    font-size: 3.1rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+    color: var(--bone);
+    margin-bottom: 0.7rem;
 }
-.bl-up-title .accent { color: #FF3B30; }
+.bl-up-title .accent { font-style: italic; color: var(--gold); }
 .bl-up-sub {
-    color: #a3a3a3;
+    color: var(--bl-ink-60);
     font-size: 1.02rem;
     line-height: 1.55;
     max-width: 620px;
@@ -4050,77 +4052,111 @@ st.markdown("""
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    margin-top: 1.1rem;
+    margin-top: 1.2rem;
 }
 .bl-up-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 999px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.09);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: rgba(244,239,230,0.035);
+    border: 1px solid var(--bl-line);
+    font-family: var(--mono);
     font-size: 0.62rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    font-weight: 600;
-    color: #d4d4d4;
+    font-weight: 500;
+    color: var(--bone-dim);
 }
 .bl-up-chip-num {
-    color: #FF3B30;
-    font-weight: 800;
+    color: var(--red);
+    font-weight: 700;
 }
+/* Payoff strip — shown to first-time users in place of the empty stat chips
+   ("0 Swings Analyzed / — Last Score" reads sad on a brand-new account). */
+.bl-up-payoff {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.85rem;
+    margin-top: 1.4rem;
+    padding-top: 1.3rem;
+    border-top: 1px solid var(--bl-line);
+}
+.bl-up-payoff-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bl-ink-60);
+    font-weight: 500;
+}
+.bl-up-payoff-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--bone);
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+.bl-up-payoff-item .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(232,193,112,0.55);
+}
+.bl-up-payoff-sep { color: var(--bl-ink-40); }
 
-/* Tips card grid */
+/* How-it-works step rail (Film → Drop → Report) */
 .bl-up-tips {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 1.4rem;
 }
-@media (max-width: 900px) {
-    .bl-up-tips { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 760px) {
+    .bl-up-tips { grid-template-columns: 1fr; }
 }
 .bl-up-tip {
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.01));
-    padding: 0.95rem 1rem;
-    transition: all 0.2s ease;
+    border-radius: var(--bl-radius-md);
+    border: 1px solid var(--bl-line);
+    background: linear-gradient(180deg, rgba(244,239,230,0.025), rgba(244,239,230,0.008));
+    padding: 1.15rem 1.2rem;
+    transition: all 0.22s cubic-bezier(.2,.7,.2,1);
 }
 .bl-up-tip:hover {
-    border-color: rgba(255,59,48,0.25);
-    background: linear-gradient(180deg, rgba(255,59,48,0.04), rgba(255,255,255,0.012));
+    border-color: var(--bl-line-hi);
+    background: linear-gradient(180deg, rgba(230,69,48,0.05), rgba(244,239,230,0.012));
+    transform: translateY(-2px);
 }
 .bl-up-tip-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: rgba(255,59,48,0.10);
-    border: 1px solid rgba(255,59,48,0.22);
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(230,69,48,0.10);
+    border: 1px solid rgba(230,69,48,0.22);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: #FF3B30;
-    margin-bottom: 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--red);
+    margin-bottom: 0.7rem;
 }
 .bl-up-tip-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.62rem;
     letter-spacing: 0.22em;
-    color: #FF3B30;
+    color: var(--red);
     text-transform: uppercase;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
 }
 .bl-up-tip-body {
-    color: #d4d4d4;
-    font-size: 0.84rem;
-    line-height: 1.4;
+    color: var(--bone-dim);
+    font-size: 0.88rem;
+    line-height: 1.5;
 }
 
 /* Drop zone framing — the actual st.file_uploader is wrapped in a custom
@@ -4129,45 +4165,46 @@ st.markdown("""
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.7rem;
 }
 .bl-up-dropzone-num {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.6rem;
     letter-spacing: 0.24em;
-    color: #FF3B30;
-    font-weight: 700;
+    color: var(--red);
+    font-weight: 600;
     text-transform: uppercase;
 }
 .bl-up-dropzone-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #fafafa;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--bone);
     letter-spacing: -0.01em;
+    margin-top: 0.15rem;
 }
 .bl-up-dropzone-meta {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: var(--mono);
     font-size: 0.6rem;
     letter-spacing: 0.2em;
-    color: #8b8b8b;
+    color: var(--bl-ink-60);
     text-transform: uppercase;
 }
 
 /* Style the native Streamlit file uploader to feel premium. */
 section[data-testid="stFileUploaderDropzone"] {
-    border-radius: 18px !important;
-    border: 1.5px dashed rgba(255,255,255,0.13) !important;
+    border-radius: var(--bl-radius-md) !important;
+    border: 1.5px dashed var(--bl-line-hi) !important;
     background:
-        radial-gradient(ellipse at 50% 0%, rgba(255,59,48,0.06) 0%, transparent 65%),
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)) !important;
-    padding: 1.6rem 1.4rem !important;
+        radial-gradient(ellipse at 50% 0%, rgba(230,69,48,0.06) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(244,239,230,0.02), rgba(244,239,230,0.006)) !important;
+    padding: 1.8rem 1.4rem !important;
     transition: all 0.2s ease;
 }
 section[data-testid="stFileUploaderDropzone"]:hover {
-    border-color: rgba(255,59,48,0.45) !important;
+    border-color: rgba(230,69,48,0.45) !important;
     background:
-        radial-gradient(ellipse at 50% 0%, rgba(255,59,48,0.10) 0%, transparent 65%),
-        linear-gradient(180deg, rgba(255,59,48,0.04), rgba(255,255,255,0.012)) !important;
+        radial-gradient(ellipse at 50% 0%, rgba(230,69,48,0.10) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(230,69,48,0.04), rgba(244,239,230,0.012)) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -4179,17 +4216,36 @@ _latest_score_chip = _swing_history_for_chips[-1].get("score", "—") if _swing_
 _latest_comp_chip = _swing_history_for_chips[-1].get("reference_name", "—") if _swing_history_for_chips else "—"
 
 # ===== Premium hero =====
-st.markdown(f"""
-<div class="bl-up-hero">
-  <div class="bl-up-eyebrow"><span class="bl-up-eyebrow-dot"></span>Performance Lab · Swing Analyzer</div>
-  <div class="bl-up-title">Analyze your <span class="accent">next swing.</span></div>
-  <div class="bl-up-sub">Drop in one clip and BarrelLabs SwingAI will pose-track every frame, compare it against the MLB reference library, and return a full premium report with a personalized drill plan.</div>
+# First-time users (no swing history yet) see a "what you'll get" payoff strip;
+# returning users see their live stat chips. Empty "0 / —" chips read sad on a
+# brand-new account, so we promise the reward instead.
+if _total_swings == 0:
+    _hero_meta = """
+  <div class="bl-up-payoff">
+    <span class="bl-up-payoff-label">What you'll get</span>
+    <span class="bl-up-payoff-item"><span class="dot"></span>Closest MLB match</span>
+    <span class="bl-up-payoff-sep">·</span>
+    <span class="bl-up-payoff-item"><span class="dot"></span>Your top 3 fixes</span>
+    <span class="bl-up-payoff-sep">·</span>
+    <span class="bl-up-payoff-item"><span class="dot"></span>Personalized drill plan</span>
+    <span class="bl-up-payoff-sep">·</span>
+    <span class="bl-up-payoff-item"><span class="dot"></span>In ~30s</span>
+  </div>"""
+else:
+    _hero_meta = f"""
   <div class="bl-up-chip-row">
     <div class="bl-up-chip"><span class="bl-up-chip-num">{_total_swings}</span> Swings Analyzed</div>
     <div class="bl-up-chip"><span class="bl-up-chip-num">{_latest_score_chip}</span> Last Score</div>
     <div class="bl-up-chip">Last vs · {_latest_comp_chip}</div>
     <div class="bl-up-chip"><span class="bl-up-chip-num">~30s</span> Analysis Time</div>
-  </div>
+  </div>"""
+
+st.markdown(f"""
+<div class="bl-up-hero">
+  <div class="bl-up-eyebrow"><span class="bl-up-eyebrow-dot"></span>Performance Lab · Swing Analyzer</div>
+  <div class="bl-up-title">Analyze your <span class="accent">next swing.</span></div>
+  <div class="bl-up-sub">Drop in one clip and BarrelLabs SwingAI will pose-track every frame, compare it against the MLB reference library, and return a full premium report with a personalized drill plan.</div>
+{_hero_meta}
 </div>
 """, unsafe_allow_html=True)
 
@@ -4221,28 +4277,23 @@ if _os.path.exists(_sample_path):
         unsafe_allow_html=True,
     )
 
-# ===== Recording tips =====
+# ===== How it works — 3-step rail (Film → Drop → Report) =====
 st.markdown("""
 <div class="bl-up-tips">
   <div class="bl-up-tip">
-    <div class="bl-up-tip-icon">◧</div>
-    <div class="bl-up-tip-label">ANGLE</div>
-    <div class="bl-up-tip-body">Film from the side, perpendicular to the pitcher.</div>
+    <div class="bl-up-tip-icon">1</div>
+    <div class="bl-up-tip-label">Film</div>
+    <div class="bl-up-tip-body">Side angle, full body in frame, one swing. 3–6 seconds in bright, even light.</div>
   </div>
   <div class="bl-up-tip">
-    <div class="bl-up-tip-icon">◉</div>
-    <div class="bl-up-tip-label">FRAME</div>
-    <div class="bl-up-tip-body">Full body in shot, ~10ft away, hips centered.</div>
+    <div class="bl-up-tip-icon">2</div>
+    <div class="bl-up-tip-label">Drop</div>
+    <div class="bl-up-tip-body">Drop the clip in the box below — straight from your phone is perfect. MP4 or MOV.</div>
   </div>
   <div class="bl-up-tip">
-    <div class="bl-up-tip-icon">☀</div>
-    <div class="bl-up-tip-label">LIGHTING</div>
-    <div class="bl-up-tip-body">Even daylight or bright cage lights — no backlighting.</div>
-  </div>
-  <div class="bl-up-tip">
-    <div class="bl-up-tip-icon">▶</div>
-    <div class="bl-up-tip-label">CLIP</div>
-    <div class="bl-up-tip-body">One full swing only. Trim to ~3–6 seconds.</div>
+    <div class="bl-up-tip-icon">3</div>
+    <div class="bl-up-tip-label">Report</div>
+    <div class="bl-up-tip-body">In ~30s: your Edge Score, closest MLB match, and your top 3 fixes with drills.</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -4308,42 +4359,46 @@ if upload is None:
 """, unsafe_allow_html=True)
         render_swing_history_cards(swing_history, limit=6, title="")
     else:
-        # First-time user empty state — premium "what happens next" preview.
-        st.markdown("""
-<div style="margin-top: 1.4rem; border-radius: 18px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
-            padding: 1.5rem 1.7rem;">
-  <div style="font-family: 'JetBrains Mono', ui-monospace, monospace;
-              font-size: 0.6rem; letter-spacing: 0.24em; color: #FF3B30;
-              font-weight: 700; text-transform: uppercase; margin-bottom: 0.8rem;">
-    What you'll get
+        # First-time user empty state — premium "what happens next" preview,
+        # in the editorial palette (bone/ink, gold accents, Geist Mono labels).
+        st.html("""
+<div style="margin-top: 1.6rem; border-radius: var(--bl-radius-lg);
+            border: 1px solid var(--bl-line);
+            background: linear-gradient(180deg, rgba(244,239,230,0.022), rgba(244,239,230,0.006));
+            padding: 1.7rem 1.9rem;">
+  <div style="font-family: var(--mono);
+              font-size: 0.6rem; letter-spacing: 0.24em; color: var(--red);
+              font-weight: 600; text-transform: uppercase; margin-bottom: 1.1rem;">
+    Inside your first report
   </div>
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem;">
     <div>
-      <div style="font-size: 1.45rem; font-weight: 800; color: #FF3B30; letter-spacing: -0.02em;">01</div>
-      <div style="color: #fafafa; font-weight: 700; margin-top: 0.15rem;">MLB Comparison</div>
-      <div style="color: #a3a3a3; font-size: 0.86rem; line-height: 1.45; margin-top: 0.3rem;">
-        Matched against the closest pro hitter in our reference library.
+      <div style="font-family: var(--serif); font-style: italic; font-size: 1.9rem;
+                  font-weight: 400; color: var(--gold); letter-spacing: -0.02em; line-height: 1;">01</div>
+      <div style="color: var(--bone); font-weight: 600; margin-top: 0.45rem;">MLB Comparison</div>
+      <div style="color: var(--bl-ink-60); font-size: 0.88rem; line-height: 1.5; margin-top: 0.35rem;">
+        Matched frame-by-frame against the closest pro hitter in our reference library.
       </div>
     </div>
     <div>
-      <div style="font-size: 1.45rem; font-weight: 800; color: #FF3B30; letter-spacing: -0.02em;">02</div>
-      <div style="color: #fafafa; font-weight: 700; margin-top: 0.15rem;">Top 3 Fixes</div>
-      <div style="color: #a3a3a3; font-size: 0.86rem; line-height: 1.45; margin-top: 0.3rem;">
-        Ranked by impact, with the "why it costs you" and the feel.
+      <div style="font-family: var(--serif); font-style: italic; font-size: 1.9rem;
+                  font-weight: 400; color: var(--gold); letter-spacing: -0.02em; line-height: 1;">02</div>
+      <div style="color: var(--bone); font-weight: 600; margin-top: 0.45rem;">Top 3 Fixes</div>
+      <div style="color: var(--bl-ink-60); font-size: 0.88rem; line-height: 1.5; margin-top: 0.35rem;">
+        Ranked by impact, each with the "why it costs you" and the feel to fix it.
       </div>
     </div>
     <div>
-      <div style="font-size: 1.45rem; font-weight: 800; color: #FF3B30; letter-spacing: -0.02em;">03</div>
-      <div style="color: #fafafa; font-weight: 700; margin-top: 0.15rem;">Drill Plan</div>
-      <div style="color: #a3a3a3; font-size: 0.86rem; line-height: 1.45; margin-top: 0.3rem;">
-        Personalized drills with reps, tracked in your Development Tracker.
+      <div style="font-family: var(--serif); font-style: italic; font-size: 1.9rem;
+                  font-weight: 400; color: var(--gold); letter-spacing: -0.02em; line-height: 1;">03</div>
+      <div style="color: var(--bone); font-weight: 600; margin-top: 0.45rem;">Drill Plan</div>
+      <div style="color: var(--bl-ink-60); font-size: 0.88rem; line-height: 1.5; margin-top: 0.35rem;">
+        Personalized drills with reps, tracked over time in your Development Tracker.
       </div>
     </div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""")
     st.stop()
 
 # Reject oversized uploads before writing them — a too-large clip wastes disk
