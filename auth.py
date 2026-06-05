@@ -461,19 +461,116 @@ def request_password_reset(email: str, redirect_to: Optional[str] = None) -> Non
 
 def update_password(new_password: str) -> None:
     """
-    Set a new password for the CURRENTLY logged-in user. This is what
-    the post-recovery-link screen calls after the user has been
-    re-authenticated by the recovery token in the URL.
+    Set a new password for the user who just clicked a reset link (or, from
+    Settings, the currently logged-in user).
+
+    Implementation note — why a direct REST call instead of
+    `sb.auth.update_user(...)`:
+
+    The Supabase client is a process-wide cached singleton whose ambient
+    session (`st.session_state["supabase_session"]`) is re-applied, refreshed,
+    and `set_session()`-ed on by `get_client()` on EVERY rerun. During password
+    recovery that ambient session gets clobbered between the user landing on the
+    reset screen and submitting the form, so `update_user()` would run against a
+    client that no longer cleanly authorized the change — the call silently
+    no-op'd server-side (verified in the auth logs: no PUT /user) while the UI
+    reported success. We instead PUT /auth/v1/user directly with the recovery
+    access token captured at link-consume time, and surface real HTTP errors
+    instead of swallowing them.
     """
     new_password = new_password or ""
     if len(new_password) < 6:
         raise ValueError("Password must be at least 6 characters.")
 
-    sb = get_client()
+    # Prefer the dedicated recovery token; fall back to the generic session so
+    # the same function also serves the change-password-while-logged-in path.
+    rec = st.session_state.get("_recovery_session") or {}
+    access_token = rec.get("access_token")
+    refresh_token = rec.get("refresh_token")
+    if not access_token:
+        sess = st.session_state.get("supabase_session") or {}
+        access_token = sess.get("access_token")
+        refresh_token = refresh_token or sess.get("refresh_token")
+    if not access_token:
+        raise ValueError(
+            "Your reset session has expired. Request a new reset email and "
+            "try again."
+        )
+
+    import json as _json
+    import urllib.request as _rq
+    import urllib.error as _er
+
+    cfg = st.secrets["supabase"]
+    base = str(cfg["url"]).rstrip("/")
+    apikey = cfg.get("publishable_key") or cfg.get("anon_key")
+
+    req = _rq.Request(
+        f"{base}/auth/v1/user",
+        method="PUT",
+        data=_json.dumps({"password": new_password}).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "apikey": apikey,
+            "Content-Type": "application/json",
+        },
+    )
     try:
-        sb.auth.update_user({"password": new_password})
+        with _rq.urlopen(req, timeout=15) as resp:
+            if resp.status not in (200, 201):
+                raise ValueError(
+                    f"Password update failed (HTTP {resp.status})."
+                )
+    except _er.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8")[:300]
+        except Exception:
+            pass
+        low = (detail or "").lower()
+        if exc.code in (401, 403):
+            raise ValueError(
+                "Your reset link has expired or was already used. Request a "
+                "new reset email and try again."
+            ) from exc
+        if "different from the old" in low or ("same" in low and "password" in low):
+            raise ValueError(
+                "That's already your password — choose a different one."
+            ) from exc
+        if "weak" in low or "at least" in low:
+            raise ValueError(
+                "That password is too weak — try a longer one."
+            ) from exc
+        raise ValueError(
+            f"Could not update password: {detail or ('HTTP ' + str(exc.code))}"
+        ) from exc
+    except ValueError:
+        raise
     except Exception as exc:
         raise ValueError(f"Could not update password: {exc}") from exc
+
+    # Success — the change is committed server-side. Plant the (still-valid)
+    # recovery session as the live session so the user is logged straight in,
+    # and clear the one-time recovery tokens.
+    try:
+        if refresh_token:
+            sb = get_client()
+            sb.auth.set_session(access_token, refresh_token)
+            st.session_state["supabase_session"] = {
+                "access_token":  access_token,
+                "refresh_token": refresh_token,
+            }
+            try:
+                from supabase_client import store_session
+                store_session(getattr(sb.auth.get_session(), "session", None)
+                              or sb.auth.get_session())
+            except Exception:
+                pass
+    except Exception:
+        # Even if re-planting the session fails, the password IS changed — the
+        # user can sign in with it. Don't raise.
+        pass
+    st.session_state.pop("_recovery_session", None)
 
 
 def consume_recovery_url(access_token: str, refresh_token: str) -> bool:
@@ -488,6 +585,14 @@ def consume_recovery_url(access_token: str, refresh_token: str) -> bool:
         sb = get_client()
         sb.auth.set_session(access_token, refresh_token)
         st.session_state["supabase_session"] = {
+            "access_token":  access_token,
+            "refresh_token": refresh_token,
+        }
+        # Stash the recovery tokens under a DEDICATED key that nothing else
+        # reads, refreshes, or set_session()s on. update_password() uses these
+        # for a direct GoTrue call so the password change can't be lost when the
+        # shared client's ambient `supabase_session` is clobbered across reruns.
+        st.session_state["_recovery_session"] = {
             "access_token":  access_token,
             "refresh_token": refresh_token,
         }
@@ -526,6 +631,12 @@ def consume_recovery_token_hash(token_hash: str) -> bool:
             return False
         sb.auth.set_session(at, rt)
         st.session_state["supabase_session"] = {
+            "access_token":  at,
+            "refresh_token": rt,
+        }
+        # Dedicated recovery tokens for update_password() — see the note in
+        # consume_recovery_url() above.
+        st.session_state["_recovery_session"] = {
             "access_token":  at,
             "refresh_token": rt,
         }
