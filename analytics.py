@@ -39,7 +39,12 @@ def _get_client():
         host = cfg.get("host") or host
     except Exception:
         pass
-    api_key = api_key or os.environ.get("POSTHOG_API_KEY")
+    # Fallback to the project's PUBLIC key so the deployed app tracks without
+    # needing a Streamlit Cloud secret. PostHog project keys (phc_…) are
+    # client-side by design — safe to ship in code. Override via secrets/env to
+    # rotate without a code change.
+    api_key = (api_key or os.environ.get("POSTHOG_API_KEY")
+               or "phc_vjE5nPRGDPRJmBdywqi7iGgRWUPnbwGwa2mYhANguecT")
     host = os.environ.get("POSTHOG_HOST") or host
     if not api_key:
         return None
