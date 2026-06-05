@@ -795,10 +795,28 @@ def render_pricing_page() -> None:
 
     # ── "Refresh my plan" CTA (only when Stripe checkout is pending) ─
     if st.session_state.get("_pending_checkout_url"):
+        _url = st.session_state["_pending_checkout_url"]
         st.markdown('<div class="pr-refresh-wrap">', unsafe_allow_html=True)
+        # The real, visible checkout link — a direct click opens Stripe in a new
+        # tab (no popup block) and keeps THIS tab's sign-in alive.
         st.markdown(
-            "Just paid? We open Stripe in a new tab so your sign-in stays "
-            "alive here — click below to pull your new plan.",
+            f"""
+<div style="text-align:center; margin-bottom:16px;">
+  <a href="{_url}" target="_blank" rel="noopener noreferrer"
+     style="display:inline-block; padding:14px 32px; border-radius:100px;
+            background:#E8C170; color:#1a1206; font-weight:700;
+            font-family:'Geist Mono','JetBrains Mono',monospace; font-size:13px;
+            letter-spacing:0.10em; text-transform:uppercase; text-decoration:none;
+            box-shadow:0 12px 30px -12px rgba(232,193,112,0.6);">
+    Continue to secure Stripe checkout →
+  </a>
+  <div style="margin-top:11px; color:#C8C4BB; font-size:0.9rem;
+              font-family:'Geist', system-ui, sans-serif;">
+    Opens in a new tab so your sign-in stays alive here. After you pay, come
+    back and click <em style="color:#E8C170;">refresh my plan</em> below.
+  </div>
+</div>
+            """,
             unsafe_allow_html=True,
         )
         rc1, rc2, _rc3 = st.columns([1.5, 1.5, 3], gap="small")
@@ -1025,46 +1043,16 @@ def _start_checkout(plan_id: str, interval: str) -> None:
         st.error(f"Couldn't start checkout: {exc}")
         return
 
-    # We do NOT navigate the current tab because Streamlit's session
-    # state (incl. auth) doesn't survive a full same-tab redirect.
+    # We do NOT navigate the current tab — Streamlit's session state (incl.
+    # auth) doesn't survive a full same-tab redirect. Stash the URL and rerun;
+    # the pending-checkout block below renders a REAL, visible link the user
+    # clicks. (The old approach used <script>window.open()</script> via
+    # st.markdown — but st.markdown STRIPS <script>, so it never ran, and the
+    # fallback link was hidden behind display:none. There was no way to reach
+    # Stripe. A direct user click on a real <a target=_blank> opens a new tab
+    # with no popup block.)
     st.session_state["_pending_checkout_url"] = url
-    st.markdown(
-        f"""
-<script>
-  (function() {{
-      const w = window.open("{url}", "_blank", "noopener,noreferrer");
-      if (!w || w.closed || typeof w.closed === "undefined") {{
-          const el = document.getElementById("bl-popup-blocked");
-          if (el) el.style.display = "block";
-      }}
-  }})();
-</script>
-<div style="margin-top:1.2rem; padding:14px 18px; border-radius:14px;
-            background: rgba(74,227,140,0.08);
-            border: 1px solid rgba(74,227,140,0.32);
-            color:#F4EFE6; font-family: 'Geist', system-ui, sans-serif;">
-  <strong style="color:#F4EFE6;">Opening secure Stripe checkout in a new tab…</strong><br>
-  <span style="color:#C8C4BB;">
-    After you finish payment, return here and click
-    <em style="color:#E8C170;">"I've completed payment — refresh my plan"</em> below.
-  </span>
-</div>
-<div id="bl-popup-blocked" style="display:none; margin-top:0.6rem;
-            padding:14px 18px; border-radius:14px;
-            background: rgba(230,69,48,0.10);
-            border: 1px solid rgba(230,69,48,0.32);
-            color:#F4EFE6;">
-  Your browser blocked the popup.
-  &nbsp;<a href="{url}" target="_blank" rel="noopener noreferrer"
-           style="color:#E8C170; text-decoration: underline;">
-    Click here to open Stripe Checkout
-  </a>
-</div>
-        """,
-        unsafe_allow_html=True,
-    )
-    # Intentionally NO st.stop() — the rest of the page keeps rendering
-    # so the user sees the "refresh my plan" CTA below the cards.
+    st.rerun()
 
 
 def _streamlit_base_url() -> str:
