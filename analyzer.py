@@ -182,6 +182,30 @@ def age_from_birth_year(birth_year, today_year: Optional[int] = None) -> Optiona
     return age
 
 
+# COPPA (Children's Online Privacy Protection Act) protects children UNDER 13.
+# Anyone 13+ signs up normally; only an actual under-13 triggers the parental
+# pathway. We gate on birth year (the only DOB granularity we collect).
+COPPA_MIN_AGE = 13
+
+
+def is_under_coppa_age(birth_year, today_year: Optional[int] = None):
+    """True if the birth year implies the person is under 13 (COPPA threshold).
+
+    Returns None when birth_year is missing/blank/unparseable — callers that
+    enforce the age gate must REQUIRE a valid birth year first, so a None here
+    means "can't tell", never "old enough".
+    """
+    import datetime
+    if birth_year is None or str(birth_year).strip() == "":
+        return None
+    try:
+        by = int(str(birth_year).strip())
+    except (TypeError, ValueError):
+        return None
+    yr = today_year if today_year is not None else datetime.date.today().year
+    return (yr - by) < COPPA_MIN_AGE
+
+
 def parse_birth_year(value, today_year: Optional[int] = None) -> Optional[int]:
     """Validate a plausible 4-digit birth year for storage, else None.
 

@@ -193,7 +193,13 @@ Children under 13 may only use BarrelLabs as a profile within a
 
 - The parent or legal guardian creates and verifies the Family Pro
   account
-- The parent provides COPPA consent on the child's behalf
+- The parent provides COPPA consent on the child's behalf — captured as
+  an explicit affirmation at the moment the parent adds the child as a
+  player, and recorded with a timestamp. (A direct under-13 signup is
+  blocked; only a parent/guardian can create the child's profile.)
+- Where heightened verification is required (for example, when a child's
+  data may be viewed by a coach or facility), we use a phone-based
+  verification step — never a credit card
 - The child's data (profile, videos, analyses) is held under the
   parent's authority
 - The parent can view, edit, or delete the child's profile and data

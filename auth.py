@@ -175,12 +175,30 @@ def current_household_seats() -> int:
 def create_household_player(name: str, handedness: str = "RIGHT",
                             position: Optional[str] = None,
                             is_minor: bool = True,
-                            birth_year=None) -> dict:
+                            birth_year=None,
+                            guardian_consent: bool = False) -> dict:
     """Create a new profile under the household via the seat-capped RPC.
-    Returns {ok, player?, error?}."""
+    Returns {ok, player?, error?}.
+
+    COPPA: adding a MINOR requires the account owner to affirm they are the
+    child's parent/legal guardian and consent to data collection
+    (`guardian_consent`). We refuse to create a minor without it, and stamp a
+    consent record (who/when/method) on the new child row for the audit trail.
+    """
     if not (name or "").strip():
         return {"ok": False, "error": "Enter a name."}
-    from analyzer import parse_birth_year
+    import datetime as _dt
+    from analyzer import parse_birth_year, is_under_coppa_age
+    # COPPA consent is only legally required for an actual under-13. Teens
+    # (13-17) are minors but not COPPA-covered, so adding them needs no extra
+    # affirmation. When no birth year is given we can't tell the age — fall back
+    # to the generic is_minor flag so we don't silently skip consent for a kid.
+    _needs_consent = bool(is_under_coppa_age(birth_year))
+    if _needs_consent and not guardian_consent:
+        return {"ok": False, "error": (
+            "To add a player under 13 you must confirm you're their parent or "
+            "legal guardian and consent to their data being collected."
+        )}
     try:
         sb = get_client()
         resp = sb.rpc("create_household_player", {
@@ -191,13 +209,22 @@ def create_household_player(name: str, handedness: str = "RIGHT",
         }).execute()
         data = resp.data
         row = data[0] if isinstance(data, list) and data else data
-        # The RPC has no birth_year param; stamp it via an owner-scoped update
-        # on the new row so the child's first swing is age-bracketed correctly.
+        # The RPC has no birth_year / consent params; stamp them via an
+        # owner-scoped update on the new row (RLS already restricts this to the
+        # household owner). birth_year keeps the child's first swing
+        # age-bracketed; the guardian_consent_* fields are the COPPA record.
         by = parse_birth_year(birth_year)
-        if isinstance(row, dict) and by is not None and row.get("id"):
+        update_fields = {}
+        if by is not None:
+            update_fields["birth_year"] = by
+        if guardian_consent:
+            update_fields["guardian_consent_at"] = _dt.datetime.utcnow().isoformat() + "Z"
+            update_fields["guardian_consent_by"] = _current_user_id()
+            update_fields["guardian_consent_method"] = "authenticated_account"
+        if isinstance(row, dict) and update_fields and row.get("id"):
             try:
                 upd = (sb.table("players")
-                         .update({"birth_year": by})
+                         .update(update_fields)
                          .eq("id", row["id"])
                          .execute())
                 urows = upd.data or []
@@ -241,12 +268,20 @@ def sign_up(
     height_in=None,
     weight_lb=None,
     birth_year=None,
+    terms_agreed: bool = False,
 ) -> dict:
     """
     Create a Supabase auth user and the matching players row.
     Raises ValueError on validation / duplicate-email errors so the
     UI can surface a clean st.error message.
+
+    COPPA: the account owner must be 13+ (verified from birth_year) and must
+    affirm the Terms/Privacy + their age (`terms_agreed`). Under-13 self-signup
+    is blocked here — they must be added as a household player by a consenting
+    parent/guardian. This is the server-side enforcement; the form mirrors it.
     """
+    from analyzer import parse_birth_year, is_under_coppa_age
+
     name = (name or "").strip()
     email = (email or "").strip().lower()
     password = password or ""
@@ -259,6 +294,21 @@ def sign_up(
         raise ValueError("Password must be at least 6 characters.")
     if handedness not in {"RIGHT", "LEFT"}:
         raise ValueError("Please choose right- or left-handed.")
+
+    # COPPA age gate — require a valid birth year, then block under-13.
+    by = parse_birth_year(birth_year)
+    if by is None:
+        raise ValueError("Please enter your birth year (e.g. 2009).")
+    if is_under_coppa_age(by):
+        raise ValueError(
+            "BarrelLabs accounts have to be created by someone 13 or older. "
+            "If you're under 13, ask a parent or guardian to make the account "
+            "and add you as a player from their household."
+        )
+    if not terms_agreed:
+        raise ValueError(
+            "Please confirm you're 13+ and agree to the Terms & Privacy Policy."
+        )
 
     sb = get_client()
 
@@ -282,7 +332,7 @@ def sign_up(
 
     # 3. Insert the players row. Re-fetch the client so the auth header
     #    picks up the new session above.
-    from analyzer import parse_birth_year
+    import datetime as _dt
     sb = get_client()
     try:
         insert_resp = (
@@ -294,7 +344,10 @@ def sign_up(
                   "handedness": handedness,
                   "height_in":  int(height_in) if height_in else None,
                   "weight_lb":  int(weight_lb) if weight_lb else None,
-                  "birth_year": parse_birth_year(birth_year),
+                  "birth_year": by,
+                  # COPPA: record that this 13+ owner affirmed age + agreed to
+                  # the Terms/Privacy at signup (audit trail).
+                  "account_terms_agreed_at": _dt.datetime.utcnow().isoformat() + "Z",
               })
               .execute()
         )

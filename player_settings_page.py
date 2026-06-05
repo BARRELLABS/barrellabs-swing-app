@@ -1260,16 +1260,38 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
                 key="ps_hh_add_position",
             )
             add_birth_year = st.text_input(
-                "Birth year (optional)",
+                "Birth year",
                 value="",
-                placeholder="e.g. 2014 — makes the Swing Score age-fair",
+                placeholder="e.g. 2014 — required for players under 13",
                 key="ps_hh_add_birth_year",
+            )
+            # COPPA: a player under 13 may only be added by their parent/guardian,
+            # who must consent to the child's data being collected. We record this
+            # affirmation (who/when) on the new player row.
+            add_consent = st.checkbox(
+                "I'm this player's parent or legal guardian and I consent to "
+                "BarrelLabs collecting their swing videos and related data to "
+                "provide swing analysis.",
+                key="ps_hh_add_consent",
             )
             if st.button("Add player", key="ps_hh_add_submit"):
                 raw_name = (add_name or "").strip()
+                from analyzer import parse_birth_year as _pby, is_under_coppa_age as _uca
+                _add_by = _pby(add_birth_year)
                 if not raw_name:
                     st.session_state["ps_flash_err"] = "Enter a player name."
                     st.rerun()
+                elif _add_by is None:
+                    st.error(
+                        "Please enter the player's birth year (e.g. 2014) — it "
+                        "sets the age-fair score and the under-13 protections."
+                    )
+                elif _uca(_add_by) and not add_consent:
+                    # Under 13 needs the guardian affirmation, full stop.
+                    st.error(
+                        "Players under 13 can only be added by a parent or "
+                        "guardian — please check the consent box above."
+                    )
                 else:
                     handedness = "RIGHT" if (add_hand or "Right") == "Right" else "LEFT"
                     position = (add_position or "").strip() or None
@@ -1277,6 +1299,7 @@ def _render_household_section(profile: Dict[str, Any]) -> None:
                         result = _auth.create_household_player(
                             raw_name, handedness, position,
                             birth_year=add_birth_year,
+                            guardian_consent=bool(add_consent),
                         )
                         if result.get("ok"):
                             st.success("Added " + raw_name)

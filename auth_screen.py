@@ -1157,9 +1157,17 @@ def _render_signup_form() -> None:
         )
         su_birth_year = st.text_input(
             "Birth year",
-            placeholder="Birth year — e.g. 2014 (optional, makes the score age-fair)",
+            placeholder="Birth year — e.g. 2009 (required)",
             key="su_birth_year_v4",
             label_visibility="collapsed",
+        )
+
+        # COPPA: explicit, required age + terms affirmation (replaces the old
+        # passive "by signing up you confirm…" footer text). Only 13+ can hold
+        # their own account; under-13 is routed to a parent below.
+        su_consent = st.checkbox(
+            "I'm 13 or older, and I agree to the Terms of Service and Privacy Policy.",
+            key="su_consent_v4",
         )
 
         submitted = st.form_submit_button(
@@ -1168,6 +1176,8 @@ def _render_signup_form() -> None:
             use_container_width=True,
         )
         if submitted:
+            from analyzer import parse_birth_year, is_under_coppa_age
+            _by = parse_birth_year(su_birth_year)
             if not su_first or not su_first.strip():
                 st.error("Please enter your first name.")
             elif su_pw != su_pw2:
@@ -1178,6 +1188,24 @@ def _render_signup_form() -> None:
                 # without relying on the backend to surface a server
                 # error string.
                 st.error("Password must be at least 6 characters.")
+            elif _by is None:
+                st.error(
+                    "Please enter your birth year (e.g. 2009) — it makes your "
+                    "Swing Score age-fair."
+                )
+            elif is_under_coppa_age(_by):
+                # Under 13 → cannot self-register (COPPA). Route to a parent.
+                st.warning(
+                    "**You're under 13, so you can't create your own account.** "
+                    "That's a children's-privacy law (COPPA). Ask a parent or "
+                    "guardian to create a BarrelLabs account — they can add you "
+                    "as a player in their household and approve it for you."
+                )
+            elif not su_consent:
+                st.error(
+                    "Please check the box to confirm you're 13+ and agree to "
+                    "the Terms & Privacy Policy."
+                )
             else:
                 try:
                     from player_storage import create_account
@@ -1196,6 +1224,7 @@ def _render_signup_form() -> None:
                         height_in=height_in,
                         weight_lb=int(su_wt),
                         birth_year=su_birth_year,
+                        terms_agreed=bool(su_consent),
                     )
                     st.session_state.user = user
                     st.success("Account created — taking you to your lab…")
@@ -1221,12 +1250,12 @@ def _render_signup_form() -> None:
                     font-family: 'Geist', sans-serif; font-size: 0.82rem;
                     line-height: 1.5; color: #8a857b; text-align: center;
                     max-width: 380px; margin-left: auto; margin-right: auto;">
-          By creating an account, you agree to our
+          Read our
           <span style="color:#C8C4BB;text-decoration:underline;text-underline-offset:3px;">Terms of Service</span>
           and
           <span style="color:#C8C4BB;text-decoration:underline;text-underline-offset:3px;">Privacy Policy</span>.
-          You confirm you&#39;re at least <strong style="color:#C8C4BB;">13 years old</strong> —
-          under 13 needs a parent&#39;s Family Pro account.
+          <strong style="color:#C8C4BB;">Under 13?</strong> A parent or guardian
+          must create the account and add you as a player in their household.
         </div>
         """,
         unsafe_allow_html=True,
