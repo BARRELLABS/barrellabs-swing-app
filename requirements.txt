@@ -9,3 +9,4 @@ reportlab>=4.0
 stripe>=8.0
 supabase>=2.4
 Pillow>=10.0
+sentry-sdk>=2.0

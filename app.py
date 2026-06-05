@@ -91,6 +91,14 @@ st.set_page_config(
     layout="wide",
 )
 
+# Error monitoring (Sentry) — reports unhandled prod errors so they don't fail
+# silently. No-op until a DSN is configured (see monitoring.py). Never blocks.
+try:
+    from monitoring import init_monitoring
+    init_monitoring()
+except Exception:
+    pass
+
 # ---------- PERFORMANCE DASHBOARD STYLING ----------
 st.markdown("""
 <style>
