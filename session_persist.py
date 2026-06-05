@@ -36,15 +36,25 @@ def read_refresh_token() -> str | None:
         return None
 
 
+# The cookie holds a sensitive credential, so it gets `Secure` on HTTPS. We
+# gate it on the live protocol (in JS) rather than hardcoding it, so the cookie
+# still works on http://localhost during development. SameSite=Lax keeps it sent
+# on the top-level return from Stripe while limiting cross-site exposure.
+_SECURE_JS = "var s=(location.protocol==='https:')?'; Secure':'';"
+
+
 def write_refresh_token(refresh_token: str | None) -> None:
     """Persist the refresh token to a browser cookie (best-effort, invisible)."""
     if not refresh_token:
         return
     try:
-        val = json.dumps(refresh_token)  # safely quote/escape into a JS string
+        # json.dumps → a safe JS string literal; replace </ so a token can never
+        # break out of the <script> tag (defense-in-depth — tokens are URL-safe).
+        val = json.dumps(refresh_token).replace("</", "<\\/")
         components.html(
-            "<script>document.cookie='" + _COOKIE + "='+" + val
-            + "+'; max-age=" + str(_MAX_AGE) + "; path=/; SameSite=Lax';</script>",
+            "<script>" + _SECURE_JS
+            + "document.cookie='" + _COOKIE + "='+" + val
+            + "+'; max-age=" + str(_MAX_AGE) + "; path=/; SameSite=Lax'+s;</script>",
             height=0,
             width=0,
         )
@@ -56,8 +66,9 @@ def clear_refresh_token() -> None:
     """Delete the persisted cookie (on sign-out, or when a token is rejected)."""
     try:
         components.html(
-            "<script>document.cookie='" + _COOKIE
-            + "=; max-age=0; path=/; SameSite=Lax';</script>",
+            "<script>" + _SECURE_JS
+            + "document.cookie='" + _COOKIE
+            + "=; max-age=0; path=/; SameSite=Lax'+s;</script>",
             height=0,
             width=0,
         )
