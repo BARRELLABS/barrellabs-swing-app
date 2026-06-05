@@ -736,6 +736,36 @@ div[data-testid="stFileUploader"] button::after {
         background: #22c55e;
         box-shadow: 0 0 8px rgba(34,197,94,0.8);
     }
+
+    /* ============ Welcome-hero layout (was inline styles) ============ */
+    .bl-hero-row {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 1.5rem; position: relative; z-index: 1;
+    }
+    .bl-hero-main { flex: 1; min-width: 0; }
+    .bl-hero-meta {
+        display: flex; flex-direction: column; align-items: flex-end;
+        gap: 0.6rem; min-width: 200px;
+    }
+    .bl-hero-version {
+        font-size: 0.7rem; color: #6b7280; letter-spacing: 0.12em;
+        text-transform: uppercase; font-weight: 800;
+    }
+
+    /* ============ MOBILE: stack the hero + step grid (phones) ============
+       Without these the LIVE pill (forced to min-width:200px) overflowed the
+       right edge and the 4-up step grid crushed into unreadable columns. */
+    @media (max-width: 760px) {
+        .bl-hero-row { flex-direction: column; gap: 0.9rem; }
+        .bl-hero-meta {
+            flex-direction: row; align-items: center; min-width: 0;
+            gap: 0.8rem; flex-wrap: wrap;
+        }
+        .bl-step-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (max-width: 360px) {
+        .bl-step-grid { grid-template-columns: 1fr !important; }
+    }
 </style>
 """, unsafe_allow_html=True)
 # NOTE: The auth-bg overlay div is intentionally NOT rendered here. It was
@@ -2905,8 +2935,8 @@ if (
     _render_edge_masthead(user, active_page="upload")
     st.markdown(f"""
 <div class="bl-hero">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;position:relative;z-index:1;">
-    <div style="flex:1;">
+  <div class="bl-hero-row">
+    <div class="bl-hero-main">
       <div class="bl-eyebrow">BarrelLabs Performance Lab</div>
       <div class="bl-title">Welcome back, {user['name'].split()[0]}.</div>
       <div class="bl-stitch"></div>
@@ -2915,13 +2945,11 @@ if (
         biomechanical breakdown, and a personalized drill plan in under a minute.
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.6rem;min-width:200px;">
+    <div class="bl-hero-meta">
       <div class="bl-mode-pill">
         <span class="bl-mode-pill-dot"></span> Live · Hitting Report
       </div>
-      <div style="font-size:.7rem;color:#6b7280;letter-spacing:.12em;text-transform:uppercase;font-weight:800;">
-        SwingAI v1.0
-      </div>
+      <div class="bl-hero-version">SwingAI v1.0</div>
     </div>
   </div>
 </div>

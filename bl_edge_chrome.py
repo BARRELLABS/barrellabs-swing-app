@@ -204,6 +204,15 @@ iframe {
   padding: 13px max(40px, calc((100vw - 1560px) / 2)) !important;
   box-sizing: border-box !important;
 }
+/* Ghost-masthead guard: in-session nav (st.rerun) can leave a stale, brand-only
+   copy of the full-bleed masthead in the DOM until the next full reload, which
+   paints as a duplicate "BarrelLabs / Edge" bar (most visible on mobile). The
+   REAL masthead always contains the nav/CTA buttons; the ghosts contain only
+   the brand markdown. Hide any masthead with no buttons so only the live one
+   ever shows. */
+.st-key-bl_edge_masthead:not(:has(button)) {
+  display: none !important;
+}
 /* flatten Streamlit's structural wrappers inside the masthead so the
    real children (brand container, navbar, chip) lay out as flex items */
 .st-key-bl_edge_masthead > div,
@@ -596,20 +605,36 @@ iframe {
 }
 @media (max-width: 720px) {
   .st-key-bl_edge_masthead {
-    flex-wrap: wrap !important; row-gap: 10px !important;
-    padding: 11px 14px !important; gap: 0 !important;
+    flex-wrap: wrap !important; row-gap: 10px !important; column-gap: 8px !important;
+    padding: 11px 14px !important; align-items: center !important;
   }
   .ble-streak { display: none; }
-  .st-key-bl_edge_masthead [data-testid="stElementContainer"]:has(.ble-brand) {
-    flex: 1 1 auto !important;
+
+  /* IMPORTANT: the masthead flattens its Streamlit wrappers via
+     display:contents, so the keyed containers (.st-key-bl_edge_analyze /
+     _navbar / _userchip) are NOT flex items — their leaf stMarkdown (brand)
+     and stButton (CTA / nav tabs / avatar) nodes are. order/flex must target
+     THOSE leaf nodes or it silently no-ops. Layout target:
+       Row 1: brand (left) ............. avatar (right)
+       Row 2: + Analyze new swing (full width)
+       Row 3+: nav tabs (wrap as a group) */
+
+  .st-key-bl_edge_masthead [data-testid="stMarkdown"]:has(.ble-brand) {
+    order: 1 !important; flex: 0 1 auto !important;
   }
-  .st-key-bl_edge_navbar {
-    order: 3; flex: 1 0 100% !important;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+  .st-key-bl_edge_masthead .st-key-bl_edge_userchip [data-testid="stButton"] {
+    order: 2 !important; margin-left: auto !important;
   }
-  .st-key-bl_edge_navbar::-webkit-scrollbar { display: none; }
-  .st-key-bl_edge_navbar button { padding: 7px 13px !important; }
+  .st-key-bl_edge_masthead .st-key-bl_edge_analyze [data-testid="stButton"] {
+    order: 3 !important; flex: 1 0 100% !important;
+  }
+  .st-key-bl_edge_analyze button {
+    width: 100% !important; justify-content: center !important;
+  }
+  .st-key-bl_edge_masthead .st-key-bl_edge_navbar [data-testid="stButton"] {
+    order: 4 !important;
+  }
+  .st-key-bl_edge_navbar button { padding: 7px 12px !important; }
 }
 </style>
 """
