@@ -1079,6 +1079,60 @@ if "user" not in st.session_state:
     except Exception:
         pass
 
+# A successful-checkout redirect can land in a FRESH browser tab (auth is
+# session-only), so the user isn't signed in here — don't dump them at a raw
+# login form. Show a clean, on-brand "payment received" screen instead. Their
+# payment is already synced by the Stripe webhook; they sign back in to enter
+# Pro. (Without this, the post-checkout tab showed the bare login screen, which
+# read as "it logged me out / nothing happened".)
+if "user" not in st.session_state and _qp.get("checkout") == "success":
+    st.markdown(
+        "<style>"
+        "@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500;600&display=swap');"
+        "[data-testid='stAppViewContainer'],[data-testid='stApp']{background:#0A0B0E;}"
+        ".st-key-_co_success_signin button{border-radius:100px !important;"
+        "background:#E8C170 !important;color:#1a1206 !important;border:none !important;"
+        "font-family:'Geist Mono',monospace !important;font-weight:700 !important;"
+        "letter-spacing:.12em !important;text-transform:uppercase !important;font-size:12px !important;"
+        "box-shadow:0 14px 34px -14px rgba(232,193,112,.6) !important;}"
+        ".st-key-_co_success_signin button:hover{background:#F4EFE6 !important;}"
+        ".bl-co{max-width:560px;margin:14vh auto 0;text-align:center;"
+        "font-family:'Geist',system-ui,sans-serif;color:#F4EFE6;}"
+        ".bl-co-check{width:78px;height:78px;border-radius:50%;margin:0 auto 26px;"
+        "display:flex;align-items:center;justify-content:center;font-size:2.1rem;"
+        "color:#1a1206;background:linear-gradient(135deg,#E8C170,#C9A350);"
+        "box-shadow:0 0 0 1px rgba(232,193,112,.5),0 18px 50px -16px rgba(232,193,112,.55);}"
+        ".bl-co-eyebrow{font-family:'Geist Mono',monospace;font-size:11px;font-weight:600;"
+        "letter-spacing:.24em;text-transform:uppercase;color:#E8C170;margin-bottom:14px;}"
+        ".bl-co-title{font-family:'Instrument Serif',serif;font-size:3.2rem;line-height:1.04;"
+        "letter-spacing:-.02em;margin:0 0 16px;}"
+        ".bl-co-title .ital{font-style:italic;color:#E8C170;}"
+        ".bl-co-sub{font-size:1.04rem;line-height:1.55;color:#C8C4BB;max-width:42ch;margin:0 auto;}"
+        "</style>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='bl-co'>"
+        "<div class='bl-co-check'>&#10003;</div>"
+        "<div class='bl-co-eyebrow'>Payment received</div>"
+        "<h1 class='bl-co-title'>Welcome to <span class='ital'>Pro.</span></h1>"
+        "<p class='bl-co-sub'>Your subscription is active. Sign back in to jump into your "
+        "upgraded account — or just close this tab and head back to the BarrelLabs tab "
+        "you already had open.</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    _cs1, _cs2, _cs3 = st.columns([1, 1.4, 1])
+    with _cs2:
+        if st.button("Sign in to enter Pro →", type="primary",
+                     use_container_width=True, key="_co_success_signin"):
+            try:
+                st.query_params.clear()
+            except Exception:
+                pass
+            st.rerun()
+    st.stop()
+
 if "user" not in st.session_state:
     render_auth_screen()
     st.stop()
