@@ -1835,6 +1835,12 @@ def render_dashboard_v3(user: Dict[str, Any],
     total_swings_12w = _total_swings(history, window_days=84)
     active_days_12w  = _active_days(history, window_days=84)
 
+    # Hero "this week" + PR tokens — real, via existing helpers (these replace
+    # the mock "4 sessions · 42 swings" / "2 this week" placeholders).
+    swings_7d   = _swings_this_week(history)
+    sessions_7d = _active_days(history, window_days=7)
+    pr_total    = _personal_records_count(history)
+
     # ----- Load template + targeted swaps -----
     html = _load_template_html()
     if not html:
@@ -1906,6 +1912,16 @@ def render_dashboard_v3(user: Dict[str, Any],
         # Methodology note: insert app-version + user slug for traceability.
         ("v 0.2 ·",
          f"v 0.3-wired · session {user.get('slug', '—')} ·"),
+
+        # Hero "this week" + PR tokens (real — replaces the mock placeholders).
+        ("{{SWINGS_7D}}",   str(swings_7d)),
+        ("{{SESSIONS_7D}}", str(sessions_7d)),
+        ("{{PR_TOTAL}}",    str(pr_total)),
+
+        # Catch-all: any straggler "Mookie" / "Betts" → the real MLB match name.
+        # Runs after the full-name swaps above, so it only hits leftovers.
+        ("Mookie", (ref_name.split()[0] if ref_name else "Mookie")),
+        ("Betts", ref_last),
     ]
 
     # Align the 30-day chart legend with the 2-line generator output.

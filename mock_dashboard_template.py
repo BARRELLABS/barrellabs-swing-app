@@ -364,6 +364,11 @@ body::before {
 }
 .comp-radar-vis { display: grid; place-items: center; }
 .comp-radar-svg { width: 100%; max-width: 440px; height: auto; }
+/* Keep the fixed-size rings inside their cards on phones (was overflowing /
+   half off-screen). The viewBox handles the scaling. */
+.edge-score-svg { max-width: 100%; }
+.match-ring-wrap svg { width: 100%; max-width: 340px; height: auto; }
+@media (max-width: 640px) { .match-ring-wrap svg { max-width: 240px; } }
 .comp-radar-narrative { display: flex; flex-direction: column; gap: 18px; }
 .comp-radar-line {
   font-family: var(--serif); font-size: 28px; line-height: 1.3;
@@ -1912,20 +1917,17 @@ body::before {
 <body>
 <div class="app">
   <div class="spine">
-    <span class="spine-mark" style="top: 4%;">§ 01 / This Week's Headline</span>
-    <span class="spine-mark" style="top: 11%;">§ 02 / MLB Match</span>
-    <span class="spine-mark" style="top: 19%;">§ 03 / Numbers This Week</span>
-    <span class="spine-mark" style="top: 27%;">§ 04 / Highlight Reel</span>
-    <span class="spine-mark" style="top: 35%;">§ 05 / Swing of the Week</span>
-    <span class="spine-mark" style="top: 43%;">§ 06 / Form &amp; Timing</span>
-    <span class="spine-mark" style="top: 51%;">§ 07 / Phase Clock</span>
-    <span class="spine-mark" style="top: 59%;">§ 08 / Trajectory</span>
-    <span class="spine-mark" style="top: 67%;">§ 09 / Long-Term Development</span>
-    <span class="spine-mark" style="top: 75%;">§ 10 / Drill Prescription</span>
-    <span class="spine-mark" style="top: 82%;">§ 11 / Session Ledger</span>
-    <span class="spine-mark" style="top: 88%;">§ 12 / Recent Unlocks</span>
-    <span class="spine-mark" style="top: 93%;">§ 13 / Edge Pro Upsell</span>
-    <span class="spine-mark" style="top: 97%;">§ 14 / What We Measure</span>
+    <span class="spine-mark" style="top: 5%;">§ 01 / This Week's Headline</span>
+    <span class="spine-mark" style="top: 14%;">§ 02 / MLB Match</span>
+    <span class="spine-mark" style="top: 23%;">§ 03 / Your Shape vs Theirs</span>
+    <span class="spine-mark" style="top: 32%;">§ 04 / Form &amp; Timing</span>
+    <span class="spine-mark" style="top: 41%;">§ 05 / Velocity Ladder</span>
+    <span class="spine-mark" style="top: 50%;">§ 06 / Long-Term Development</span>
+    <span class="spine-mark" style="top: 59%;">§ 07 / Drill Prescription</span>
+    <span class="spine-mark" style="top: 68%;">§ 08 / Session Ledger</span>
+    <span class="spine-mark" style="top: 77%;">§ 09 / Recent Unlocks</span>
+    <span class="spine-mark" style="top: 86%;">§ 10 / Edge Pro Upsell</span>
+    <span class="spine-mark" style="top: 95%;">§ 11 / What We Measure</span>
   </div>
 
   <!-- MASTHEAD -->
@@ -2015,9 +2017,8 @@ body::before {
       <h1 class="hero-headline">Your separation<br>hit <span class="ital">42°</span><span class="pr-burst" style="width:22px;height:22px;margin:0 6px 0 8px;"></span>— MLB <span class="red">territory.</span></h1>
       <p class="hero-deck">Across 42 swings this week, your peak hip-shoulder separation climbed to 42° — a personal best by 2° and within four degrees of Mookie Betts's signature delay. Your overall match score against your MLB match ticked up to 91%, the cleanest week your pose data has registered to date.</p>
       <div class="hero-meta">
-        <div class="hero-meta-block"><span class="hero-meta-label">Sessions · 7d</span><span class="hero-meta-value">4 sessions · 42 swings</span></div>
-        <div class="hero-meta-block"><span class="hero-meta-label">Top form</span><span class="hero-meta-value">Tue 10:42 PM · swing #7</span></div>
-        <div class="hero-meta-block"><span class="hero-meta-label">PR alerts</span><span class="hero-meta-value">2 this week</span></div>
+        <div class="hero-meta-block"><span class="hero-meta-label">This week</span><span class="hero-meta-value">{{SWINGS_7D}} swings · {{SESSIONS_7D}} sessions</span></div>
+        <div class="hero-meta-block"><span class="hero-meta-label">Personal records</span><span class="hero-meta-value">{{PR_TOTAL}}</span></div>
       </div>
     </div>
 
@@ -2213,287 +2214,6 @@ body::before {
     </div>
   </div>
 
-  <!-- HIGHLIGHTS REEL -->
-  <div class="section-head fade-in d6">
-    <div>
-      <div class="section-eyebrow">§ 04 · Highlight Reel</div>
-      <h2 class="section-title">Three swings to <span class="ital">remember.</span></h2>
-    </div>
-    <div class="section-sub">auto-clipped from this week's sessions · click to play</div>
-  </div>
-
-  <div class="reel fade-in d7">
-    <div class="clip">
-      <div class="clip-bg">
-        <svg viewBox="0 0 320 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <defs><radialGradient id="clipBg1" cx="50%" cy="60%"><stop offset="0%" stop-color="rgba(230,69,48,0.20)"/><stop offset="100%" stop-color="rgba(10,11,14,1)"/></radialGradient></defs>
-          <rect width="320" height="200" fill="url(#clipBg1)"/>
-          <g fill="rgba(230,69,48,0.85)">
-            <ellipse cx="160" cy="58" rx="13" ry="14"/>
-            <path d="M148,72 L172,72 L182,112 L172,140 L150,140 L138,112 Z"/>
-            <path d="M148,72 L120,82 L98,68 L90,72 L116,90 L142,98 Z"/>
-            <path d="M172,72 L196,86 L214,108 L218,124 L210,128 L194,108 Z"/>
-            <path d="M150,140 L142,180 L130,196 L140,200 L158,180 L160,150 Z"/>
-            <path d="M172,140 L184,180 L196,196 L190,200 L172,184 L168,150 Z"/>
-          </g>
-          <line x1="98" y1="68" x2="40" y2="34" stroke="rgba(244,239,230,0.9)" stroke-width="3.5" stroke-linecap="round"/>
-          <line x1="98" y1="68" x2="60" y2="46" stroke="rgba(232,193,112,0.5)" stroke-width="3.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="clip-overlay"></div>
-      <div class="clip-corner"><span class="dot"></span>Tue · 10:42 PM</div>
-      <div class="clip-tc">00:00:12.4</div>
-      <div class="clip-play"><svg viewBox="0 0 20 20"><path d="M5,3 L17,10 L5,17 Z"/></svg></div>
-      <div class="clip-meta">
-        <div class="info"><span class="when">Swing #7 · 91% match</span><span class="what">The 42° sep<br>moment.</span></div>
-        <div class="grade">A−</div>
-      </div>
-    </div>
-    <div class="clip">
-      <div class="clip-bg">
-        <svg viewBox="0 0 320 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <defs><radialGradient id="clipBg2" cx="50%" cy="60%"><stop offset="0%" stop-color="rgba(232,193,112,0.12)"/><stop offset="100%" stop-color="rgba(10,11,14,1)"/></radialGradient></defs>
-          <rect width="320" height="200" fill="url(#clipBg2)"/>
-          <g fill="rgba(244,239,230,0.85)">
-            <ellipse cx="170" cy="58" rx="13" ry="14"/>
-            <path d="M158,72 L182,72 L188,118 L176,144 L158,144 L148,118 Z"/>
-            <path d="M158,72 L130,80 L96,72 L78,76 L108,90 L150,98 Z"/>
-            <path d="M182,72 L202,92 L216,118 L222,130 L212,134 L196,116 Z"/>
-            <path d="M158,144 L150,184 L138,200 L150,202 L168,184 L170,154 Z"/>
-            <path d="M176,144 L188,184 L200,202 L194,204 L176,188 L172,154 Z"/>
-          </g>
-          <line x1="78" y1="76" x2="14" y2="44" stroke="rgba(232,193,112,0.95)" stroke-width="3.5" stroke-linecap="round"/>
-          <circle cx="14" cy="44" r="3.5" fill="rgba(232,193,112,0.95)"/>
-        </svg>
-      </div>
-      <div class="clip-overlay"></div>
-      <div class="clip-corner"><span class="dot"></span>Wed · 7:18 PM</div>
-      <div class="clip-tc">00:00:09.1</div>
-      <div class="clip-play"><svg viewBox="0 0 20 20"><path d="M5,3 L17,10 L5,17 Z"/></svg></div>
-      <div class="clip-meta">
-        <div class="info"><span class="when">Swing #3 · 184 ms launch</span><span class="what">Cleanest <em style="font-style:italic;">contact</em> all week.</span></div>
-        <div class="grade">A</div>
-      </div>
-    </div>
-    <div class="clip">
-      <div class="clip-bg">
-        <svg viewBox="0 0 320 200" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <defs><radialGradient id="clipBg3" cx="50%" cy="60%"><stop offset="0%" stop-color="rgba(230,69,48,0.10)"/><stop offset="100%" stop-color="rgba(10,11,14,1)"/></radialGradient></defs>
-          <rect width="320" height="200" fill="url(#clipBg3)"/>
-          <g fill="rgba(244,239,230,0.78)">
-            <ellipse cx="166" cy="60" rx="13" ry="14"/>
-            <path d="M154,74 L178,74 L186,120 L176,146 L158,146 L150,120 Z"/>
-            <path d="M178,74 L208,68 L228,52 L236,60 L212,82 L186,94 Z"/>
-            <path d="M154,74 L130,90 L114,110 L106,114 L120,90 L142,80 Z"/>
-            <path d="M158,146 L150,184 L142,200 L154,202 L170,184 L170,156 Z"/>
-            <path d="M176,146 L186,184 L196,200 L188,202 L174,188 L172,156 Z"/>
-          </g>
-          <line x1="236" y1="60" x2="294" y2="14" stroke="rgba(244,239,230,0.95)" stroke-width="3.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div class="clip-overlay"></div>
-      <div class="clip-corner"><span class="dot"></span>Fri · 5:55 PM</div>
-      <div class="clip-tc">00:00:14.7</div>
-      <div class="clip-play"><svg viewBox="0 0 20 20"><path d="M5,3 L17,10 L5,17 Z"/></svg></div>
-      <div class="clip-meta">
-        <div class="info"><span class="when">Swing #11 · 88% match</span><span class="what">Best <em style="font-style:italic;">load</em> coil of the week.</span></div>
-        <div class="grade">A−</div>
-      </div>
-    </div>
-  </div>
-  <!-- SWING OF THE WEEK + DNA -->
-  <div class="section-head fade-in d7">
-    <div>
-      <div class="section-eyebrow">§ 05 · Swing of the Week</div>
-      <h2 class="section-title">Swing of the <span class="ital">week.</span></h2>
-    </div>
-    <div class="section-sub">Tuesday · 10:42 PM · swing #7 of 12 · 4-seam · 89 mph BP</div>
-  </div>
-
-  <div class="two-col">
-    <div class="card glass fade-in d8">
-      <div class="card-eyebrow">Reference swing · A-</div>
-      <h3 class="card-title">A <span class="ital">clean</span> piece of timing.</h3>
-      <div class="sow-grade"><div class="num">A−</div><div class="lbl">composite</div></div>
-
-      <!-- Cinematic silhouette with 3 ghost poses + main pose -->
-      <div class="sow-stage">
-        <div class="silhouette-stage">
-          <svg viewBox="0 0 720 320" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="trailGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%"   stop-color="rgba(232,193,112,0)"/>
-                <stop offset="30%"  stop-color="rgba(232,193,112,0.3)"/>
-                <stop offset="70%"  stop-color="rgba(230,69,48,0.8)"/>
-                <stop offset="100%" stop-color="rgba(230,69,48,1)"/>
-              </linearGradient>
-              <radialGradient id="floorGrad" cx="50%" cy="50%">
-                <stop offset="0%" stop-color="rgba(244,239,230,0.06)"/>
-                <stop offset="100%" stop-color="rgba(244,239,230,0)"/>
-              </radialGradient>
-              <filter id="glow"><feGaussianBlur stdDeviation="3.5"/></filter>
-            </defs>
-
-            <!-- floor -->
-            <ellipse cx="360" cy="288" rx="220" ry="14" fill="url(#floorGrad)"/>
-            <ellipse cx="360" cy="282" rx="40" ry="4" fill="rgba(0,0,0,0.5)"/>
-
-            <!-- ghost 1: load pose (far left, faintest) -->
-            <g class="ghost g1" fill="rgba(244,239,230,0.85)" transform="translate(150, 0)">
-              <ellipse cx="60" cy="78" rx="11" ry="12"/>
-              <path d="M50,92 L72,92 L78,140 L70,168 L52,168 L46,140 Z"/>
-              <path d="M50,92 L26,108 L14,124 L8,128 L20,108 L40,98 Z"/>
-              <path d="M72,92 L96,82 L116,68 L122,72 L106,92 L82,102 Z"/>
-              <path d="M52,168 L44,210 L36,228 L48,232 L62,210 L62,180 Z"/>
-              <path d="M70,168 L80,210 L90,228 L82,232 L68,212 L68,180 Z"/>
-              <line x1="122" y1="72" x2="172" y2="32" stroke="rgba(244,239,230,0.5)" stroke-width="3" stroke-linecap="round"/>
-            </g>
-
-            <!-- ghost 2: foot plant -->
-            <g class="ghost g2" fill="rgba(244,239,230,0.9)" transform="translate(240, 0)">
-              <ellipse cx="60" cy="76" rx="11" ry="12"/>
-              <path d="M50,90 L72,90 L78,140 L72,168 L52,168 L46,140 Z"/>
-              <path d="M50,90 L30,110 L14,108 L6,114 L24,116 L42,108 Z"/>
-              <path d="M72,90 L94,90 L114,82 L120,86 L100,98 L82,104 Z"/>
-              <path d="M52,168 L40,212 L28,232 L42,236 L60,210 L62,178 Z"/>
-              <path d="M72,168 L82,210 L94,228 L86,232 L70,212 L68,178 Z"/>
-              <line x1="120" y1="86" x2="156" y2="56" stroke="rgba(244,239,230,0.6)" stroke-width="3" stroke-linecap="round"/>
-            </g>
-
-            <!-- ghost 3: launch -->
-            <g class="ghost g3" fill="rgba(244,239,230,0.95)" transform="translate(320, 0)">
-              <ellipse cx="60" cy="74" rx="11" ry="12"/>
-              <path d="M50,88 L72,88 L80,138 L72,168 L52,168 L44,138 Z"/>
-              <path d="M50,88 L30,98 L16,86 L8,90 L24,104 L42,104 Z"/>
-              <path d="M72,88 L92,98 L112,108 L118,112 L106,116 L86,104 Z"/>
-              <path d="M52,168 L44,212 L34,232 L46,234 L60,212 L62,178 Z"/>
-              <path d="M72,168 L84,210 L96,228 L88,232 L70,212 L68,178 Z"/>
-              <line x1="8" y1="90" x2="-30" y2="68" stroke="rgba(244,239,230,0.7)" stroke-width="3" stroke-linecap="round"/>
-            </g>
-
-            <!-- main silhouette: contact pose, fully opaque -->
-            <g class="silhouette-main" fill="rgba(244,239,230,0.98)" transform="translate(400, 0)">
-              <!-- head -->
-              <ellipse cx="60" cy="72" rx="12" ry="13"/>
-              <!-- torso -->
-              <path d="M48,88 L72,88 L82,142 L74,172 L52,172 L42,142 Z"/>
-              <!-- left arm extended through contact -->
-              <path d="M48,88 L24,98 L4,82 L-4,86 L18,104 L42,104 Z"/>
-              <!-- right arm -->
-              <path d="M72,88 L96,108 L114,138 L120,150 L108,154 L92,134 Z"/>
-              <!-- left (front) leg planted -->
-              <path d="M52,172 L46,216 L36,240 L52,244 L66,218 L64,182 Z"/>
-              <!-- right (back) leg rotating -->
-              <path d="M74,172 L88,212 L102,238 L92,242 L74,220 L70,182 Z"/>
-              <!-- belt highlight -->
-              <rect x="48" y="138" width="32" height="3" fill="rgba(230,69,48,0.9)"/>
-            </g>
-
-            <!-- bat (main, full strength) -->
-            <line x1="396" y1="86" x2="312" y2="38" stroke="rgba(244,239,230,1)" stroke-width="4.5" stroke-linecap="round"/>
-            <circle cx="312" cy="38" r="5" fill="rgba(244,239,230,1)"/>
-
-            <!-- bat trail arc (animated) -->
-            <path class="bat-trail" d="M 312,38 Q 280,90 296,160 Q 340,220 410,232"/>
-
-            <!-- joint dots on main figure -->
-            <g fill="rgba(232,193,112,1)" transform="translate(400, 0)">
-              <circle cx="48" cy="88"  r="3"/>
-              <circle cx="72" cy="88"  r="3"/>
-              <circle cx="24" cy="98"  r="2.5"/>
-              <circle cx="96" cy="108" r="2.5"/>
-              <circle cx="52" cy="172" r="3"/>
-              <circle cx="74" cy="172" r="3"/>
-            </g>
-
-            <!-- ghost label tags below each pose. y=296 sits between the
-                 figures' feet (~y=242) and the floor ellipse (cy=288, ry=14
-                 → bottom y=302), leaving ~10 px of clear gap above the
-                 absolute-positioned `.stage-label` caption that anchors at
-                 the bottom of `.silhouette-stage`. Previously y=306 placed
-                 these labels in the same vertical band as `.stage-label`,
-                 producing garbled overlap in production. -->
-            <g font-family="Geist Mono, monospace" font-size="9" fill="rgba(244,239,230,0.4)" letter-spacing="0.14em" text-anchor="middle">
-              <text x="210" y="296">LOAD</text>
-              <text x="300" y="296">FOOT PLANT</text>
-              <text x="380" y="296">LAUNCH</text>
-              <text x="460" y="296" fill="#E8C170">CONTACT</text>
-            </g>
-          </svg>
-          <div class="stage-tag">CONTACT · 42° SEP</div>
-        </div>
-      </div>
-
-      <div class="sow-phases">
-        <div class="phase"><span class="ms"><span class="sign">−</span>758</span><span class="name">Load</span><span class="vs">MLB −742</span></div>
-        <div class="phase"><span class="ms"><span class="sign">−</span>262</span><span class="name">Foot plant</span><span class="vs">MLB −276</span></div>
-        <div class="phase"><span class="ms"><span class="sign">−</span>91</span><span class="name">Launch</span><span class="vs">MLB −105</span></div>
-        <div class="phase peak"><span class="ms">0</span><span class="name">Contact</span><span class="vs">peak</span></div>
-        <div class="phase"><span class="ms"><span class="sign">+</span>122</span><span class="name">Peak rot.</span><span class="vs">MLB +119</span></div>
-        <div class="phase"><span class="ms"><span class="sign">+</span>366</span><span class="name">Finish</span><span class="vs">MLB +384</span></div>
-      </div>
-
-      <div class="sow-callouts">
-        <div class="callout good"><div class="icon">+</div><div><div class="title">What worked</div><div class="body">Hip-shoulder separation peaked at 42°, just before launch — almost identical to Betts's signature delay.</div></div></div>
-        <div class="callout focus"><div class="icon">∕</div><div><div class="title">Focus area</div><div class="body">Front-side bat path entered the zone slightly steep. Earlier hand-set could flatten the path by ~3°.</div></div></div>
-      </div>
-    </div>
-
-    <!-- DNA RADAR -->
-    <div class="card dna fade-in d9">
-      <div class="card-eyebrow">Swing DNA</div>
-      <h3 class="card-title">Your <span class="ital">signature</span>, six ways.</h3>
-      <div class="radar">
-        <svg width="340" height="320" viewBox="-180 -170 360 340" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <radialGradient id="radarFill" cx="0" cy="0" r="0.5">
-              <stop offset="0%" stop-color="rgba(244,239,230,0.22)"/>
-              <stop offset="100%" stop-color="rgba(244,239,230,0.02)"/>
-            </radialGradient>
-          </defs>
-          <g stroke="rgba(244,239,230,0.08)" fill="none">
-            <polygon points="0,-150 130,-75 130,75 0,150 -130,75 -130,-75"/>
-            <polygon points="0,-112 97,-56 97,56 0,112 -97,56 -97,-56"/>
-            <polygon points="0,-75 65,-37 65,37 0,75 -65,37 -65,-37"/>
-            <polygon points="0,-37 32,-18 32,18 0,37 -32,18 -32,-18"/>
-          </g>
-          <g stroke="rgba(244,239,230,0.06)">
-            <line x1="0" y1="0" x2="0"    y2="-150"/>
-            <line x1="0" y1="0" x2="130"  y2="-75"/>
-            <line x1="0" y1="0" x2="130"  y2="75"/>
-            <line x1="0" y1="0" x2="0"    y2="150"/>
-            <line x1="0" y1="0" x2="-130" y2="75"/>
-            <line x1="0" y1="0" x2="-130" y2="-75"/>
-          </g>
-          <polygon points="0,-105 91,-52 87,50 0,98 -88,51 -94,-54" fill="rgba(230,69,48,0.05)" stroke="#E64530" stroke-width="1.2" stroke-dasharray="3 4" opacity="0.85"/>
-          <polygon points="0,-128 113,-66 116,67 0,124 -110,62 -120,-69" fill="none" stroke="#E8C170" stroke-width="1" opacity="0.8" stroke-dasharray="1 3"/>
-          <polygon points="0,-118 105,-60 109,63 0,109 -98,57 -106,-61" fill="url(#radarFill)" stroke="#F4EFE6" stroke-width="1.8"/>
-          <g fill="#F4EFE6">
-            <circle cx="0"    cy="-118" r="3.5"/>
-            <circle cx="105"  cy="-60"  r="3.5"/>
-            <circle cx="109"  cy="63"   r="3.5"/>
-            <circle cx="0"    cy="109"  r="3.5"/>
-            <circle cx="-98"  cy="57"   r="3.5"/>
-            <circle cx="-106" cy="-61"  r="3.5"/>
-          </g>
-          <g font-family="Geist Mono, monospace" font-size="10" fill="#8B8E94" letter-spacing="0.15em">
-            <text x="0"    y="-160" text-anchor="middle">ROTATION</text>
-            <text x="146"  y="-72"  text-anchor="start">TIMING</text>
-            <text x="146"  y="84"   text-anchor="start">KNEE DRIVE</text>
-            <text x="0"    y="170"  text-anchor="middle">HEAD STABILITY</text>
-            <text x="-146" y="84"   text-anchor="end">TEMPO</text>
-            <text x="-146" y="-72"  text-anchor="end">MLB MATCH</text>
-          </g>
-        </svg>
-      </div>
-      <div class="dna-legend">
-        <div class="row you"><span class="swatch"></span>You · this wk</div>
-        <div class="row mlb"><span class="swatch"></span>MLB median</div>
-        <div class="row peak"><span class="swatch"></span>Your peak</div>
-      </div>
-    </div>
-  </div>
-
   <!-- FORM QUADRANTS + PHASE TIMING SPECTRUM -->
   <div class="section-head fade-in d8">
     <div>
@@ -2622,152 +2342,6 @@ body::before {
         <div><div class="v">96.9%</div><div class="l">phase-alignment score</div></div>
         <div><div class="v">3 of 5</div><div class="l">phases inside MLB band</div></div>
       </div>
-    </div>
-  </div>
-
-  <!-- PHASE CLOCK SIGNATURE · § 06 · grouped with biomechanics -->
-  <section class="signature fade-in d8">
-    <div class="sig-meta">
-      <div class="sig-eyebrow">§ 07 · Phase Clock</div>
-      <h2 class="sig-title">Your swing,<br>as a <span class="ital">dial.</span></h2>
-      <p class="sig-body">
-        Each of the six swing phases plotted as a sector around 360° of
-        elapsed swing time. The inner hand is yours; the outer hand is
-        the MLB median for a hitter of your build. The closer they
-        track, the more your timing reads as professional.
-      </p>
-      <div class="sig-stats">
-        <div class="sig-stat"><div class="v">1,124 ms</div><div class="l">Your total swing window</div></div>
-        <div class="sig-stat"><div class="v">1,160 ms</div><div class="l">MLB median window</div></div>
-        <div class="sig-stat"><div class="v">96.9%</div><div class="l">Phase-alignment score</div></div>
-        <div class="sig-stat"><div class="v">Top 8%</div><div class="l">Among amateur RHH</div></div>
-      </div>
-    </div>
-
-    <div class="clock-wrap">
-      <svg width="440" height="440" viewBox="-220 -220 440 440" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="dialBg" cx="0" cy="0" r="0.6">
-            <stop offset="0%" stop-color="rgba(230,69,48,0.08)"/>
-            <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-          </radialGradient>
-        </defs>
-        <circle cx="0" cy="0" r="200" fill="url(#dialBg)"/>
-        <circle cx="0" cy="0" r="190" fill="none" stroke="rgba(244,239,230,0.10)" stroke-width="1"/>
-        <circle cx="0" cy="0" r="170" fill="none" stroke="rgba(244,239,230,0.05)" stroke-width="1"/>
-        <circle cx="0" cy="0" r="80"  fill="none" stroke="rgba(244,239,230,0.10)" stroke-width="1"/>
-        <g stroke="rgba(244,239,230,0.18)" stroke-width="1">
-          <line x1="0" y1="-190" x2="0" y2="-178"/>
-          <g transform="rotate(60)">  <line x1="0" y1="-190" x2="0" y2="-178"/></g>
-          <g transform="rotate(120)"> <line x1="0" y1="-190" x2="0" y2="-178"/></g>
-          <g transform="rotate(180)"> <line x1="0" y1="-190" x2="0" y2="-178"/></g>
-          <g transform="rotate(240)"> <line x1="0" y1="-190" x2="0" y2="-178"/></g>
-          <g transform="rotate(300)"> <line x1="0" y1="-190" x2="0" y2="-178"/></g>
-        </g>
-        <path d="M 0,-190 A 190,190 0 0,1 164.5,-95 L 69.3,-40 A 80,80 0 0,0 0,-80 Z"     fill="rgba(244,239,230,0.04)" stroke="rgba(244,239,230,0.12)"/>
-        <path d="M 164.5,-95 A 190,190 0 0,1 164.5,95 L 69.3,40 A 80,80 0 0,0 69.3,-40 Z" fill="rgba(244,239,230,0.05)" stroke="rgba(244,239,230,0.12)"/>
-        <path d="M 164.5,95 A 190,190 0 0,1 0,190 L 0,80 A 80,80 0 0,0 69.3,40 Z"          fill="rgba(244,239,230,0.07)" stroke="rgba(244,239,230,0.12)"/>
-        <path d="M 0,190 A 190,190 0 0,1 -164.5,95 L -69.3,40 A 80,80 0 0,0 0,80 Z"        fill="rgba(230,69,48,0.18)" stroke="rgba(230,69,48,0.6)" stroke-width="1.4"/>
-        <path d="M -164.5,95 A 190,190 0 0,1 -164.5,-95 L -69.3,-40 A 80,80 0 0,0 -69.3,40 Z" fill="rgba(244,239,230,0.05)" stroke="rgba(244,239,230,0.12)"/>
-        <path d="M -164.5,-95 A 190,190 0 0,1 0,-190 L 0,-80 A 80,80 0 0,0 -69.3,-40 Z"     fill="rgba(244,239,230,0.03)" stroke="rgba(244,239,230,0.12)"/>
-        <g font-family="Geist Mono, monospace" font-size="10" fill="#8B8E94" letter-spacing="0.16em">
-          <text x="100"  y="-155" text-anchor="middle">LOAD</text>
-          <text x="178"  y="6"    text-anchor="middle">FOOT PLANT</text>
-          <text x="100"  y="170"  text-anchor="middle">LAUNCH</text>
-          <text x="-100" y="170"  text-anchor="middle" fill="#E64530">CONTACT</text>
-          <text x="-178" y="6"    text-anchor="middle">PEAK ROT.</text>
-          <text x="-100" y="-155" text-anchor="middle">FINISH</text>
-        </g>
-        <g font-family="Instrument Serif, serif" font-size="14" fill="#565A62" font-style="italic">
-          <text x="0" y="-100" text-anchor="middle">elapsed</text>
-          <text x="0" y="20"   text-anchor="middle" fill="#F4EFE6"
-                font-family="Geist Mono, monospace" font-size="22" letter-spacing="-0.02em">1,124</text>
-          <text x="0" y="42"   text-anchor="middle" font-family="Geist Mono, monospace"
-                font-size="9" letter-spacing="0.18em" fill="#8B8E94">MS · YOU</text>
-        </g>
-        <g class="clock-hand-mlb">
-          <line x1="0" y1="0" x2="0" y2="-176" stroke="#E64530" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <circle cx="0" cy="-176" r="4" fill="#E64530"/>
-        </g>
-        <g class="clock-hand-you">
-          <line x1="0" y1="0" x2="0" y2="-188" stroke="#F4EFE6" stroke-width="2.4"/>
-          <circle cx="0" cy="-188" r="5" fill="#F4EFE6"/>
-        </g>
-        <circle cx="0" cy="0" r="7" fill="#0A0B0E" stroke="#F4EFE6" stroke-width="1.5"/>
-        <circle cx="0" cy="0" r="2" fill="#E8C170"/>
-      </svg>
-    </div>
-  </section>
-
-  <!-- TRAJECTORY (30-day trend) -->
-  <div class="card trend fade-in d8" style="margin-top:28px;">
-    <div class="trend-head">
-      <div>
-        <div class="card-eyebrow">§ 08 · Trajectory</div>
-        <h3 class="card-title">Thirty <span class="ital">days</span> in.</h3>
-      </div>
-      <div class="trend-metrics">
-        <div class="tag"><span class="swatch" style="background:#F4EFE6"></span>Match score (%)</div>
-        <div class="tag"><span class="swatch" style="background:#E64530"></span>Hip rotation (°)</div>
-        <div class="tag"><span class="swatch" style="background:#E8C170"></span>Hip-Sh sep (°)</div>
-      </div>
-    </div>
-    <div class="trend-chart">
-      <svg viewBox="0 0 1280 280" width="100%" height="280" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="batAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%"  stop-color="rgba(244,239,230,0.18)"/>
-            <stop offset="100%" stop-color="rgba(244,239,230,0)"/>
-          </linearGradient>
-          <linearGradient id="barAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%"  stop-color="rgba(230,69,48,0.18)"/>
-            <stop offset="100%" stop-color="rgba(230,69,48,0)"/>
-          </linearGradient>
-        </defs>
-        <g stroke="rgba(244,239,230,0.05)" stroke-dasharray="2 4">
-          <line x1="0" y1="40"  x2="1280" y2="40"/>
-          <line x1="0" y1="100" x2="1280" y2="100"/>
-          <line x1="0" y1="160" x2="1280" y2="160"/>
-          <line x1="0" y1="220" x2="1280" y2="220"/>
-        </g>
-        <g>
-          <line x1="380"  y1="0" x2="380"  y2="280" stroke="rgba(232,193,112,0.18)" stroke-dasharray="2 4"/>
-          <line x1="900"  y1="0" x2="900"  y2="280" stroke="rgba(232,193,112,0.18)" stroke-dasharray="2 4"/>
-          <line x1="1180" y1="0" x2="1180" y2="280" stroke="rgba(232,193,112,0.40)" stroke-dasharray="2 4"/>
-        </g>
-        <!-- bat speed area + line -->
-        <path d="M0,170 C 60,165 120,160 180,158 S 320,142 380,130 S 520,148 600,140 S 740,118 820,108 S 940,90 1020,82 S 1180,62 1280,52 L1280,280 L0,280 Z" fill="url(#batAreaGrad)"/>
-        <path d="M0,170 C 60,165 120,160 180,158 S 320,142 380,130 S 520,148 600,140 S 740,118 820,108 S 940,90 1020,82 S 1180,62 1280,52" fill="none" stroke="#F4EFE6" stroke-width="2"/>
-        <!-- barrel area + line -->
-        <path d="M0,200 C 80,196 160,190 240,184 S 380,168 460,170 S 600,150 680,142 S 820,132 900,118 S 1060,108 1140,98 S 1240,82 1280,76 L1280,280 L0,280 Z" fill="url(#barAreaGrad)" opacity="0.6"/>
-        <path d="M0,200 C 80,196 160,190 240,184 S 380,168 460,170 S 600,150 680,142 S 820,132 900,118 S 1060,108 1140,98 S 1240,82 1280,76" fill="none" stroke="#E64530" stroke-width="2" opacity="0.95"/>
-        <!-- hip sep line -->
-        <path d="M0,150 C 80,148 160,144 240,142 S 380,134 460,132 S 600,124 680,118 S 820,110 900,100 S 1060,92 1140,84 S 1240,70 1280,64" fill="none" stroke="#E8C170" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.85"/>
-        <!-- PR pin labels -->
-        <g font-family="Geist Mono, monospace" font-size="9" fill="#E8C170" letter-spacing="0.12em">
-          <text x="380"  y="18" text-anchor="middle">▲ PR 76% MATCH</text>
-          <text x="900"  y="18" text-anchor="middle">▲ PR 48° HIP ROT</text>
-          <text x="1180" y="18" text-anchor="middle">▲ PR 91% MATCH · 42° SEP</text>
-        </g>
-        <g>
-          <circle cx="380"  cy="130" r="4" fill="#E8C170"/>
-          <circle cx="900"  cy="118" r="4" fill="#E8C170"/>
-          <circle cx="1180" cy="62"  r="5" fill="#E8C170"/>
-          <circle cx="1180" cy="62"  r="10" fill="none" stroke="#E8C170" opacity="0.4"/>
-        </g>
-        <g font-family="Geist Mono, monospace" font-size="9.5" fill="#565A62" letter-spacing="0.12em">
-          <text x="0"    y="272">APR 18</text>
-          <text x="320"  y="272">APR 25</text>
-          <text x="640"  y="272">MAY 02</text>
-          <text x="960"  y="272">MAY 09</text>
-          <text x="1224" y="272" text-anchor="end">MAY 17</text>
-        </g>
-      </svg>
-    </div>
-    <div class="trend-annot-bar">
-      <div class="annot"><span class="when">Apr 25</span><span class="what"><span class="pr">PR</span>Match score crosses 76% — first session above "strong" band.</span></div>
-      <div class="annot"><span class="when">May 09</span><span class="what"><span class="pr">PR</span>Hip rotation peaks at 48° at contact across full session.</span></div>
-      <div class="annot"><span class="when">May 17</span><span class="what"><span class="pr">PR</span>Match score 91% &nbsp;·&nbsp; hip-shoulder sep 42°.</span></div>
     </div>
   </div>
 
