@@ -2017,7 +2017,7 @@ body::before {
       <h1 class="hero-headline">Your separation<br>hit <span class="ital">42°</span><span class="pr-burst" style="width:22px;height:22px;margin:0 6px 0 8px;"></span>— MLB <span class="red">territory.</span></h1>
       <p class="hero-deck">Across 42 swings this week, your peak hip-shoulder separation climbed to 42° — a personal best by 2° and within four degrees of Mookie Betts's signature delay. Your overall match score against your MLB match ticked up to 91%, the cleanest week your pose data has registered to date.</p>
       <div class="hero-meta">
-        <div class="hero-meta-block"><span class="hero-meta-label">This week</span><span class="hero-meta-value">{{SWINGS_7D}} swings · {{SESSIONS_7D}} sessions</span></div>
+        <div class="hero-meta-block"><span class="hero-meta-label">Swings logged</span><span class="hero-meta-value">{{TOTAL_SWINGS}} swings · {{TOTAL_SESSIONS}} sessions</span></div>
         <div class="hero-meta-block"><span class="hero-meta-label">Personal records</span><span class="hero-meta-value">{{PR_TOTAL}}</span></div>
       </div>
     </div>

@@ -1337,7 +1337,9 @@ def _build_velocity_narrative_html(history: List[Dict[str, Any]]) -> str:
 def _build_hero_deck_html(latest: Dict[str, Any], history: List[Dict[str, Any]],
                          ref_name: str, sep_peak_val: str, match_pct: int) -> str:
     """Replaces the hardcoded hero <p class="hero-deck"> with computed copy."""
-    n_swings = _swings_this_week(history) or len(history)
+    sw_week = _swings_this_week(history)
+    n_swings = sw_week or len(history)
+    when_phrase = "this week" if sw_week else "to date"
 
     # Compare current sep peak vs all-time best PRIOR to this session (honest PB).
     sep_now_n = _parse_numeric(sep_peak_val) or 0.0
@@ -1361,7 +1363,7 @@ def _build_hero_deck_html(latest: Dict[str, Any], history: List[Dict[str, Any]],
 
     return (
         f'<p class="hero-deck">Across {n_swings} swing'
-        f'{"s" if n_swings != 1 else ""} this week, your peak hip-shoulder '
+        f'{"s" if n_swings != 1 else ""} {when_phrase}, your peak hip-shoulder '
         f'separation reached <span class="em">{sep_peak_val}</span>{pb_phrase}. '
         f'Your overall match score against <span class="em">{ref_name}</span> is '
         f'<span class="em">{match_pct}%</span>, putting you {band_phrase}.</p>'
@@ -1835,11 +1837,12 @@ def render_dashboard_v3(user: Dict[str, Any],
     total_swings_12w = _total_swings(history, window_days=84)
     active_days_12w  = _active_days(history, window_days=84)
 
-    # Hero "this week" + PR tokens — real, via existing helpers (these replace
-    # the mock "4 sessions · 42 swings" / "2 this week" placeholders).
-    swings_7d   = _swings_this_week(history)
-    sessions_7d = _active_days(history, window_days=7)
-    pr_total    = _personal_records_count(history)
+    # Hero stat tokens — real, all-time (these replace the mock "4 sessions ·
+    # 42 swings" / "2 this week" placeholders). All-time so the row is always
+    # meaningful, never a sad "0 this week" next to a full dashboard.
+    total_swings_all   = len(history)
+    total_sessions_all = _active_days(history, window_days=100000)
+    pr_total           = _personal_records_count(history)
 
     # ----- Load template + targeted swaps -----
     html = _load_template_html()
@@ -1913,10 +1916,17 @@ def render_dashboard_v3(user: Dict[str, Any],
         ("v 0.2 ·",
          f"v 0.3-wired · session {user.get('slug', '—')} ·"),
 
-        # Hero "this week" + PR tokens (real — replaces the mock placeholders).
-        ("{{SWINGS_7D}}",   str(swings_7d)),
-        ("{{SESSIONS_7D}}", str(sessions_7d)),
-        ("{{PR_TOTAL}}",    str(pr_total)),
+        # Hero stat tokens (real, all-time — replaces the mock placeholders).
+        ("{{TOTAL_SWINGS}}",   str(total_swings_all)),
+        ("{{TOTAL_SESSIONS}}", str(total_sessions_all)),
+        ("{{PR_TOTAL}}",       str(pr_total)),
+
+        # § 02 match narrative carried hardcoded mock numbers ("your last 42
+        # swings", "42° separation peak") — wire them to the player's real data.
+        ("your last 42 swings", f"your last {len(history)} swing"
+         f'{"s" if len(history) != 1 else ""}'),
+        ("42° hip-shoulder separation peak",
+         f"{sep_peak_val} hip-shoulder separation peak"),
 
         # Catch-all: any straggler "Mookie" / "Betts" → the real MLB match name.
         # Runs after the full-name swaps above, so it only hits leftovers.
@@ -2188,23 +2198,17 @@ def render_dashboard_v3(user: Dict[str, Any],
     # session-state only). Render them as native in-session buttons here so the
     # upgrade and drill-plan paths actually work. Skipped when viewing a past
     # swing via the open-report flow.
+    # Only a single, purposeful CTA for FREE users (the dashboard has no other
+    # upgrade entry point). Paid users get nothing floating here — managing the
+    # subscription lives in Settings, and drills are the masthead's Training Plan
+    # tab, so the old mid-page "Manage subscription" + "Open my drill plan"
+    # buttons were redundant clutter and have been removed.
     if force_record is None:
         from entitlements import FREE_PLAN_ID
-        _plan_id = _current_plan_id()
-        _cta_l, _cta_r, _cta_sp = st.columns([1, 1, 2])
-        with _cta_l:
-            if _plan_id == FREE_PLAN_ID:
+        if _current_plan_id() == FREE_PLAN_ID:
+            _cta_l, _cta_sp = st.columns([1, 2])
+            with _cta_l:
                 if st.button("⚡ Upgrade to Pro", key="dash_v3_upgrade_cta",
                              type="primary", use_container_width=True):
                     st.session_state["page"] = "pricing"
                     st.rerun()
-            else:
-                if st.button("Manage subscription", key="dash_v3_manage_cta",
-                             use_container_width=True):
-                    st.session_state["page"] = "pricing"
-                    st.rerun()
-        with _cta_r:
-            if st.button("Open my drill plan  →", key="dash_v3_drills_cta",
-                         use_container_width=True):
-                st.session_state["page"] = "development_tracker"
-                st.rerun()
