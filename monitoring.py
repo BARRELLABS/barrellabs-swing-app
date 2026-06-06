@@ -28,7 +28,12 @@ def init_monitoring() -> None:
         dsn = (st.secrets.get("sentry", {}) or {}).get("dsn")
     except Exception:
         dsn = None
-    dsn = dsn or os.environ.get("SENTRY_DSN")
+    # Fall back to the project's DSN so the DEPLOYED app reports crashes without
+    # needing a Streamlit Cloud secret. A Sentry DSN is write-only ingestion
+    # (like a PostHog public key) — safe to ship in code. Override via the
+    # [sentry] secret or SENTRY_DSN env var to point at a different project.
+    dsn = (dsn or os.environ.get("SENTRY_DSN")
+           or "https://733ec3a052bb0ea6b31aeb8ad911944a@o4511515808432128.ingest.us.sentry.io/4511515814395904")
     if not dsn:
         return  # not configured yet — stay a no-op
 
