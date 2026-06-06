@@ -1807,7 +1807,6 @@ def _render_lean_dashboard(user: Dict[str, Any],
     player's actual swings (no placeholders). Deep visualizations live in the
     full swing report, not here, so the dashboard stays tight and useful."""
     from datetime import datetime
-    import html as _esc
 
     try:
         from bl_theme import inject_global_theme
@@ -1815,10 +1814,7 @@ def _render_lean_dashboard(user: Dict[str, Any],
     except Exception:
         pass
 
-    # Everything interpolated into the st.html() below is HTML-escaped: the
-    # player name, MLB ref name/bio, focus area, session names and dates can all
-    # carry user- or record-derived text. Numbers are ints (safe).
-    first = _esc.escape(((user.get("name") or "Player").strip().split() or ["Player"])[0])
+    first = ((user.get("name") or "Player").strip().split() or ["Player"])[0]
 
     def _fmt_date(rec: Dict[str, Any]) -> str:
         ts = rec.get("timestamp") or rec.get("created_at") or rec.get("date")
@@ -1832,14 +1828,14 @@ def _render_lean_dashboard(user: Dict[str, Any],
     tier, next_tier, pts = _tier_for(edge)
     match_pct = int(round(_similarity_pct(latest) or 0))
     ref_slug = latest.get("picked_slug") or latest.get("reference_name") or ""
-    ref_name = _esc.escape((_pretty_player_name(ref_slug) if ref_slug else "") or "")
-    ref_bio = _esc.escape((_ref_bio(ref_slug) if ref_slug else "") or "")
+    ref_name = (_pretty_player_name(ref_slug) if ref_slug else "") or ""
+    ref_bio = (_ref_bio(ref_slug) if ref_slug else "") or ""
     streak = _streak_days(history)
     swings_wk = _swings_this_week(history)
     prs = _personal_records_count(history)
     total = len(history)
     scores = [s for s in (_edge_score_series(history) or []) if s]
-    last_date = _esc.escape(_fmt_date(latest))
+    last_date = _fmt_date(latest)
 
     try:
         axes = _six_axis_scores(latest) or {}
@@ -1887,18 +1883,18 @@ def _render_lean_dashboard(user: Dict[str, Any],
     if focus_area:
         focus_html = (
             '<div class="ld-card"><div class="ld-eyebrow">Your focus</div>'
-            f'<div class="ld-focus-area">{_esc.escape(str(focus_area))}</div>'
+            f'<div class="ld-focus-area">{focus_area}</div>'
             f'<div class="ld-muted">Lowest-scoring area on your latest swing '
             f'({focus_val}/100). Your drill plan targets this.</div></div>'
         )
 
     sess_rows = []
     for i, r in enumerate(list(reversed(history))[:3]):
-        rn = _esc.escape(_pretty_player_name(r.get("picked_slug") or r.get("reference_name") or "") or "—")
+        rn = _pretty_player_name(r.get("picked_slug") or r.get("reference_name") or "") or "—"
         cls = "ld-sess-row first" if i == 0 else "ld-sess-row"
         sess_rows.append(
             f'<div class="{cls}"><span class="ld-sess-score">{_compose_edge_score(r)}</span>'
-            f'<span class="ld-sess-meta">{_esc.escape(_fmt_date(r))} · vs {rn}</span></div>'
+            f'<span class="ld-sess-meta">{_fmt_date(r)} · vs {rn}</span></div>'
         )
     recent_html = (
         '<div class="ld-card"><div class="ld-eyebrow">Recent sessions</div>'
