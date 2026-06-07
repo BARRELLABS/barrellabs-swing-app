@@ -156,7 +156,7 @@ _LOCAL_CSS = """
   .dl-count b { color: var(--gold); }
 
   /* ---- Category sections ---- */
-  .dl-cat { margin: 0 0 2.2rem; }
+  .dl-cat { margin: 1.7rem 0 1.1rem; }
   .dl-cat-head {
     display:flex; align-items:flex-end; justify-content:space-between;
     gap:1rem; border-bottom: 1px solid var(--bl-line);
@@ -206,6 +206,29 @@ _LOCAL_CSS = """
     border: 1px solid var(--bl-line); border-radius: 6px; padding: 3px 7px;
   }
   .dl-tag--bat { color: var(--gold); border-color: rgba(232,193,112,0.4); }
+
+  /* ---- "I did this" action + logged state ---- */
+  [class*="st-key-dldone_"] { margin-top: -6px !important; }
+  [class*="st-key-dldone_"] button {
+    background: rgba(232,193,112,0.10) !important;
+    border: 1px solid rgba(232,193,112,0.38) !important;
+    color: var(--gold) !important;
+    font-family: var(--mono) !important; font-size: 10.5px !important;
+    font-weight: 600 !important; letter-spacing: 0.12em !important;
+    text-transform: uppercase !important; border-radius: 10px !important;
+    padding: 9px 12px !important; min-height: 0 !important; height: auto !important;
+    width: 100% !important; box-shadow: none !important;
+    transition: background .18s ease, transform .18s ease;
+  }
+  [class*="st-key-dldone_"] button p { font: inherit !important; color: inherit !important; margin: 0 !important; letter-spacing: inherit !important; }
+  [class*="st-key-dldone_"] button:hover { background: rgba(232,193,112,0.18) !important; transform: translateY(-1px); }
+  .dl-done {
+    margin-top: 2px; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #6FBF8B; border: 1px solid rgba(111,191,139,0.32);
+    background: rgba(111,191,139,0.10); border-radius: 10px;
+    padding: 9px 12px; text-align: center;
+  }
 
   /* ---- Mobile ---- */
   @media (max-width: 720px) {
@@ -273,6 +296,71 @@ def _drill_available(drill: dict, have: set) -> bool:
     return need.issubset(have)
 
 
+# --------------------------------------------------------------------
+#  Training log — "I did this" writes to the SAME per-player training_logs
+#  store + _completion_events history the Training Plan uses, with the same
+#  drill_id format ("{category title}::{drill name}"). So library reps feed
+#  the same drill-mastery counts. (Gamification XP is computed from a
+#  separate swing-meta store, so logging here does not grant XP — it records
+#  the rep in the training log, which is what we want.)
+# --------------------------------------------------------------------
+def _load_log(player_id):
+    """Load the player's training log once per run (session-cached)."""
+    ck = f"_dl_log_{player_id}"
+    if ck in st.session_state:
+        return st.session_state[ck]
+    log = {"drills": {}, "session_notes": []}
+    if player_id:
+        try:
+            from player_storage import load_training_log
+            log = load_training_log(player_id) or log
+        except Exception:
+            pass
+    st.session_state[ck] = log
+    return log
+
+
+def _logged_today(log: dict, drill_id: str) -> bool:
+    """True if this exact drill was logged earlier today (any source)."""
+    from datetime import datetime as _dt
+    today = _dt.now().date().isoformat()
+    events = ((log or {}).get("drills") or {}).get("_completion_events") or []
+    for e in events:
+        if e.get("drill_id") == drill_id and (e.get("completed_at") or "")[:10] == today:
+            return True
+    return False
+
+
+def _log_drill_done(player_id, cat_title: str, drill: dict) -> None:
+    """Append a completion event for this library drill, matching the
+    Training Plan's format so drill mastery reconciles across both."""
+    from datetime import datetime as _dt
+    drill_id = f"{cat_title}::{drill.get('name','')}"
+    now = _dt.now().isoformat(timespec="seconds")
+    log = _load_log(player_id)
+    drill_log = log.setdefault("drills", {})
+    drill_log[drill_id] = {
+        "completed": True,
+        "reps_done": drill.get("reps", ""),
+        "last_updated": now,
+    }
+    drill_log.setdefault("_completion_events", []).append({
+        "drill_id": drill_id,
+        "drill_name": drill.get("name", ""),
+        "completed_at": now,
+        "source_swing_date": None,
+        "reps_done": drill.get("reps", ""),
+        "source": "library",
+    })
+    st.session_state[f"_dl_log_{player_id}"] = log  # keep run cache fresh
+    if player_id:
+        try:
+            from player_storage import save_training_log
+            save_training_log(player_id, log)
+        except Exception:
+            pass
+
+
 def render_drill_library():
     inject_global_theme()
     render_edge_masthead(
@@ -327,6 +415,7 @@ def render_drill_library():
         st.markdown(f"<style>{sel}</style>", unsafe_allow_html=True)
 
     have = saved
+    log = _load_log(player_id)
 
     # ---- Count + nudge ----
     total_available = sum(
@@ -362,28 +451,49 @@ def render_drill_library():
             unsafe_allow_html=True,
         )
 
-        cards = ['<div class="dl-grid">']
-        for d in avail:
-            need = [a for a in d.get("equipment", []) if a != "none"]
-            if need:
-                tags = "".join(
-                    f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
-                    for a in need
-                )
-            else:
-                tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
-            cards.append(
-                '<div class="dl-card">'
-                '<div class="dl-card-top">'
-                f'<div class="dl-card-name">{_esc(d["name"])}</div>'
-                f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
-                '</div>'
-                f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
-                f'<div class="dl-tags">{tags}</div>'
-                '</div>'
-            )
-        cards.append('</div>')  # .dl-grid
-        st.markdown("".join(cards), unsafe_allow_html=True)
+        # Two-up rows of (card + "I did this" button). st.columns stacks to
+        # one column on mobile automatically.
+        for row in range(0, len(avail), 2):
+            cols = st.columns(2, gap="small")
+            for ci, d in enumerate(avail[row:row + 2]):
+                with cols[ci]:
+                    need = [a for a in d.get("equipment", []) if a != "none"]
+                    if need:
+                        tags = "".join(
+                            f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
+                            for a in need
+                        )
+                    else:
+                        tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
+                    st.markdown(
+                        '<div class="dl-card">'
+                        '<div class="dl-card-top">'
+                        f'<div class="dl-card-name">{_esc(d["name"])}</div>'
+                        f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
+                        '</div>'
+                        f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
+                        f'<div class="dl-tags">{tags}</div>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    drill_id = f'{cat["title"]}::{d["name"]}'
+                    done = (
+                        st.session_state.get(f"_dl_doneflag_{drill_id}")
+                        or _logged_today(log, drill_id)
+                    )
+                    if done:
+                        st.markdown(
+                            '<div class="dl-done">✓ Logged today</div>',
+                            unsafe_allow_html=True,
+                        )
+                    elif st.button("✓ I did this", key=f"dldone_{cat_key}_{row + ci}"):
+                        _log_drill_done(player_id, cat["title"], d)
+                        st.session_state[f"_dl_doneflag_{drill_id}"] = True
+                        try:
+                            st.toast(f"Logged · {d['name']}", icon="✅")
+                        except Exception:
+                            pass
+                        st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)  # .dl-cat
 
     st.markdown('</div>', unsafe_allow_html=True)  # .dl-page

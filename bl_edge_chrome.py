@@ -105,6 +105,8 @@ _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
     # paywall code keep working untouched. Rename only — no refactor.
     ("Training Plan", "development_tracker", ()),
     ("Library",      "drill_library",        ()),
+    # Performance Over Time (page_key stays `historical_charts`).
+    ("Progress",     "historical_charts",    ()),
 ]
 
 # Family nav entry is built dynamically per-user in render_edge_masthead
@@ -284,8 +286,8 @@ iframe {
   color: #80838B !important;
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace !important;
   font-size: 11px !important; font-weight: 600 !important;
-  letter-spacing: 0.16em !important; text-transform: uppercase !important;
-  padding: 9px 18px !important; border-radius: 8px !important;
+  letter-spacing: 0.13em !important; text-transform: uppercase !important;
+  padding: 9px 12px !important; border-radius: 8px !important;
   min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
   box-shadow: none !important; width: auto !important;
   -webkit-font-smoothing: antialiased;
