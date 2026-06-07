@@ -217,8 +217,8 @@ iframe {
   background: #0A0B0E !important; border: 0 !important;
   display: flex !important; flex-direction: row !important;
   flex-wrap: nowrap !important; align-items: center !important;
-  gap: 40px !important;
-  padding: 13px max(40px, calc((100vw - 1560px) / 2)) !important;
+  gap: 26px !important;
+  padding: 13px max(36px, calc((100vw - 1560px) / 2)) !important;
   box-sizing: border-box !important;
 }
 /* Ghost-masthead guard: in-session nav (st.rerun) can leave a stale, brand-only
@@ -228,6 +228,14 @@ iframe {
    the brand markdown. Hide any masthead with no buttons so only the live one
    ever shows. */
 .st-key-bl_edge_masthead:not(:has(button)) {
+  display: none !important;
+}
+/* Stronger guard: if a stale FULL masthead (still carrying its buttons)
+   lingers after in-session nav — which stacks as duplicate full-bleed nav
+   bars — collapse to a single one. The early-routed pages (Library /
+   Progress / Training Plan) render their masthead first, so the live one is
+   the first; hide every later duplicate. No-op when only one exists. */
+.st-key-bl_edge_masthead ~ .st-key-bl_edge_masthead {
   display: none !important;
 }
 /* flatten Streamlit's structural wrappers inside the masthead so the

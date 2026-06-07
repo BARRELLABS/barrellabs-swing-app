@@ -485,22 +485,34 @@ _HC_LOCAL_CSS = """
     display: flex; flex-direction: column; gap: 0.55rem;
     margin-bottom: 1rem;
 }
-.hc-quick-btn .stButton > button {
+/* The recent-report buttons. Targeted by their st-key wrapper (the old
+   .hc-quick-btn wrapper div never actually wrapped the widget, so these
+   rendered as default Streamlit buttons). */
+[class*="st-key-hc_quick_"] button {
     width: 100% !important;
     text-align: left !important;
-    background: transparent !important;
+    justify-content: flex-start !important;
+    background: rgba(244,239,230,0.025) !important;
     border: 1px solid var(--bl-line) !important;
     border-radius: var(--bl-radius-md) !important;
-    color: var(--bl-ink-100) !important;
-    padding: 0.9rem 1.1rem !important;
-    font-family: var(--bl-sans) !important;
+    color: var(--bl-ink-80) !important;
+    padding: 0.85rem 1.1rem !important;
+    min-height: 0 !important; height: auto !important;
+    font-family: var(--bl-mono) !important;
     font-weight: 500 !important;
-    font-size: 0.92rem !important;
-    transition: all .22s ease !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.04em !important;
+    box-shadow: none !important;
+    transition: border-color .2s ease, background .2s ease, transform .2s ease !important;
 }
-.hc-quick-btn .stButton > button:hover {
-    border-color: var(--bl-line-hi) !important;
-    background: rgba(255,255,255,0.03) !important;
+[class*="st-key-hc_quick_"] button p {
+    font: inherit !important; color: inherit !important; margin: 0 !important;
+    letter-spacing: inherit !important; text-align: left !important; width: 100% !important;
+}
+[class*="st-key-hc_quick_"] button:hover {
+    border-color: rgba(232,193,112,0.4) !important;
+    background: rgba(232,193,112,0.06) !important;
+    color: var(--bl-ink-100) !important;
     transform: translateX(2px);
 }
 
@@ -1378,9 +1390,8 @@ def render_historical_charts():
                 score_disp = "—"
             ref = str(rec.get("reference_name") or "—")
             date_disp = str(rec.get("date") or "—")
-            label = f"{num_disp}     Swing {n} · vs {ref}     ·     {date_disp}     ·     {score_disp}    ›"
+            label = f"SWING {n}   ·   VS {ref.upper()}   ·   {date_disp.upper()}   ·   SCORE {score_disp}"
 
-            st.markdown('<div class="hc-quick-btn">', unsafe_allow_html=True)
             if st.button(label, key=f"hc_quick_{idx}_{rec.get('id') or rec.get('timestamp') or idx}", width="stretch"):
                 st.session_state["view_swing_record"] = rec
                 rp = rec.get("_record_path")
@@ -1391,7 +1402,6 @@ def render_historical_charts():
                 st.session_state.pop("page", None)
                 st.session_state.pop("view", None)
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================================

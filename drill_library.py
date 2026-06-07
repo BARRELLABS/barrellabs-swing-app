@@ -24,7 +24,6 @@ Design notes
 from __future__ import annotations
 
 import html as _html
-from urllib.parse import quote as _urlquote
 
 import streamlit as st
 
@@ -32,21 +31,6 @@ from bl_theme import inject_global_theme
 from bl_edge_chrome import render_edge_masthead
 from drills import DRILL_DB, EQUIPMENT
 
-
-# Minimal line-art icons (stroke, no fill) used as CSS masks so they inherit
-# the chip's text color (bone when idle, gold when selected). One per aid.
-_AID_SVG = {
-    "tee":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='6' r='3'/><path d='M12 9v10M8 19h8'/></svg>",
-    "net":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linejoin='round'><rect x='4' y='4' width='16' height='16' rx='1'/><path d='M4 10h16M4 15h16M10 4v16M15 4v16'/></svg>",
-    "soft_toss":    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M3 18c4-10 14-10 18 0'/><circle cx='12' cy='5.5' r='1.8' fill='#000' stroke='none'/></svg>",
-    "wall":         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='1'/><path d='M3 12h18M12 5v7M8 12v7M16 12v7'/></svg>",
-    "towel":        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='6' y='3' width='12' height='18' rx='2'/><path d='M9 7h6M9 11h6'/></svg>",
-    "band":         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M2 12q2.5-6 5 0t5 0 5 0 5 0'/></svg>",
-    "weighted_bat": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M5 19 18 6'/><path d='M14.5 4.5 19.5 9.5' stroke-width='4'/></svg>",
-    "pvc":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2'><rect x='3' y='10' width='18' height='4' rx='2'/><path d='M7 10v4M17 10v4'/></svg>",
-    "med_ball":     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2'><circle cx='12' cy='12' r='8'/><path d='M4 12h16M12 4v16'/></svg>",
-    "mirror":       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><rect x='6' y='2.5' width='12' height='15' rx='6'/><path d='M9 20.5h6M12 17.5v3'/></svg>",
-}
 
 # Plain-language, one-line "what this group fixes" — keeps the library
 # understandable instead of throwing biomechanics jargon at people.
@@ -64,20 +48,6 @@ CATEGORY_GOAL = {
 # The aids offered in the kit selector. "none" (just a bat) is implied for
 # every player, so it is never a toggle — bat-only drills always show.
 KIT_AIDS = [k for k in EQUIPMENT.keys() if k != "none"]
-
-
-def _icon_css() -> str:
-    """Per-aid ::before mask rules so each chip shows its line-art icon,
-    tinted to the chip's current text color (currentColor)."""
-    rules = []
-    for aid, svg in _AID_SVG.items():
-        uri = "data:image/svg+xml," + _urlquote(svg)
-        rules.append(
-            f'.st-key-dlk_{aid} button::before{{'
-            f'-webkit-mask:url("{uri}") center/contain no-repeat;'
-            f'mask:url("{uri}") center/contain no-repeat;}}'
-        )
-    return "".join(rules)
 
 
 _LOCAL_CSS = """
@@ -133,16 +103,12 @@ _LOCAL_CSS = """
     font-family: var(--mono) !important; font-size: 11.5px !important;
     font-weight: 500 !important; letter-spacing: 0.12em !important;
     text-transform: uppercase !important;
-    padding: 9px 15px 9px 34px !important; border-radius: 999px !important;
+    padding: 9px 16px !important; border-radius: 999px !important;
     min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
     box-shadow: none !important;
     transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .2s ease;
   }
   .st-key-dl_kit_chips button p { font: inherit !important; color: inherit !important; margin: 0 !important; letter-spacing: inherit !important; }
-  .st-key-dl_kit_chips button::before {
-    content: ""; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 15px; height: 15px; background-color: currentColor;
-  }
   .st-key-dl_kit_chips button:hover {
     color: var(--bone) !important; border-color: var(--bl-line-hi) !important;
     transform: translateY(-1px);
@@ -175,17 +141,16 @@ _LOCAL_CSS = """
     text-transform: uppercase; color: var(--bone-faint); white-space: nowrap;
   }
 
-  .dl-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
-  .dl-card {
-    background: rgba(244,239,230,0.035); border: 1px solid var(--bl-line);
-    border-radius: 16px; padding: 1.05rem 1.15rem;
-    display:flex; flex-direction:column; gap:.55rem;
-    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-    transition: border-color .22s ease, background .22s ease, transform .22s ease;
+  /* Each drill is a real st.container so the "I did this" button lives
+     INSIDE the card (no overlap). Styled as the card surface. */
+  [class*="st-key-dlcard_"] {
+    background: rgba(244,239,230,0.035) !important; border: 1px solid var(--bl-line) !important;
+    border-radius: 16px !important; padding: 1.05rem 1.15rem 1.1rem !important;
+    margin-bottom: 14px !important; gap: 0.6rem !important;
+    transition: border-color .22s ease, background .22s ease;
   }
-  .dl-card:hover {
-    border-color: var(--bl-line-hi); background: rgba(244,239,230,0.055);
-    transform: translateY(-2px);
+  [class*="st-key-dlcard_"]:hover {
+    border-color: var(--bl-line-hi) !important; background: rgba(244,239,230,0.055) !important;
   }
   .dl-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
   .dl-card-name {
@@ -207,27 +172,26 @@ _LOCAL_CSS = """
   }
   .dl-tag--bat { color: var(--gold); border-color: rgba(232,193,112,0.4); }
 
-  /* ---- "I did this" action + logged state ---- */
-  [class*="st-key-dldone_"] { margin-top: -6px !important; }
+  /* ---- "I did this" action + logged state (inside the card) ---- */
   [class*="st-key-dldone_"] button {
     background: rgba(232,193,112,0.10) !important;
     border: 1px solid rgba(232,193,112,0.38) !important;
     color: var(--gold) !important;
-    font-family: var(--mono) !important; font-size: 10.5px !important;
+    font-family: var(--mono) !important; font-size: 10px !important;
     font-weight: 600 !important; letter-spacing: 0.12em !important;
-    text-transform: uppercase !important; border-radius: 10px !important;
-    padding: 9px 12px !important; min-height: 0 !important; height: auto !important;
-    width: 100% !important; box-shadow: none !important;
-    transition: background .18s ease, transform .18s ease;
+    text-transform: uppercase !important; border-radius: 9px !important;
+    padding: 8px 14px !important; min-height: 0 !important; height: auto !important;
+    width: auto !important; box-shadow: none !important;
+    transition: background .18s ease;
   }
   [class*="st-key-dldone_"] button p { font: inherit !important; color: inherit !important; margin: 0 !important; letter-spacing: inherit !important; }
-  [class*="st-key-dldone_"] button:hover { background: rgba(232,193,112,0.18) !important; transform: translateY(-1px); }
+  [class*="st-key-dldone_"] button:hover { background: rgba(232,193,112,0.18) !important; }
   .dl-done {
-    margin-top: 2px; font-family: var(--mono); font-size: 10.5px;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
     letter-spacing: 0.12em; text-transform: uppercase;
     color: #6FBF8B; border: 1px solid rgba(111,191,139,0.32);
-    background: rgba(111,191,139,0.10); border-radius: 10px;
-    padding: 9px 12px; text-align: center;
+    background: rgba(111,191,139,0.10); border-radius: 9px;
+    padding: 8px 14px; display: inline-block;
   }
 
   /* ---- Mobile ---- */
@@ -384,7 +348,6 @@ def render_drill_library():
         st.session_state.get("user") or {}, active_page="drill_library"
     )
     st.markdown(_LOCAL_CSS, unsafe_allow_html=True)
-    st.markdown(f"<style>{_icon_css()}</style>", unsafe_allow_html=True)
     st.markdown('<div class="dl-page">', unsafe_allow_html=True)
 
     # ---- Hero ----
@@ -456,6 +419,10 @@ def render_drill_library():
         avail = [d for d in cat["drills"] if _drill_available(d, have)]
         if not avail:
             continue
+        # Float the drills that USE your gear to the top of each category, so
+        # adding equipment visibly surfaces new drills first; bat-only after.
+        avail.sort(key=lambda d: 0 if [a for a in d.get("equipment", []) if a != "none"] else 1)
+
         goal = CATEGORY_GOAL.get(cat_key, "")
         st.markdown(
             '<div class="dl-cat">'
@@ -468,49 +435,48 @@ def render_drill_library():
             unsafe_allow_html=True,
         )
 
-        # Two-up rows of (card + "I did this" button). st.columns stacks to
-        # one column on mobile automatically.
+        # Two-up rows. Each drill is one st.container styled as a card, with
+        # the "I did this" button INSIDE it. st.columns stacks on mobile.
         for row in range(0, len(avail), 2):
             cols = st.columns(2, gap="small")
             for ci, d in enumerate(avail[row:row + 2]):
                 with cols[ci]:
-                    need = [a for a in d.get("equipment", []) if a != "none"]
-                    if need:
-                        tags = "".join(
-                            f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
-                            for a in need
-                        )
-                    else:
-                        tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
-                    st.markdown(
-                        '<div class="dl-card">'
-                        '<div class="dl-card-top">'
-                        f'<div class="dl-card-name">{_esc(d["name"])}</div>'
-                        f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
-                        '</div>'
-                        f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
-                        f'<div class="dl-tags">{tags}</div>'
-                        '</div>',
-                        unsafe_allow_html=True,
-                    )
-                    drill_id = f'{cat["title"]}::{d["name"]}'
-                    done = (
-                        st.session_state.get(f"_dl_doneflag_{drill_id}")
-                        or _logged_today(log, drill_id)
-                    )
-                    if done:
+                    with st.container(key=f"dlcard_{cat_key}_{row + ci}"):
+                        need = [a for a in d.get("equipment", []) if a != "none"]
+                        if need:
+                            tags = "".join(
+                                f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
+                                for a in need
+                            )
+                        else:
+                            tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
                         st.markdown(
-                            '<div class="dl-done">✓ Logged today</div>',
+                            '<div class="dl-card-top">'
+                            f'<div class="dl-card-name">{_esc(d["name"])}</div>'
+                            f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
+                            '</div>'
+                            f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
+                            f'<div class="dl-tags">{tags}</div>',
                             unsafe_allow_html=True,
                         )
-                    elif st.button("✓ I did this", key=f"dldone_{cat_key}_{row + ci}"):
-                        _log_drill_done(player_id, cat["title"], d)
-                        st.session_state[f"_dl_doneflag_{drill_id}"] = True
-                        try:
-                            st.toast(f"+10 XP · {d['name']} logged", icon="⚡")
-                        except Exception:
-                            pass
-                        st.rerun()
+                        drill_id = f'{cat["title"]}::{d["name"]}'
+                        done = (
+                            st.session_state.get(f"_dl_doneflag_{drill_id}")
+                            or _logged_today(log, drill_id)
+                        )
+                        if done:
+                            st.markdown(
+                                '<div class="dl-done">✓ Logged today</div>',
+                                unsafe_allow_html=True,
+                            )
+                        elif st.button("✓ I did this", key=f"dldone_{cat_key}_{row + ci}"):
+                            _log_drill_done(player_id, cat["title"], d)
+                            st.session_state[f"_dl_doneflag_{drill_id}"] = True
+                            try:
+                                st.toast(f"+10 XP · {d['name']} logged", icon="⚡")
+                            except Exception:
+                                pass
+                            st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)  # .dl-cat
 
     st.markdown('</div>', unsafe_allow_html=True)  # .dl-page
