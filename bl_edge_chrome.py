@@ -104,7 +104,7 @@ _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
     # storage, gamification (streaks/XP/achievements/rewards), and
     # paywall code keep working untouched. Rename only — no refactor.
     ("Training Plan", "development_tracker", ()),
-    ("Library",      "historical_charts",    ()),
+    ("Library",      "drill_library",        ()),
 ]
 
 # Family nav entry is built dynamically per-user in render_edge_masthead

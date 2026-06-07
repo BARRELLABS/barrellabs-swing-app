@@ -30,6 +30,7 @@ from upload_paths import unique_upload_name
 from proc_utils import run_subprocess
 from development_tracker import render_development_tracker
 from historical_charts import render_historical_charts
+from drill_library import render_drill_library
 from pricing import render_pricing_page
 from saved_reports_dashboard import render_saved_reports_dashboard
 from swing_report import render_swing_report, build_swing_report_pdf
@@ -965,6 +966,10 @@ if st.session_state.get("page") == "development_tracker":
 
 if st.session_state.get("page") == "historical_charts":
     render_historical_charts()
+    st.stop()
+
+if st.session_state.get("page") == "drill_library":
+    render_drill_library()
     st.stop()
 
 if st.session_state.get("page") == "pricing":

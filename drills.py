@@ -17,348 +17,197 @@ Usage:
 # Each category has: title, why_it_matters, and a list of drills.
 # Each drill has: name, how (instructions), reps (suggested volume).
 
+# Training-aid taxonomy for the Drill Library equipment filter.
+# key -> human label. Each drill lists the aids it needs in `equipment`.
+EQUIPMENT = {
+    'none': 'Just a bat',
+    'tee': 'Tee',
+    'net': 'Net / cage',
+    'soft_toss': 'Soft / front toss (needs a helper)',
+    'wall': 'Wall',
+    'towel': 'Towel',
+    'band': 'Resistance band',
+    'weighted_bat': 'Weighted / light bat',
+    'pvc': 'PVC / broomstick',
+    'med_ball': 'Medicine ball',
+    'mirror': 'Mirror',
+}
+
 DRILL_DB = {
-    "head_stability": {
-        "title": "Quiet the Head",
-        "why_it_matters": (
-            "Excessive head movement disconnects your eyes from the ball, "
-            "leaks power out of your rotation, and makes consistent contact "
-            "much harder. Elite hitters keep the head almost still through "
-            "contact — your eyes need a steady platform to track the pitch "
-            "all the way in."
-        ),
+    'head_stability': {
+        "title": 'Quiet the Head',
+        "why_it_matters": 'Excessive head movement disconnects your eyes from the ball, leaks power out of your rotation, and makes consistent contact much harder. Elite hitters keep the head almost still through contact so the eyes have a steady platform to track the pitch all the way in.',
         "drills": [
-            {
-                "name": "Wall Drill",
-                "how": (
-                    "Stand in your stance with the back of your head lightly "
-                    "touching a wall. Take dry swings without your head leaving "
-                    "the wall. Start at half speed, build to full."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "Towel-on-Head Drill",
-                "how": (
-                    "Balance a small towel on top of your head and take swings "
-                    "off a tee. The towel falling = your head moved too much. "
-                    "Forces you to rotate around a stable axis."
-                ),
-                "reps": "3 sets of 8",
-            },
-            {
-                "name": "Eye-on-the-Tee",
-                "how": (
-                    "Set a tee at your normal contact point, but keep your eyes "
-                    "locked on the EXACT spot where the ball sits — even after "
-                    "contact. Don't track the ball off the bat."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "Mirror Feedback",
-                "how": (
-                    "Take swings in front of a full-length mirror. Watch your "
-                    "head position from setup through follow-through. Goal: "
-                    "head finishes within a baseball-width of where it started."
-                ),
-                "reps": "5 minutes daily",
-            },
+            {"name": 'Wall Drill', "reps": '3 x 10', "equipment": ['wall'],
+             "how": 'Stand in your stance with the back of your head lightly touching a wall. Take dry swings without the head leaving the wall. Half speed, build to full.'},
+            {"name": 'Towel-on-Head', "reps": '3 x 8', "equipment": ['towel', 'tee'],
+             "how": 'Balance a small towel on your head and swing off a tee. Towel falls = head moved. Forces rotation around a stable axis.'},
+            {"name": 'Eye-on-the-Tee', "reps": '3 x 10', "equipment": ['tee'],
+             "how": "Hit off a tee but keep your eyes locked on the exact spot the ball sat, even after contact. Don't track the ball off the bat."},
+            {"name": 'Mirror Feedback', "reps": '5 min', "equipment": ['mirror'],
+             "how": 'Swing in front of a full-length mirror, watching head position from setup through finish. Goal: head finishes within a baseball-width of where it started.'},
+            {"name": 'Hold-the-Finish', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Take a full dry swing and freeze the finish for 3 seconds, eyes on the contact point. Builds an aware, balanced, quiet head.'},
+            {"name": 'Chin-to-Chin', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Start with chin on front shoulder, finish with chin on back shoulder, head staying centered between. Dry swings, slow then full.'},
+            {"name": 'Two-Tee Tracking', "reps": '3 x 8', "equipment": ['tee'],
+             "how": 'Set a second tee a few inches in front; keep eyes on the back tee through the swing without drifting to the front one.'},
+            {"name": 'Still-Head Soft Toss', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": "Partner soft-tosses; you call out the ball's color/seams as you hit. Forces eyes (not head) to do the tracking."},
         ],
     },
-
-    "hip_rotation": {
-        "title": "Drive the Hips",
-        "why_it_matters": (
-            "Power in a swing comes from the ground up — legs, hips, torso, "
-            "arms, then the bat. If your hips don't fully rotate through contact, "
-            "you're hitting with arms only and leaving big-time bat speed "
-            "(and exit velocity) on the table."
-        ),
+    'hip_rotation': {
+        "title": 'Drive the Hips',
+        "why_it_matters": "Power comes from the ground up: legs, hips, torso, arms, then the bat. If the hips don't fully rotate through contact you're swinging with arms only and leaving real bat speed and exit velocity on the table.",
         "drills": [
-            {
-                "name": "Hip Turn Step-Throughs",
-                "how": (
-                    "Slow-motion reps without a bat. Get to your stance, then "
-                    "deliberately rotate the back hip all the way through, "
-                    "letting the back foot pivot and the belt buckle face the "
-                    "pitcher. Feel the full rotation."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "Belt-Tug Drill",
-                "how": (
-                    "Partner stands behind you and lightly tugs a belt loop "
-                    "(or towel through a belt loop) on your back hip during "
-                    "your swing. The tug exaggerates the feel of leading with "
-                    "the hip."
-                ),
-                "reps": "3 sets of 8",
-            },
-            {
-                "name": "Resistance Band Rotations",
-                "how": (
-                    "Loop a resistance band around your waist, anchored "
-                    "behind you. Take swings (no bat, then with bat) against "
-                    "the band's pull. Builds rotational strength and teaches "
-                    "your hips to drive forward, not just turn."
-                ),
-                "reps": "3 sets of 12",
-            },
-            {
-                "name": "Closed-Stance Tee Work",
-                "how": (
-                    "Close your stance more than usual. This makes you "
-                    "physically have to rotate your hips harder to get the "
-                    "barrel to the ball. Then return to your normal stance "
-                    "and the regular hip turn feels easier."
-                ),
-                "reps": "3 sets of 10",
-            },
+            {"name": 'Hip Turn Step-Throughs', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Slow-motion, no bat: get to your stance and deliberately rotate the back hip all the way through until the belt buckle faces the pitcher.'},
+            {"name": 'Back-Foot Squish', "reps": '3 x 12', "equipment": ['none'],
+             "how": "Dry swings focusing on 'squishing the bug' — pivot the back foot so the heel turns up and the hip clears fully."},
+            {"name": 'Band-Resisted Rotation', "reps": '3 x 12', "equipment": ['band'],
+             "how": 'Loop a band at waist height anchored behind you; swing against the pull. Builds rotational strength and teaches the hips to drive, not just turn.'},
+            {"name": 'Med-Ball Rotational Throw', "reps": '3 x 8 each side', "equipment": ['med_ball', 'wall'],
+             "how": 'Side-on to a wall, explosively throw a medicine ball using hip rotation. Mimics the lower-half fire of a swing.'},
+            {"name": 'Walking Hip-Leads', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Walk slowly toward the pitcher, leading each step by firing the hip before the hands. Grooves hip-before-hands sequence.'},
+            {"name": 'Tee Pull-Side', "reps": '3 x 10', "equipment": ['tee'],
+             "how": 'Set the tee inside and slightly forward; drive a hard pull-side line drive, which only happens with full hip rotation.'},
+            {"name": 'PVC Hip Snap', "reps": '3 x 12', "equipment": ['pvc'],
+             "how": 'Hold a PVC across the hips; rotate to snap it toward the pitcher fast, hands quiet. Isolates the hip turn.'},
+            {"name": 'Front-Toss Hip Focus', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": 'Partner front-tosses; you exaggerate clearing the back hip on every swing. Add game speed to the feel.'},
         ],
     },
-
-    "hip_shoulder_separation": {
-        "title": "Build the Stretch Between Hips and Shoulders",
-        "why_it_matters": (
-            "The stretch between your hips firing forward and your shoulders "
-            "still loaded is where your bat speed comes from. Big-league "
-            "hitters create 40°+ of that stretch. Without it, you're 'spinning' "
-            "with the whole upper body and losing the elastic snap."
-        ),
+    'hip_shoulder_separation': {
+        "title": 'Stretch the X',
+        "why_it_matters": "The stretch between the hips and shoulders (the 'X-factor') is the rubber band of the swing. The hips start to open while the shoulders stay closed, loading torque that whips the barrel. No stretch, no whip.",
         "drills": [
-            {
-                "name": "Connection Ball Drill",
-                "how": (
-                    "Squeeze a small ball (or rolled towel) between your "
-                    "front upper-arm and chest. Take swings keeping the ball "
-                    "trapped through contact. Forces the back side to stay "
-                    "loaded while hips fire."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "Hips First, Hands Last",
-                "how": (
-                    "Slow-motion swings: rotate hips fully toward the pitcher "
-                    "BEFORE the hands move forward. Pause at full hip rotation "
-                    "with hands still back, then fire. Feels weird, that's "
-                    "the point."
-                ),
-                "reps": "3 sets of 8",
-            },
-            {
-                "name": "Heavy Bat Swings",
-                "how": (
-                    "Take 5–8 swings with a weighted bat (or regular bat in a "
-                    "donut). The extra weight forces correct sequencing — "
-                    "hips have to lead or you can't get the barrel through."
-                ),
-                "reps": "3 sets of 5",
-            },
-            {
-                "name": "Cross-Arm Rotation",
-                "how": (
-                    "Cross your arms over your chest. Take stride and rotate "
-                    "your hips fully while keeping shoulders pointed at the "
-                    "pitcher as long as possible. Trains the separation feel "
-                    "without the bat getting in the way."
-                ),
-                "reps": "3 sets of 10",
-            },
+            {"name": 'PVC Coil', "reps": '3 x 10', "equipment": ['pvc'],
+             "how": 'Hold a PVC across the shoulders; load by turning the shoulders back as the hips begin forward. Feel the stretch, then fire.'},
+            {"name": 'Band Separation Hold', "reps": '3 x 8', "equipment": ['band'],
+             "how": 'Band anchored in front at chest height; coil away holding tension 2 seconds to feel the stretch, then swing through.'},
+            {"name": 'Step-Back Load', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'As you stride, consciously keep the shoulders closed an extra beat while the hips go. Dry swings, then on a tee.'},
+            {"name": 'Hands-Back Tee', "reps": '3 x 10', "equipment": ['tee'],
+             "how": 'On the tee, feel the hands/shoulders stay back as the lower half starts. Hit firm line drives from that stretched position.'},
+            {"name": 'Med-Ball Side Toss', "reps": '3 x 8', "equipment": ['med_ball', 'wall'],
+             "how": 'Side-on to a wall, toss a med ball into it with a big coil-then-fire, exaggerating the separation, and catch the rebound.'},
+            {"name": 'Mirror Coil Check', "reps": '5 min', "equipment": ['mirror'],
+             "how": 'In the mirror, freeze at launch: front hip open, shoulders still closed. Train the look of the stretched position.'},
+            {"name": 'Slow-Mo Separation', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Full swings at 25% speed, feeling hips lead and shoulders lag. Speed up only once the sequence is clean.'},
+            {"name": 'Towel Whip', "reps": '3 x 12', "equipment": ['towel'],
+             "how": "Hold a towel like a bat; the loud 'whip' crack only happens with good separation and lag. Chase the sound."},
         ],
     },
-
-    "knee_extension": {
-        "title": "Firm Up the Front Side",
-        "why_it_matters": (
-            "Your front leg is the brake that stops your weight transfer and "
-            "redirects it into rotational power. A soft front knee at contact "
-            "leaks energy and pulls your head off the ball. When the front leg "
-            "straightens back up into contact, it creates a firm post your "
-            "whole swing can drive against."
-        ),
+    'knee_extension': {
+        "title": 'Brace the Front Leg',
+        "why_it_matters": 'A firm, extending front leg at contact is the wall the swing rotates against — it converts forward momentum into rotational speed. A soft, bending front leg bleeds power and drops the barrel.',
         "drills": [
-            {
-                "name": "Front Knee Block Drill",
-                "how": (
-                    "Take swings and hold your finish for 3 seconds, "
-                    "checking that your front leg is firm and braced — knee "
-                    "slightly bent but not collapsing forward."
-                ),
-                "reps": "3 sets of 8",
-            },
-            {
-                "name": "Wall Sit Holds",
-                "how": (
-                    "Wall sit at 90° for 30–45 seconds. Builds the quad "
-                    "strength your front leg needs to stay firm at contact."
-                ),
-                "reps": "3 sets of 30s",
-            },
-            {
-                "name": "Step-Back Drill",
-                "how": (
-                    "Start with your weight on your back leg, take an "
-                    "exaggerated stride into a firm front-leg block, then "
-                    "swing. Trains the load → block → fire sequence."
-                ),
-                "reps": "3 sets of 8",
-            },
+            {"name": 'Front-Leg Brace', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Dry swings feeling the front knee straighten and firm up at contact, like bracing into a wall. No drift past the front foot.'},
+            {"name": 'Step-Down Brace', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Front foot on a low step/plate; swing feeling the front leg post and stiffen as you rotate over it.'},
+            {"name": 'Band-Resisted Stride', "reps": '3 x 10', "equipment": ['band'],
+             "how": 'Band around the front thigh pulling back; stride and brace against it so the leg learns to firm up, not collapse.'},
+            {"name": 'Firm-Front Tee', "reps": '3 x 10', "equipment": ['tee'],
+             "how": 'Hit off a tee with one cue: drive the front knee from soft to locked at contact. Watch for a straight front leg in the finish.'},
+            {"name": 'Wall Front-Knee', "reps": '3 x 10', "equipment": ['wall'],
+             "how": 'Front foot a few inches from a wall; swing without the front knee drifting forward into it. Stops lunging.'},
+            {"name": 'Single-Leg Balance Swing', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Take dry swings balanced mostly on the front leg. Builds the strength and stability to post up at contact.'},
+            {"name": 'Soft-Toss Brace', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": 'Partner soft-tosses; you punctuate each swing by bracing the front leg hard at contact, game speed.'},
+            {"name": 'Slow-Mo Post-Up', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Quarter-speed swings holding the braced front-leg position at contact for a 2-count before finishing.'},
         ],
     },
-
-    "sequencing": {
-        "title": "Power Sequence — Fire in Order",
-        "why_it_matters": (
-            "The order your body fires — hips, then chest, then hands — is "
-            "the only way to get full power into the bat. When the upper "
-            "body fires alongside the hips, the elastic snap that "
-            "drives bat speed is gone before it starts."
-        ),
+    'sequencing': {
+        "title": 'Connect the Chain',
+        "why_it_matters": 'A great swing fires in order — hips, then torso, then hands, then barrel. When the chain fires out of order (hands too early) you lose the whip and the barrel drags. Sequencing is timing the links.',
         "drills": [
-            {
-                "name": "Connection Ball Drill",
-                "how": (
-                    "Tuck a tennis ball or small connection ball under your lead "
-                    "armpit (the one closest to the pitcher). "
-                    "Take your normal swing — the ball must NOT drop until "
-                    "after contact. "
-                    "If the ball drops early, your arms are leaving the body "
-                    "before your hips have done their work. Slow the swing down "
-                    "and feel the hips lead. "
-                    "Build up to game speed over a set of 8 swings."
-                ),
-                "reps": "3 × 8",
-            },
-            {
-                "name": "Heavy-Bat Hip Turner",
-                "how": (
-                    "Use a fungo or weighted training bat (2–4 lbs heavier "
-                    "than your gamer). "
-                    "Take 10 controlled swings focusing ONLY on the hip turn "
-                    "— let the upper body and arms feel slow and reactive. "
-                    "Switch back to your game bat for 5 swings. The bat will "
-                    "feel like a feather and the sequence will feel automatic."
-                ),
-                "reps": "2 × 10",
-            },
+            {"name": 'Pause-and-Go', "reps": '3 x 8', "equipment": ['none'],
+             "how": 'Load, pause fully at the top for 1 second, then fire the lower half first. Removes rushing the hands.'},
+            {"name": 'Step-Behind', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Drop the back foot behind, then swing — the momentum forces the lower half to lead the hands.'},
+            {"name": 'PVC Bottom-Up', "reps": '3 x 10', "equipment": ['pvc'],
+             "how": 'With a PVC, deliberately start every rep from the ground: foot, hip, torso, then arms. Slow then build.'},
+            {"name": 'Med-Ball Scoop Toss', "reps": '3 x 8', "equipment": ['med_ball'],
+             "how": 'Scoop-toss a med ball forward using legs-then-core-then-arms in order. Grooves bottom-up sequence.'},
+            {"name": 'Towel-Under-Arm', "reps": '3 x 10', "equipment": ['towel'],
+             "how": "Tuck a towel under the lead arm; keep it pinned until rotation pulls it free. Trains connection so hands don't fly early."},
+            {"name": 'Tee Bottom-Up', "reps": '3 x 10', "equipment": ['tee'],
+             "how": 'On a tee, exaggerate firing the hips a beat before the hands. Hit line drives only when the order is right.'},
+            {"name": 'Band Lag', "reps": '3 x 10', "equipment": ['band'],
+             "how": 'Light band on the hands; the resistance makes the hands naturally lag behind the turning body.'},
+            {"name": 'Front-Toss Rhythm', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": 'Partner front-tosses on a steady count; you sync load-and-fire so the swing flows in order at game speed.'},
         ],
     },
-
-    "rotational_speed": {
-        "title": "Rotational Speed — Pull the Trigger Faster",
-        "why_it_matters": (
-            "How fast your hips snap is like how hard you can throw a ball — "
-            "it's a trainable physical quality. More hip speed at the trigger "
-            "point means more barrel speed at contact, full stop."
-        ),
+    'rotational_speed': {
+        "title": 'Add Bat Speed',
+        "why_it_matters": 'Bat speed is the single biggest driver of exit velocity and distance. Trained with intent and overload/underload work, the body learns to rotate and whip the barrel faster.',
         "drills": [
-            {
-                "name": "Med-Ball Rotational Throws",
-                "how": (
-                    "Stand sideways to a wall, 5–8 feet away. Hold a 4–8 lb "
-                    "med ball at hip height. "
-                    "Load into your back hip (just like a swing), then EXPLODE "
-                    "rotationally and throw the ball into the wall as hard as "
-                    "you can. "
-                    "Catch the rebound, reset, and do it again — fast and "
-                    "hard. The goal is peak rotational velocity, not endurance. "
-                    "Two sides — 6 throws each."
-                ),
-                "reps": "3 × 6",
-            },
-            {
-                "name": "Sledgehammer to Tire",
-                "how": (
-                    "Stand next to a tire (or stack of pads). Hold a 6–10 lb "
-                    "sledgehammer overhead with both hands. "
-                    "Drive the hammer DOWN into the tire by rotating through "
-                    "the hips — the arms just hold on, the rotation does the "
-                    "work. "
-                    "Both sides. The deceleration on contact teaches the body "
-                    "to brake the hips violently, which transfers to bat speed."
-                ),
-                "reps": "2 × 8 per side",
-            },
+            {"name": 'Overload / Underload', "reps": '3 x 8 each', "equipment": ['weighted_bat'],
+             "how": 'Alternate sets: a heavier bat (overload) then a lighter one (underload), swinging the light bat as fast as possible. Classic speed builder.'},
+            {"name": 'Max-Intent Dry Swings', "reps": '3 x 6', "equipment": ['none'],
+             "how": "Full-effort dry swings chasing the loudest 'whoosh.' Pure speed, no ball to distract."},
+            {"name": 'Band-Resisted Speed', "reps": '3 x 8', "equipment": ['band'],
+             "how": 'Light band pulling the bat back; swing through fast against it, then a set with no band to feel the release.'},
+            {"name": 'Med-Ball Slam Rotation', "reps": '3 x 6 each side', "equipment": ['med_ball', 'wall'],
+             "how": 'Explosive rotational med-ball throws into a wall, full effort. Trains the body to fire fast.'},
+            {"name": 'Tee Max-Effort', "reps": '3 x 6', "equipment": ['tee'],
+             "how": 'On the tee, swing at 100% intent for hard line drives. Intent on every rep is what builds speed.'},
+            {"name": 'Short-Bat Quick Hands', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Choke way up (or use a short bat) and take fast, compact swings to train quick hands and barrel turn.'},
+            {"name": 'Game-Speed Net', "reps": '3 x 8', "equipment": ['net'],
+             "how": 'Hit into a net at full game intent, no holding back, focusing on barrel speed through the zone.'},
+            {"name": 'Underload Finish', "reps": '3 x 8', "equipment": ['weighted_bat'],
+             "how": 'Swing a light bat focusing on a fast, full finish wrapped around the body — train end-of-swing speed.'},
         ],
     },
-
-    "front_side_stability": {
-        "title": "Stay Closed — Front Side First",
-        "why_it_matters": (
-            "When the front shoulder opens before the front foot is planted, "
-            "the slingshot effect is gone — hips and shoulders fire "
-            "together and the bat has to chase a swing that already happened. "
-            "Keeping the front side closed stores power until the lower body "
-            "is ready to fire."
-        ),
+    'front_side_stability': {
+        "title": 'Lock the Front Side',
+        "why_it_matters": 'The lead arm and glove side form the brace the barrel rotates around. A firm front side keeps the swing on plane and the barrel in the zone longer; a flying-open front side pulls you off the ball.',
         "drills": [
-            {
-                "name": "Noodle Across the Chest",
-                "how": (
-                    "Have a partner (or use a pool noodle braced under your "
-                    "lead armpit) lay a noodle across your chest, pointed at "
-                    "the pitcher. "
-                    "Take swings. The noodle MUST stay pointed at the pitcher "
-                    "until your front foot is planted. If it rotates open early, "
-                    "you flew open. "
-                    "Slow the swing down until you can keep the noodle pointed "
-                    "forward through plant. Build up speed over 10 swings."
-                ),
-                "reps": "3 × 10",
-            },
-            {
-                "name": "Pause-at-Plant Tee",
-                "how": (
-                    "Set up off a tee. Take your normal load and stride. "
-                    "PAUSE for 1 full second at the moment the front foot "
-                    "plants — front shoulder closed, chin tucked, hips loaded. "
-                    "From the pause, drive the swing. The pause kills momentum "
-                    "in the upper body so the lower body has to initiate. "
-                    "Over time, shorten the pause to half a second, then "
-                    "to a 'feel' — the body remembers."
-                ),
-                "reps": "3 × 8",
-            },
+            {"name": 'Front-Arm Bar', "reps": '3 x 10', "equipment": ['none'],
+             "how": 'Dry swings feeling the lead arm stay extended and firm through contact, not collapsing into the body early.'},
+            {"name": 'Lead-Arm-Only Tee', "reps": '3 x 8', "equipment": ['tee'],
+             "how": 'One-handed tee swings with just the lead arm. Builds the strength and feel of a stable front side.'},
+            {"name": 'Wall Front-Side', "reps": '3 x 10', "equipment": ['wall'],
+             "how": 'Front shoulder a few inches from a wall; swing without the shoulder flying open into it. Stops pulling off.'},
+            {"name": 'Band Pull-Apart', "reps": '3 x 12', "equipment": ['band'],
+             "how": 'Band in both hands at chest; rotate into the swing keeping tension so the front side stays firm, not soft.'},
+            {"name": 'Glove-Side Brace', "reps": '3 x 10', "equipment": ['none'],
+             "how": "Cue: 'pull the front elbow into a firm wall.' Dry swings, then a tee, keeping the glove side stable."},
+            {"name": 'One-Hand Lead Toss', "reps": '3 x 8', "equipment": ['soft_toss'],
+             "how": 'Partner soft-tosses; hit lead-arm-only to force a strong, stable front side at contact.'},
+            {"name": 'Mirror Front-Side Check', "reps": '5 min', "equipment": ['mirror'],
+             "how": 'In the mirror, freeze at contact: front side firm, shoulder closed, not pulled out. Train the look.'},
+            {"name": 'Stride-and-Stick', "reps": '3 x 8', "equipment": ['none'],
+             "how": "Stride and 'stick' the landing with the front side quiet for a beat before swinging. Kills early flying open."},
         ],
     },
-
-    "timing": {
-        "title": "Sharpen Timing & Quickness",
-        "why_it_matters": (
-            "A long, slow swing arrives late and leaves you guessing. Quick "
-            "hands and a compact path let you wait longer on the pitch and "
-            "still get the barrel there on time."
-        ),
+    'timing': {
+        "title": 'Sharpen the Timing',
+        "why_it_matters": "The best mechanics are useless if they fire at the wrong time. Timing is starting the load early enough and letting the barrel arrive on the ball — it's trained by varying speeds and forcing recognition.",
         "drills": [
-            {
-                "name": "Short-Toss Quick Hands",
-                "how": (
-                    "Partner soft-tosses from 8–10 feet away. Focus on the "
-                    "shortest, most direct path from load to contact. No "
-                    "wasted motion."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "Tennis Ball Reactions",
-                "how": (
-                    "Partner randomly tosses tennis balls (different speeds, "
-                    "small intentional pauses). Forces you to read and react "
-                    "rather than time a rhythm."
-                ),
-                "reps": "3 sets of 10",
-            },
-            {
-                "name": "One-Hand Top-Hand Tee",
-                "how": (
-                    "Take swings off a tee using only your top (back) hand. "
-                    "Forces a compact, quick path — no looping or dragging."
-                ),
-                "reps": "3 sets of 8",
-            },
+            {"name": 'Metronome Load', "reps": '5 min', "equipment": ['none'],
+             "how": 'Set a steady beat (phone metronome); load on one beat, fire on the next. Grooves an on-time, repeatable rhythm.'},
+            {"name": 'Vary-the-Toss', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": 'Partner mixes soft-toss speeds and timing unpredictably; you adjust your load to stay on time.'},
+            {"name": 'Front-Toss Recognition', "reps": '3 x 10', "equipment": ['soft_toss'],
+             "how": 'Partner front-tosses from behind a screen at game-like speed; focus only on starting your load early.'},
+            {"name": 'High-Tee / Low-Tee', "reps": '3 x 10', "equipment": ['tee'],
+             "how": "Alternate a high and low tee each rep so you adjust the swing's timing and plane to the pitch location."},
+            {"name": 'Pause Recognition', "reps": '3 x 8', "equipment": ['soft_toss'],
+             "how": "Partner holds the ball a random beat before tossing; you hold your load and only fire when it's released."},
+            {"name": 'Load-on-Time Dry', "reps": '5 min', "equipment": ['none'],
+             "how": 'Watch a pitcher (live or video) and load in rhythm with their delivery, no swing — just train the trigger timing.'},
+            {"name": 'Net Pitch-Count', "reps": '3 x 10', "equipment": ['net'],
+             "how": 'Hit into a net working counts: shorten up with 2 strikes, look to drive early. Trains situational timing.'},
+            {"name": 'Tee Rhythm Reset', "reps": '3 x 10', "equipment": ['tee'],
+             "how": 'Between tee swings, reset feet and re-load with the same tempo every time. Builds a repeatable internal clock.'},
         ],
     },
 }
