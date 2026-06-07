@@ -14,12 +14,17 @@ Design notes
   (jsonb). On a Family/Coach plan each kid keeps their own kit — it is NOT
   shared across the account's profiles, because we key the read/write on the
   active player id (st.session_state["player"]/["user"]["id"]).
-* Matches the editorial theme (bl_theme tokens) and the shared Edge masthead.
+* DARK editorial theme (bl_theme tokens) to match the rest of the app: bone
+  text on ink, translucent --bl-surface cards (no stark white boxes).
+* The training-kit chips are custom st.buttons (not st.pills) laid out the
+  same way the Edge masthead lays out its nav — so we get full control of the
+  look: line-art icons that tint via CSS mask, and a gold "selected" state.
 """
 
 from __future__ import annotations
 
 import html as _html
+from urllib.parse import quote as _urlquote
 
 import streamlit as st
 
@@ -28,18 +33,19 @@ from bl_edge_chrome import render_edge_masthead
 from drills import DRILL_DB, EQUIPMENT
 
 
-# A small icon per aid so the kit reads fast for kids/parents (accessible).
-AID_ICON = {
-    "tee":          "⚾",
-    "net":          "🥅",
-    "soft_toss":    "🤝",
-    "wall":         "🧱",
-    "towel":        "🧺",
-    "band":         "➰",
-    "weighted_bat": "🏏",
-    "pvc":          "📏",
-    "med_ball":     "🏐",
-    "mirror":       "🪞",
+# Minimal line-art icons (stroke, no fill) used as CSS masks so they inherit
+# the chip's text color (bone when idle, gold when selected). One per aid.
+_AID_SVG = {
+    "tee":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='6' r='3'/><path d='M12 9v10M8 19h8'/></svg>",
+    "net":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linejoin='round'><rect x='4' y='4' width='16' height='16' rx='1'/><path d='M4 10h16M4 15h16M10 4v16M15 4v16'/></svg>",
+    "soft_toss":    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M3 18c4-10 14-10 18 0'/><circle cx='12' cy='5.5' r='1.8' fill='#000' stroke='none'/></svg>",
+    "wall":         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='1'/><path d='M3 12h18M12 5v7M8 12v7M16 12v7'/></svg>",
+    "towel":        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='6' y='3' width='12' height='18' rx='2'/><path d='M9 7h6M9 11h6'/></svg>",
+    "band":         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M2 12q2.5-6 5 0t5 0 5 0 5 0'/></svg>",
+    "weighted_bat": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><path d='M5 19 18 6'/><path d='M14.5 4.5 19.5 9.5' stroke-width='4'/></svg>",
+    "pvc":          "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2'><rect x='3' y='10' width='18' height='4' rx='2'/><path d='M7 10v4M17 10v4'/></svg>",
+    "med_ball":     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2'><circle cx='12' cy='12' r='8'/><path d='M4 12h16M12 4v16'/></svg>",
+    "mirror":       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round'><rect x='6' y='2.5' width='12' height='15' rx='6'/><path d='M9 20.5h6M12 17.5v3'/></svg>",
 }
 
 # Plain-language, one-line "what this group fixes" — keeps the library
@@ -60,6 +66,20 @@ CATEGORY_GOAL = {
 KIT_AIDS = [k for k in EQUIPMENT.keys() if k != "none"]
 
 
+def _icon_css() -> str:
+    """Per-aid ::before mask rules so each chip shows its line-art icon,
+    tinted to the chip's current text color (currentColor)."""
+    rules = []
+    for aid, svg in _AID_SVG.items():
+        uri = "data:image/svg+xml," + _urlquote(svg)
+        rules.append(
+            f'.st-key-dlk_{aid} button::before{{'
+            f'-webkit-mask:url("{uri}") center/contain no-repeat;'
+            f'mask:url("{uri}") center/contain no-repeat;}}'
+        )
+    return "".join(rules)
+
+
 _LOCAL_CSS = """
 <style>
   .dl-page { max-width: 1120px; margin: 0 auto; padding: 0 4px 4rem; }
@@ -68,96 +88,129 @@ _LOCAL_CSS = """
   .dl-hero { margin: 0.4rem 0 1.6rem; }
   .dl-eyebrow {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
-    text-transform: uppercase; color: var(--gold-deep); margin-bottom: 0.5rem;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem;
   }
   .dl-title {
     font-family: var(--serif); font-weight: 400; line-height: 0.98;
-    font-size: clamp(2.4rem, 7vw, 4rem); color: var(--ink); margin: 0 0 0.6rem;
+    font-size: clamp(2.4rem, 7vw, 4rem); color: var(--bone); margin: 0 0 0.6rem;
   }
   .dl-sub {
     font-family: var(--sans); font-size: 1rem; line-height: 1.55;
-    color: var(--bone-faint); max-width: 60ch;
+    color: var(--bone-mute); max-width: 60ch;
   }
 
-  /* ---- Kit selector panel ---- */
-  .dl-kit {
-    background: var(--ink); border-radius: 18px; padding: 1.3rem 1.4rem 1.1rem;
-    margin: 0 0 1.4rem; box-shadow: 0 18px 40px -28px rgba(10,11,14,.6);
+  /* ---- Kit selector panel (a real st.container so it wraps the widgets) ---- */
+  .st-key-dl_kit_panel {
+    background: rgba(244,239,230,0.03); border: 1px solid var(--bl-line);
+    border-radius: 18px; padding: 1.25rem 1.35rem 1.3rem; margin: 0 0 1.3rem;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   }
-  .dl-kit-row { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin-bottom:.85rem; }
+  .dl-kit-row { display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin-bottom:.95rem; }
   .dl-kit-title {
     font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em;
     text-transform: uppercase; color: var(--gold);
   }
-  .dl-kit-hint { font-family: var(--sans); font-size: 13px; color: var(--bone-dim); }
+  .dl-kit-hint { font-family: var(--sans); font-size: 13px; color: var(--bone-mute); }
 
-  /* Theme the native st.pills inside the dark kit panel. */
-  .dl-kit-pills [data-baseweb="tag"],
-  .dl-kit-pills button[kind] { font-family: var(--mono) !important; }
-  .dl-kit-pills [role="button"],
-  .dl-kit-pills button {
-    font-family: var(--mono) !important; font-size: 12.5px !important;
-    letter-spacing: 0.04em !important; border-radius: 999px !important;
+  /* Lay the chip st.buttons out as a wrapping row (same trick the masthead
+     uses for its nav). */
+  .st-key-dl_kit_chips {
+    display:flex !important; flex-direction:row !important; flex-wrap:wrap !important;
+    gap:8px !important; align-items:flex-start !important;
+  }
+  .st-key-dl_kit_chips > div,
+  .st-key-dl_kit_chips > div > div[data-testid="stVerticalBlock"] { display:contents !important; }
+  .st-key-dl_kit_chips [data-testid="stElementContainer"],
+  .st-key-dl_kit_chips [data-testid="stButton"] {
+    flex:0 0 auto !important; width:auto !important; margin:0 !important;
+  }
+  /* Chip base (idle) */
+  .st-key-dl_kit_chips button {
+    position: relative !important;
+    background: rgba(244,239,230,0.04) !important;
+    border: 1px solid var(--bl-line) !important;
+    color: var(--bone-dim) !important;
+    font-family: var(--mono) !important; font-size: 11.5px !important;
+    font-weight: 500 !important; letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    padding: 9px 15px 9px 34px !important; border-radius: 999px !important;
+    min-height: 0 !important; height: auto !important; line-height: 1.1 !important;
+    box-shadow: none !important;
+    transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .2s ease;
+  }
+  .st-key-dl_kit_chips button p { font: inherit !important; color: inherit !important; margin: 0 !important; letter-spacing: inherit !important; }
+  .st-key-dl_kit_chips button::before {
+    content: ""; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 15px; height: 15px; background-color: currentColor;
+  }
+  .st-key-dl_kit_chips button:hover {
+    color: var(--bone) !important; border-color: var(--bl-line-hi) !important;
+    transform: translateY(-1px);
   }
 
   /* ---- Count line ---- */
   .dl-count {
-    font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
-    text-transform: uppercase; color: var(--bone-mute); margin: 0 2px 1.4rem;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--bone-mute); margin: 0 2px 1.5rem;
   }
-  .dl-count b { color: var(--gold-deep); }
+  .dl-count b { color: var(--gold); }
 
   /* ---- Category sections ---- */
-  .dl-cat { margin: 0 0 2.1rem; }
+  .dl-cat { margin: 0 0 2.2rem; }
   .dl-cat-head {
     display:flex; align-items:flex-end; justify-content:space-between;
-    gap:1rem; border-bottom: 1px solid rgba(10,11,14,.14);
-    padding-bottom: .55rem; margin-bottom: 1rem;
+    gap:1rem; border-bottom: 1px solid var(--bl-line);
+    padding-bottom: .55rem; margin-bottom: 1.1rem;
   }
   .dl-cat-title {
     font-family: var(--serif); font-size: clamp(1.5rem, 4vw, 2rem);
-    color: var(--ink); line-height: 1; margin: 0;
+    color: var(--bone); line-height: 1; margin: 0;
   }
   .dl-cat-goal {
-    font-family: var(--sans); font-size: 13.5px; color: var(--bone-faint);
-    margin-top: .25rem;
+    font-family: var(--sans); font-size: 13.5px; color: var(--bone-mute);
+    margin-top: .3rem;
   }
   .dl-cat-n {
     font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
-    text-transform: uppercase; color: var(--bone-mute); white-space: nowrap;
+    text-transform: uppercase; color: var(--bone-faint); white-space: nowrap;
   }
 
-  .dl-grid {
-    display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px;
-  }
+  .dl-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
   .dl-card {
-    background: #fff; border: 1px solid rgba(10,11,14,.10); border-radius: 14px;
-    padding: 1.05rem 1.1rem; display:flex; flex-direction:column; gap:.55rem;
+    background: rgba(244,239,230,0.035); border: 1px solid var(--bl-line);
+    border-radius: 16px; padding: 1.05rem 1.15rem;
+    display:flex; flex-direction:column; gap:.55rem;
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    transition: border-color .22s ease, background .22s ease, transform .22s ease;
+  }
+  .dl-card:hover {
+    border-color: var(--bl-line-hi); background: rgba(244,239,230,0.055);
+    transform: translateY(-2px);
   }
   .dl-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
   .dl-card-name {
     font-family: var(--sans); font-weight: 600; font-size: 1.02rem;
-    color: var(--ink); line-height: 1.2;
+    color: var(--bone); line-height: 1.2;
   }
   .dl-reps {
     font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--gold-deep);
-    background: rgba(232,193,112,.16); border-radius: 999px;
-    padding: 4px 9px; white-space: nowrap; flex-shrink: 0;
+    text-transform: uppercase; color: var(--gold);
+    background: rgba(232,193,112,0.14); border: 1px solid rgba(232,193,112,0.26);
+    border-radius: 999px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0;
   }
-  .dl-how { font-family: var(--sans); font-size: 13.5px; line-height: 1.5; color: var(--bone-faint); }
+  .dl-how { font-family: var(--sans); font-size: 13.5px; line-height: 1.5; color: var(--bone-dim); }
   .dl-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:.15rem; }
   .dl-tag {
     font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
     text-transform: uppercase; color: var(--bone-mute);
-    border: 1px solid rgba(10,11,14,.14); border-radius: 6px; padding: 3px 7px;
+    border: 1px solid var(--bl-line); border-radius: 6px; padding: 3px 7px;
   }
-  .dl-tag--bat { color: var(--gold-deep); border-color: rgba(201,163,80,.5); }
+  .dl-tag--bat { color: var(--gold); border-color: rgba(232,193,112,0.4); }
 
   /* ---- Mobile ---- */
   @media (max-width: 720px) {
     .dl-grid { grid-template-columns: 1fr; }
-    .dl-cat-head { flex-direction: column; align-items: flex-start; gap: .2rem; }
+    .dl-cat-head { flex-direction: column; align-items: flex-start; gap: .25rem; }
   }
 </style>
 """
@@ -166,36 +219,38 @@ _LOCAL_CSS = """
 # --------------------------------------------------------------------
 #  Per-profile persistence (players.training_aids)
 # --------------------------------------------------------------------
-def _cache_key(player_id: str) -> str:
+def _cache_key(player_id) -> str:
     return f"_dl_aids_{player_id}"
 
 
-def _load_aids(player_id: str) -> list:
+def _load_aids(player_id) -> list:
     """Load this profile's saved kit. Cached per run; falls back to []."""
     ck = _cache_key(player_id)
     if ck in st.session_state:
         return st.session_state[ck]
     aids: list = []
-    try:
-        from supabase_client import get_client
-        res = (
-            get_client().table("players")
-            .select("training_aids").eq("id", player_id).single().execute()
-        )
-        aids = (res.data or {}).get("training_aids") or []
-    except Exception:
-        aids = []
+    if player_id:
+        try:
+            from supabase_client import get_client
+            res = (
+                get_client().table("players")
+                .select("training_aids").eq("id", player_id).single().execute()
+            )
+            aids = (res.data or {}).get("training_aids") or []
+        except Exception:
+            aids = []
     if not isinstance(aids, list):
         aids = []
-    # Only keep aids we still recognize (taxonomy can change).
     aids = [a for a in aids if a in EQUIPMENT and a != "none"]
     st.session_state[ck] = aids
     return aids
 
 
-def _save_aids(player_id: str, aids: list) -> None:
+def _save_aids(player_id, aids: list) -> None:
     aids = [a for a in (aids or []) if a in EQUIPMENT and a != "none"]
     st.session_state[_cache_key(player_id)] = aids
+    if not player_id:
+        return
     try:
         from supabase_client import get_client
         get_client().table("players").update(
@@ -204,10 +259,6 @@ def _save_aids(player_id: str, aids: list) -> None:
     except Exception:
         # Persistence is best-effort; the in-session cache still works this run.
         pass
-
-
-def _on_kit_change(player_id: str, widget_key: str) -> None:
-    _save_aids(player_id, st.session_state.get(widget_key) or [])
 
 
 # --------------------------------------------------------------------
@@ -228,6 +279,7 @@ def render_drill_library():
         st.session_state.get("user") or {}, active_page="drill_library"
     )
     st.markdown(_LOCAL_CSS, unsafe_allow_html=True)
+    st.markdown(f"<style>{_icon_css()}</style>", unsafe_allow_html=True)
     st.markdown('<div class="dl-page">', unsafe_allow_html=True)
 
     # ---- Hero ----
@@ -247,31 +299,34 @@ def render_drill_library():
     player_id = user.get("id")
 
     # ---- Kit selector ----
-    saved = _load_aids(player_id) if player_id else []
-    st.markdown('<div class="dl-kit">', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="dl-kit-row">'
-        '<span class="dl-kit-title">Your training kit</span>'
-        '<span class="dl-kit-hint">Tap everything you have. We remember it for next time.</span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="dl-kit-pills">', unsafe_allow_html=True)
-    widget_key = f"dl_kit_{player_id or 'anon'}"
-    selected = st.pills(
-        "Your training kit",
-        options=KIT_AIDS,
-        selection_mode="multi",
-        default=[a for a in saved if a in KIT_AIDS],
-        format_func=lambda k: f"{AID_ICON.get(k,'')} {EQUIPMENT[k]}".strip(),
-        key=widget_key,
-        label_visibility="collapsed",
-        on_change=_on_kit_change if player_id else None,
-        args=(player_id, widget_key) if player_id else None,
-    )
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    saved = set(_load_aids(player_id))
+    with st.container(key="dl_kit_panel"):
+        st.markdown(
+            '<div class="dl-kit-row">'
+            '<span class="dl-kit-title">Your training kit</span>'
+            '<span class="dl-kit-hint">Tap everything you have. We remember it for next time.</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        with st.container(key="dl_kit_chips"):
+            for aid in KIT_AIDS:
+                if st.button(EQUIPMENT[aid], key=f"dlk_{aid}"):
+                    new = set(saved)
+                    new.symmetric_difference_update({aid})
+                    _save_aids(player_id, sorted(new))
+                    st.rerun()
+    # Gold "selected" override for the chips currently in the kit.
+    if saved:
+        sel = "".join(
+            f'.st-key-dlk_{a} button{{'
+            f'background:rgba(232,193,112,0.16)!important;'
+            f'border-color:rgba(232,193,112,0.55)!important;'
+            f'color:var(--gold)!important;}}'
+            for a in saved
+        )
+        st.markdown(f"<style>{sel}</style>", unsafe_allow_html=True)
 
-    have = {a for a in (selected or []) if a != "none"}
+    have = saved
 
     # ---- Count + nudge ----
     total_available = sum(
@@ -279,9 +334,9 @@ def render_drill_library():
         for d in cat["drills"] if _drill_available(d, have)
     )
     if not have:
-        nudge = "Add your gear above to unlock more — showing every drill you can do with just a bat."
         st.markdown(
-            f'<div class="dl-count"><b>{total_available}</b> bat-only drills ready &nbsp;·&nbsp; {nudge}</div>',
+            f'<div class="dl-count"><b>{total_available}</b> bat-only drills ready '
+            '&nbsp;·&nbsp; add your gear above to unlock more</div>',
             unsafe_allow_html=True,
         )
     else:

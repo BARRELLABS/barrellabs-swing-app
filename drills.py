@@ -23,7 +23,7 @@ EQUIPMENT = {
     'none': 'Just a bat',
     'tee': 'Tee',
     'net': 'Net / cage',
-    'soft_toss': 'Soft / front toss (needs a helper)',
+    'soft_toss': 'Soft / front toss',
     'wall': 'Wall',
     'towel': 'Towel',
     'band': 'Resistance band',
