@@ -405,6 +405,32 @@ _PAGE_CSS = """
   .srl-card-score { width: 60px; height: 60px; font-size: 1.7rem; border-radius: 14px; }
   .srl-card-cell-hide-mobile { display: none; }
 }
+
+/* Match the app's button language — the rest of this page (chips, eyebrows,
+   labels, the masthead) is all Geist Mono UPPERCASE; the action buttons were
+   Geist Sans title-case, which is why they read as "not part of the app".
+   Appended last so it wins. */
+[class*="st-key-srl_open_"] button,
+[class*="st-key-srl_pdfgate_"] button,
+[class*="st-key-srl_del_"] button,
+[class*="st-key-srl_del_yes_"] button,
+[data-testid="stMainBlockContainer"]:has(.srl-wrap) [data-testid="stDownloadButton"] button {
+  font-family: var(--srl-mono) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.13em !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 0.58rem 1.05rem !important;
+}
+/* De-airy the action area: pull the buttons up under their card and tighten the
+   stacked gap between Open / Delete on mobile. */
+[class*="st-key-srl_open_"], [class*="st-key-srl_pdfgate_"],
+[class*="st-key-srl_del_"], [class*="st-key-srl_del_yes_"] {
+  margin-top: -4px !important;
+}
+[data-testid="stMainBlockContainer"]:has(.srl-wrap) [data-testid="stHorizontalBlock"] {
+  gap: 8px !important; row-gap: 6px !important; margin-bottom: 4px !important;
+}
 </style>
 """
 
