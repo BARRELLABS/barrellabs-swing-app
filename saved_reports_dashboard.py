@@ -55,6 +55,17 @@ from subscription_storage import load_my_plan
 
 _PAGE_CSS = """
 <style>
+/* ====================================================================
+   TOKENS + LAYOUT scoped to the REAL content container.
+   Streamlit auto-closes a bare `<div class="srl-wrap">` into an empty
+   phantom node, so design tokens / gutter / button overrides keyed only
+   to `.srl-wrap` never reach the actual page content (it renders as
+   SIBLINGS of the phantom inside [data-testid="stMainBlockContainer"]).
+   We therefore define everything on the block container itself — on a
+   Sessions render that container holds nothing but this page. The
+   `.srl-wrap` fallback keeps the tokens valid for the empty-state path
+   too. The masthead is full-bleed + self-styled, so this is safe. */
+[data-testid="stMainBlockContainer"]:has(.srl-wrap),
 .srl-wrap {
   --srl-bg:        #0A0B0E;
   --srl-bg-2:      #0F1115;
@@ -80,16 +91,17 @@ _PAGE_CSS = """
 
   font-family: var(--srl-sans);
   color: var(--srl-bone);
-  /* Same content frame as the masthead/dashboard (1560 / 40px) so
-     Sessions aligns with the nav and every other page. Tight top so
-     content starts right under the masthead, no dead gap. */
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 0.6rem 40px 3rem;
 }
-/* Collapse Streamlit's default block padding/gap so the page hugs the
-   masthead (the report cards must not sit below a blank screen). */
-.srl-wrap ~ div, .srl-wrap { margin-top: 0 !important; }
+/* Real content frame (1560 / 40px) so Sessions aligns with the nav and
+   every other page. Applied to the block container — the element that
+   actually wraps the cards. */
+[data-testid="stMainBlockContainer"]:has(.srl-wrap) {
+  max-width: 1560px !important;
+  margin: 0 auto !important;
+  padding: 0.6rem 40px 3rem !important;
+  box-sizing: border-box !important;
+}
+.srl-wrap { display: contents; }
 .srl-eyebrow {
   font-family: var(--srl-mono);
   font-size: 10.5px;
@@ -134,13 +146,14 @@ _PAGE_CSS = """
   font-size: 16px; letter-spacing: 0; text-transform: none;
 }
 
-/* FILTER BAR */
-.srl-filter {
-  background: var(--srl-glass-1);
-  border: 1px solid var(--srl-line);
-  border-radius: var(--srl-radius);
-  padding: 0.75rem 1.05rem 0.85rem;
-  margin-bottom: 0.55rem;
+/* FILTER BAR — a real keyed st.container so the card frame actually wraps
+   the search + selects (a bare markdown div would collapse to a phantom). */
+.st-key-srl_filter_card {
+  background: var(--srl-glass-1) !important;
+  border: 1px solid var(--srl-line) !important;
+  border-radius: var(--srl-radius) !important;
+  padding: 0.85rem 1.15rem 1rem !important;
+  margin-bottom: 0.55rem !important;
 }
 .srl-filter-eyebrow {
   font-family: var(--srl-mono);
@@ -150,16 +163,22 @@ _PAGE_CSS = """
   color: var(--srl-bone-60);
   margin-bottom: 0.6rem;
 }
-/* Streamlit widget polish inside the filter card */
-.srl-filter [data-testid="stTextInput"] input,
-.srl-filter [data-baseweb="select"] > div {
+/* Streamlit widget polish — scoped to the keyed filter card. */
+.st-key-srl_filter_card [data-testid="stTextInput"] input,
+.st-key-srl_filter_card [data-baseweb="select"] > div,
+.st-key-srl_filter_card [data-baseweb="input"] {
   background: var(--srl-bg-2) !important;
   border-color: var(--srl-line-hi) !important;
   color: var(--srl-bone) !important;
   border-radius: var(--srl-radius) !important;
   font-family: var(--srl-sans) !important;
 }
-.srl-filter label {
+.st-key-srl_filter_card [data-testid="stTextInput"] input::placeholder {
+  color: var(--srl-bone-40) !important;
+}
+.st-key-srl_filter_card [data-baseweb="select"] svg { fill: var(--srl-bone-60) !important; }
+.st-key-srl_filter_card label,
+.st-key-srl_filter_card label p {
   font-family: var(--srl-mono) !important;
   font-size: 10px !important;
   letter-spacing: 0.18em !important;
@@ -257,34 +276,45 @@ _PAGE_CSS = """
 }
 
 /* ACTION ROW */
-/* Tighten Streamlit's default 1rem inter-element gap so each card and
-   its action row read as ONE premium unit and cards sit close together
-   (no sparse, scroll-heavy list). Masthead overrides this to 0 via its
-   own scoped rule, so the header is unaffected. */
-section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+/* Tighten the inter-element gap so each card + its action row read as ONE
+   premium unit and cards sit close together. */
+[data-testid="stMainBlockContainer"]:has(.srl-wrap)
+  div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 .srl-card { padding: 0.95rem 1.2rem; }
 .srl-actions {
   margin-top: -2px;
   margin-bottom: 0.55rem;
   padding: 0 0.4rem;
 }
-.srl-actions [data-testid="stButton"] button {
+/* The action buttons can't be wrapped (Streamlit widgets can't live inside
+   raw markdown), so they're targeted by their keyed element containers
+   (`st-key-srl_*`) — the only reliable hook once the .srl-actions wrapper
+   collapses into a phantom node. Each card's keys carry the record id, so
+   the prefix match catches every row. */
+/* OPEN REPORT — primary red pill */
+[class*="st-key-srl_open_"] button {
   background: var(--srl-red) !important;
-  color: white !important;
-  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
   border-radius: 999px !important;
   font-family: var(--srl-sans) !important;
   font-weight: 600 !important;
   font-size: 13px !important;
   padding: 0.6rem 1.2rem !important;
   letter-spacing: -0.005em !important;
-  box-shadow: 0 8px 20px -10px rgba(230,69,48,0.45) !important;
-  transition: transform .15s ease !important;
+  box-shadow: 0 10px 24px -12px rgba(230,69,48,0.55),
+              inset 0 1px 0 rgba(255,255,255,0.16) !important;
+  transition: transform .15s ease, box-shadow .2s ease !important;
 }
-.srl-actions [data-testid="stButton"] button:hover {
+[class*="st-key-srl_open_"] button:hover {
   transform: translateY(-1px);
+  box-shadow: 0 14px 28px -12px rgba(230,69,48,0.7),
+              inset 0 1px 0 rgba(255,255,255,0.22) !important;
 }
-.srl-actions [data-testid="stDownloadButton"] button {
+/* DOWNLOAD / PDF gate — glass secondary pill */
+[data-testid="stMainBlockContainer"]:has(.srl-wrap)
+  [data-testid="stDownloadButton"] button,
+[class*="st-key-srl_pdfgate_"] button {
   background: var(--srl-glass-2) !important;
   color: var(--srl-bone) !important;
   border: 1px solid var(--srl-line-hi) !important;
@@ -293,12 +323,36 @@ section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
   font-weight: 500 !important;
   font-size: 13px !important;
   padding: 0.6rem 1.2rem !important;
+  box-shadow: none !important;
+  transition: border-color .2s ease, background .2s ease !important;
 }
-.srl-actions-ghost [data-testid="stButton"] button {
+[data-testid="stMainBlockContainer"]:has(.srl-wrap)
+  [data-testid="stDownloadButton"] button:hover,
+[class*="st-key-srl_pdfgate_"] button:hover {
+  border-color: var(--srl-bone-40) !important;
+  background: rgba(255,255,255,0.07) !important;
+}
+/* DELETE — quiet ghost pill; CONFIRM DELETE — red-tinted ghost */
+[class*="st-key-srl_del_"] button {
   background: transparent !important;
   color: var(--srl-bone-60) !important;
   border: 1px solid var(--srl-line) !important;
+  border-radius: 999px !important;
+  font-family: var(--srl-sans) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  padding: 0.6rem 1.2rem !important;
   box-shadow: none !important;
+  transition: color .2s ease, border-color .2s ease !important;
+}
+[class*="st-key-srl_del_"] button:hover {
+  color: var(--srl-bone) !important;
+  border-color: var(--srl-line-hi) !important;
+}
+[class*="st-key-srl_del_yes_"] button {
+  color: var(--srl-red) !important;
+  border-color: rgba(230,69,48,0.45) !important;
+  background: var(--srl-red-soft) !important;
 }
 
 /* EMPTY STATE */
@@ -324,17 +378,23 @@ section.main div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
   max-width: 480px; margin: 0 auto;
 }
 
-/* RESPONSIVE */
+/* RESPONSIVE — placed AFTER all base rules so source order can't let the
+   base padding/grid override these (known gotcha in this codebase). The
+   gutter now lives on the block container, so the media queries target it
+   to stay aligned with the masthead's responsive gutter. */
 @media (max-width: 1100px) {
-  /* Track the masthead's responsive gutter so text stays aligned. */
-  .srl-wrap { padding: 0.6rem 22px 3rem; }
+  [data-testid="stMainBlockContainer"]:has(.srl-wrap) {
+    padding: 0.6rem 22px 3rem !important;
+  }
 }
 @media (max-width: 960px) {
   .srl-card { grid-template-columns: 80px 1fr 1fr; gap: 0.9rem; }
   .srl-card-file-col { display: none; }
 }
 @media (max-width: 560px) {
-  .srl-wrap { padding: 0.6rem 16px 2.5rem; }
+  [data-testid="stMainBlockContainer"]:has(.srl-wrap) {
+    padding: 0.6rem 16px 2.5rem !important;
+  }
   .srl-pagehead { flex-direction: column; align-items: flex-start; gap: 0.7rem; }
   .srl-pagehead-meta { text-align: left; }
   .srl-pagehead-title { font-size: 2.3rem; }
@@ -460,30 +520,32 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
         return
 
     # ---- Filters ----
-    st.markdown('<div class="srl-filter">', unsafe_allow_html=True)
-    st.markdown('<div class="srl-filter-eyebrow">Search &amp; Filter</div>',
-                 unsafe_allow_html=True)
-    f1, f2, f3 = st.columns([2.2, 1, 1])
-    with f1:
-        search_q = st.text_input(
-            "Search",
-            key="srl_search",
-            placeholder="Search by MLB comp, focus, or file name…",
-            label_visibility="visible",
-        )
-    with f2:
-        score_filter = st.selectbox(
-            "Score range",
-            ["All scores", "80+ (Elite)", "60–79 (Strong)", "Below 60 (Building)"],
-            key="srl_score_filter",
-        )
-    with f3:
-        time_filter = st.selectbox(
-            "Time range",
-            ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
-            key="srl_time_filter",
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
+    # A real keyed container so the editorial card frame + widget polish
+    # actually wrap the controls (a bare markdown <div> collapses into a
+    # phantom sibling and the frame/polish never reach the widgets).
+    with st.container(key="srl_filter_card"):
+        st.markdown('<div class="srl-filter-eyebrow">Search &amp; Filter</div>',
+                    unsafe_allow_html=True)
+        f1, f2, f3 = st.columns([2.2, 1, 1])
+        with f1:
+            search_q = st.text_input(
+                "Search",
+                key="srl_search",
+                placeholder="Search by MLB comp, focus, or file name…",
+                label_visibility="visible",
+            )
+        with f2:
+            score_filter = st.selectbox(
+                "Score range",
+                ["All scores", "80+ (Elite)", "60–79 (Strong)", "Below 60 (Building)"],
+                key="srl_score_filter",
+            )
+        with f3:
+            time_filter = st.selectbox(
+                "Time range",
+                ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
+                key="srl_time_filter",
+            )
 
     filtered = _filter_history(history_sorted, search_q, score_filter, time_filter)
 
