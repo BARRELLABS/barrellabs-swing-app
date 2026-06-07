@@ -726,22 +726,25 @@ def render_saved_reports_dashboard(user: Dict[str, Any],
                 st.session_state.pop("view", None)
                 st.rerun()
         with a_dl:
+            # PDF export is free for everyone now. Generate on tap (not for every
+            # card on page load — that rebuilt every PDF on every rerun and was
+            # slow). First tap builds it; then it becomes a one-tap download.
             if build_pdf_fn is not None and pdf_allowed:
-                try:
-                    pdf_bytes = build_pdf_fn(rec)
+                _pk = f"_srl_pdfbytes_{rec_id}"
+                if st.session_state.get(_pk):
                     st.download_button(
-                        "⬇  Download PDF",
-                        data=pdf_bytes,
+                        "⬇  Save PDF",
+                        data=st.session_state[_pk],
                         file_name=f"swing_{rec_id}.pdf",
                         mime="application/pdf",
                         key=f"srl_pdf_{rec_id}",
                     )
-                except Exception as _pdf_err:
-                    st.caption(f"PDF unavailable: {_pdf_err}")
-            elif build_pdf_fn is not None:
-                # Free tier — surface upgrade hint without blocking.
-                if st.button("⬇  PDF (Pro)", key=f"srl_pdfgate_{rec_id}"):
-                    st.toast("PDF export requires the Pro plan.")
+                elif st.button("⬇  Download PDF", key=f"srl_pdfgate_{rec_id}"):
+                    try:
+                        st.session_state[_pk] = build_pdf_fn(rec)
+                    except Exception:
+                        st.toast("Couldn't build that PDF — try again in a moment.")
+                    st.rerun()
         with a_del:
             st.markdown('<div class="srl-actions-ghost">',
                          unsafe_allow_html=True)

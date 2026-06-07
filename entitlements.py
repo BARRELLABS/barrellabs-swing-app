@@ -203,7 +203,11 @@ def can_access_development_tracker(plan_snapshot: Optional[dict]) -> Entitlement
 
 
 def can_export_pdf(plan_snapshot: Optional[dict]) -> EntitlementResult:
-    return _gate_pro_only(plan_snapshot, "pdf_export", "PDF report export")
+    # PDF export is free for everyone. It's a weak paywall (nobody upgrades just
+    # to download a PDF) and a branded, shareable swing report is good
+    # distribution. Monetization stays on the free-swing limit + drill tracking /
+    # history / family / facility seats. (Was _gate_pro_only on "pdf_export".)
+    return EntitlementResult(allowed=True)
 
 
 def can_compare_swings(plan_snapshot: Optional[dict]) -> EntitlementResult:
