@@ -88,6 +88,12 @@ footer { display: none !important; }
 [data-testid="stVerticalBlock"] { gap: 0 !important; }
 [data-testid="stElementContainer"] { margin: 0 !important; }
 
+/* Kill Streamlit's "Press Enter to submit form" hint — it overlaps the inputs
+   and reads like noise on a login screen. */
+[data-testid="InputInstructions"],
+[data-testid="stTextInputInstructions"],
+.stTextInput [data-testid="InputInstructions"] { display: none !important; }
+
 /* ============================================================
    2. AMBIENT BACKGROUND — gold/red stadium-light field +
       film-grain overlay. Sits behind everything (z:-1).
@@ -834,14 +840,16 @@ footer { display: none !important; }
     .au-wordmark { font-size: 12px; gap: 8px; }
     .au-wordmark .product { font-size: 15px; }
     .au-issue { font-size: 9.5px; letter-spacing: 0.14em; }
-    .au-status { padding: 10px 0 14px; font-size: 9.5px; letter-spacing: 0.14em; flex-wrap: wrap; gap: 6px; }
-    .au-status .right { display: none; }
-    .au-hero { padding: 24px 0 18px; }
-    .au-eyebrow { font-size: 10px; letter-spacing: 0.22em; }
+    /* Compact the hero on phones so the sign-in card sits near the top and you
+       don't scroll to reach email/password. Status line + subtitle hidden on
+       mobile (chrome noise); headline shrunk. */
+    .au-status { display: none !important; }
+    .au-hero { padding: 10px 0 8px; }
+    .au-eyebrow { font-size: 10px; letter-spacing: 0.22em; margin-bottom: 8px; }
     .au-eyebrow .stitch { width: 22px; }
-    .au-display { font-size: clamp(2.8rem, 12vw, 4rem); }
-    .au-deck { font-size: 0.98rem; padding: 0 6px; }
-    .st-key-auth_panel { padding: 24px 20px 20px !important; margin-top: 22px !important; }
+    .au-display { font-size: clamp(1.9rem, 8vw, 2.5rem); line-height: 1.03; }
+    .au-deck { display: none !important; }
+    .st-key-auth_panel { padding: 22px 20px 20px !important; margin-top: 12px !important; }
     .au-card-title { font-size: 1.55rem; }
     .au-trust {
         flex-direction: column;
@@ -1009,10 +1017,10 @@ def _trust_bar_html() -> str:
     """Single editorial mono row near the page bottom."""
     return """
 <div class="au-trust">
-  <span class="item"><span class="num">1,247</span>MLB References</span>
-  <span class="item"><span class="num">40+</span>Biomechanical Metrics</span>
-  <span class="item"><span class="num">~30s</span>Per-swing Analysis</span>
-  <span class="item">Pose-tracked · Phone clip</span>
+  <span class="item">Closest MLB match</span>
+  <span class="item">Biomechanical breakdown</span>
+  <span class="item">Personalized drill plan</span>
+  <span class="item"><span class="num">~30s</span>on a phone clip</span>
 </div>
 """
 
