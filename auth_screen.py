@@ -279,12 +279,15 @@ footer { display: none !important; }
     padding: 60px 0 36px;
     position: relative;
     /* Subtle radial that "lights" the headline. */
+    /* Clip the decorative glow so its fixed 720px width can never push
+       the document wider than the viewport (mobile shrink-to-fit bug). */
+    overflow-x: clip;
 }
 .au-hero::before {
     content: "";
     position: absolute;
     top: 30px; left: 50%;
-    width: 720px; height: 280px;
+    width: 720px; max-width: 100%; height: 280px;
     transform: translateX(-50%);
     background: radial-gradient(ellipse at center,
         rgba(232,193,112,0.10) 0%, transparent 70%);
