@@ -1307,6 +1307,9 @@ _DT_LOCAL_CSS = """
     padding: 0.6rem 0 0.4rem;
     margin-bottom: 0.6rem;
     position: relative;
+    /* Clip the decorative 720px glow below so it can't widen the page
+       past the viewport on mobile (horizontal-overflow / zoom bug). */
+    overflow-x: clip;
 }
 /* Attribution caption (under the diagnostic deck — small, low-key). */
 .tp-hero-attribution {
@@ -1324,7 +1327,7 @@ _DT_LOCAL_CSS = """
 .tp-hero::before {
     content: ""; position: absolute;
     top: 10px; left: 50%; transform: translateX(-50%);
-    width: 720px; height: 240px;
+    width: 720px; max-width: 100%; height: 240px;
     background: radial-gradient(ellipse at center, rgba(232,193,112,0.10) 0%, transparent 70%);
     pointer-events: none; z-index: -1; filter: blur(20px);
 }
