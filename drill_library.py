@@ -171,6 +171,9 @@ _LOCAL_CSS = """
     border: 1px solid var(--bl-line); border-radius: 6px; padding: 3px 7px;
   }
   .dl-tag--bat { color: var(--gold); border-color: rgba(232,193,112,0.4); }
+  /* Absorbs Streamlit's ~16px markdown-box shortfall so the equipment tag
+     never collides with the action button below. ~12px of visible gap. */
+  .dl-cardpad { height: 28px; }
 
   /* ---- "I did this" action + logged state (inside the card) ---- */
   [class*="st-key-dldone_"] button {
@@ -456,7 +459,13 @@ def render_drill_library():
                             f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
                             '</div>'
                             f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
-                            f'<div class="dl-tags">{tags}</div>',
+                            f'<div class="dl-tags">{tags}</div>'
+                            # Trailing spacer: Streamlit renders this markdown
+                            # element's box ~16px shorter than its content, so
+                            # the last row (the equipment tag) was spilling onto
+                            # the "I did this" button below. The spacer absorbs
+                            # that shortfall and leaves a clean gap.
+                            '<div class="dl-cardpad"></div>',
                             unsafe_allow_html=True,
                         )
                         drill_id = f'{cat["title"]}::{d["name"]}'
