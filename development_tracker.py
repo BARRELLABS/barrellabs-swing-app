@@ -6369,6 +6369,14 @@ def render_development_tracker():
         cat_title = category.get("title", "Drills")
         cat_priority = category.get("priority", cat_idx)
         cat_drills = category.get("drills", [])
+        # Push COMPLETED drills to the bottom of each category so the drills
+        # you still need to do sit at the top (less scrolling). Stable sort
+        # keeps the original order within the pending / done groups.
+        cat_drills = sorted(
+            cat_drills,
+            key=lambda d: 1 if drill_states.get(
+                f"{cat_title}::{d.get('name','')}", False) else 0,
+        )
         cat_why = category.get("why_it_matters") or ""
 
         cat_header = textwrap.dedent(f"""
