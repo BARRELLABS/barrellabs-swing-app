@@ -2181,7 +2181,6 @@ body::before {
         <span>Sub-metric band <span class="v">Strong match</span></span>
         <span>Considered <span class="v">17 references</span></span>
       </div>
-      <a class="match-cta" href="#">View side-by-side &nbsp;↗</a>
     </div>
   </section>
 

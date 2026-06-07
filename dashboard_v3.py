@@ -2205,9 +2205,14 @@ def render_dashboard_v3(user: Dict[str, Any],
     # buttons were redundant clutter and have been removed.
     if force_record is None:
         from entitlements import FREE_PLAN_ID
-        if _current_plan_id() == FREE_PLAN_ID:
-            _cta_l, _cta_sp = st.columns([1, 2])
-            with _cta_l:
+        is_free_plan = (_current_plan_id() == FREE_PLAN_ID)
+        # Comparing your own swings lives on the dedicated Compare nav tab, so
+        # the dashboard carries no compare CTA. The only dashboard CTA is the
+        # upgrade path for FREE users (the dashboard's sole upgrade entry point);
+        # paid users get nothing floating here.
+        if is_free_plan:
+            _cta_up, _cta_sp = st.columns([1, 2])
+            with _cta_up:
                 if st.button("⚡ Upgrade to Pro", key="dash_v3_upgrade_cta",
                              type="primary", use_container_width=True):
                     st.session_state["page"] = "pricing"
