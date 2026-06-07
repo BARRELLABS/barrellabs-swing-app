@@ -1935,6 +1935,27 @@ body::before {
   .edge-num .out { font-size: 10px !important; }
   .edge-num .delta { white-space: nowrap !important; font-size: 10px !important; margin-top: 4px !important; }
 }
+
+/* ============================================================
+   MOBILE: SHORTEN THE DASHBOARD TO AN "AT A GLANCE" VIEW
+   ------------------------------------------------------------
+   On phones the full report scrolls far too long. The deeper
+   sections each already have a dedicated nav page (Form & Timing,
+   Velocity Ladder, 12-Week Progress, Drill Prescription →
+   Training Plan, Session Ledger → Sessions, Achievements), so on
+   mobile we hide them here and let the masthead nav carry the
+   user to the detail. Anything tagged `.m-hide` is the top-level
+   wrapper (and its section-head) of one of those sections.
+
+   KEPT on mobile: hero (Edge Score), § 02 MLB Match,
+   § 03 "Your shape, vs. theirs", the masthead nav, and the
+   pricing band (the upsell). DESKTOP IS UNCHANGED — there is no
+   non-media-query rule for `.m-hide`, so it shows everywhere else.
+   Appended at the END of <style> so source order keeps it winning.
+   ============================================================ */
+@media (max-width: 760px) {
+  .m-hide { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -2237,7 +2258,7 @@ body::before {
   </div>
 
   <!-- FORM QUADRANTS + PHASE TIMING SPECTRUM -->
-  <div class="section-head fade-in d8">
+  <div class="section-head fade-in d8 m-hide">
     <div>
       <div class="section-eyebrow">§ 06 · Form &amp; Timing</div>
       <h2 class="section-title">Where you <span class="ital">match</span>, where you don't.</h2>
@@ -2245,7 +2266,7 @@ body::before {
     <div class="section-sub">Pose-derived sub-metrics scored vs your MLB match · last 7 days</div>
   </div>
 
-  <div class="diamond-row">
+  <div class="diamond-row m-hide">
     <div class="card">
       <div class="card-eyebrow">Form quadrants · similarity scores</div>
       <h3 class="card-title">Your <span class="ital">strong</span> regions.</h3>
@@ -2368,7 +2389,7 @@ body::before {
   </div>
 
   <!-- VELOCITY LADDER -->
-  <div class="card ladder-card fade-in d9" style="margin-top:28px;">
+  <div class="card ladder-card fade-in d9 m-hide" style="margin-top:28px;">
     <div class="ladder">
       <div class="ladder-vis" style="padding-bottom: 24px;">
         <div class="bar" style="height: 38%;"><span class="v">62</span><span class="wk">WK 1</span></div>
@@ -2394,7 +2415,7 @@ body::before {
 
 
   <!-- 12 WEEKS OF PROGRESS · long-term development story -->
-  <div class="section-head fade-in d10">
+  <div class="section-head fade-in d10 m-hide">
     <div>
       <div class="section-eyebrow">§ 09 · Long-Term Development</div>
       <h2 class="section-title">The last <span class="ital">twelve</span> weeks.</h2>
@@ -2402,7 +2423,7 @@ body::before {
     <div class="section-sub">Your full development arc · since Feb 23</div>
   </div>
 
-  <div class="progress-12 fade-in d10">
+  <div class="progress-12 fade-in d10 m-hide">
     <!-- six hero KPIs strip -->
     <div class="progress-stats">
       <div class="progress-stat">
@@ -2543,7 +2564,7 @@ body::before {
   </div>
 
   <!-- DRILL PRESCRIPTION · § 10 · the personalized action plan -->
-  <div class="section-head fade-in d11">
+  <div class="section-head fade-in d11 m-hide">
     <div>
       <div class="section-eyebrow">§ 10 · Drill Prescription</div>
       <h2 class="section-title">Three <span class="ital">drills</span>, prescribed.</h2>
@@ -2551,7 +2572,7 @@ body::before {
     <div class="section-sub">AI-generated from your top gap categories · refreshed after each session</div>
   </div>
 
-  <div class="coach-grid fade-in d11">
+  <div class="coach-grid fade-in d11 m-hide">
     <div class="coach-card">
       <div class="num">01</div>
       <div class="why">▲ flatten bat path · −3° steep entry</div>
@@ -2588,7 +2609,7 @@ body::before {
   </div>
 
   <!-- SESSION LEDGER (standalone, full width) -->
-  <div class="section-head fade-in d11">
+  <div class="section-head fade-in d11 m-hide">
     <div>
       <div class="section-eyebrow">§ 11 · Session Ledger</div>
       <h2 class="section-title">The <span class="ital">paper trail.</span></h2>
@@ -2596,7 +2617,7 @@ body::before {
     <div class="section-sub">last 5 cuts · trailing 14d</div>
   </div>
 
-  <div class="card fade-in d11">
+  <div class="card fade-in d11 m-hide">
     <div style="margin-top:4px;">
       <div class="ledger-row pr">
         <span class="date">Sun · May 17</span><span class="swings">12 sw</span>
@@ -2626,7 +2647,7 @@ body::before {
     </div>
   </div>
   <!-- ACHIEVEMENTS RAIL -->
-  <div class="section-head fade-in d11">
+  <div class="section-head fade-in d11 m-hide">
     <div>
       <div class="section-eyebrow">§ 12 · Recent Unlocks</div>
       <h2 class="section-title">Recent <span class="ital">unlocks.</span></h2>
@@ -2634,7 +2655,7 @@ body::before {
     <div class="section-sub">2 new this week · next badge in 6 swings</div>
   </div>
 
-  <div class="rail fade-in d11">
+  <div class="rail fade-in d11 m-hide">
     <div class="medal gold">
       <div class="icon">★</div>
       <div class="name">Forty-two club</div>
