@@ -151,6 +151,21 @@ section.main, .main {
   background: #0A0B0E !important;
 }
 
+/* Natural body scroll — fixes the mobile scroll-lock/jank. By default Streamlit
+   scrolls the page INSIDE [data-testid="stMain"] (a fixed-height box with
+   overflow:auto, inside overflow:hidden parents). That nested scroll container
+   traps/stutters touch scrolling on phones ("locks for a second, can't scroll
+   back up"). Letting the document scroll naturally removes the trap. Same fix
+   the auth screen already uses. */
+[data-testid="stApp"], .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"], section.main {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+html, body { overscroll-behavior-y: none; }
+
 /* Collapse ALL top space with the CORRECT 1.57 testids (unscoped). */
 [data-testid="stMain"] { padding-top: 0 !important; margin-top: 0 !important; }
 [data-testid="stMainBlockContainer"], .block-container,
