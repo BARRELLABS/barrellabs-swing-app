@@ -1912,6 +1912,29 @@ body::before {
   content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px;
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
+
+/* ============================================================
+   MOBILE OVERRIDES — placed LAST on purpose.
+   Several component rules (.match-grid, .edge-num, the rings) are defined
+   later in this stylesheet than the @media blocks above. Media queries don't
+   add specificity, so those desktop base rules were winning by source order
+   and the dashboard never actually went mobile for them (3-col match grid
+   overlapping, score number spilling out of the ring). Re-asserting here, at
+   the end, makes the mobile layout win.
+   ============================================================ */
+@media (max-width: 760px) {
+  /* MLB match: stack name / ring / metrics instead of 3 overlapping columns */
+  .match-grid { grid-template-columns: 1fr !important; gap: 22px !important; }
+  .match-ring-wrap svg { width: 100% !important; max-width: 260px !important; height: auto !important; }
+  .match-ring-wrap { width: 100%; }
+
+  /* Edge score: keep the number block inside the ring */
+  .edge-score-svg { width: 240px !important; height: 240px !important; max-width: 100% !important; }
+  .edge-num { transform: translate(-50%, -50%) !important; }
+  .edge-num .v { font-size: 60px !important; }
+  .edge-num .out { font-size: 10px !important; }
+  .edge-num .delta { white-space: nowrap !important; font-size: 10px !important; margin-top: 4px !important; }
+}
 </style>
 </head>
 <body>
