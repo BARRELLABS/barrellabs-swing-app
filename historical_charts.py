@@ -56,7 +56,7 @@ _HC_LOCAL_CSS = """
     padding: 2.2rem 2.4rem 2.4rem;
     border-radius: var(--bl-radius-xl);
     background: linear-gradient(160deg,
-                rgba(230,69,48,0.08) 0%,
+                rgba(232,193,112,0.07) 0%,
                 rgba(255,255,255,0.025) 38%,
                 rgba(255,255,255,0.015) 100%);
     border: 1px solid var(--bl-line);
@@ -68,7 +68,7 @@ _HC_LOCAL_CSS = """
     position: absolute;
     top: -120px; right: -160px;
     width: 420px; height: 420px;
-    background: radial-gradient(circle, rgba(230,69,48,0.18), transparent 65%);
+    background: radial-gradient(circle, rgba(232,193,112,0.14), transparent 65%);
     filter: blur(60px);
     pointer-events: none;
 }
@@ -81,19 +81,21 @@ _HC_LOCAL_CSS = """
     font-size: 0.62rem;
     font-weight: 600;
     letter-spacing: 0.28em;
-    color: var(--bl-red);
+    color: var(--bl-gold);
     text-transform: uppercase;
     margin-bottom: 0.85rem;
 }
 .hc-title {
     font-family: var(--bl-serif);
     font-style: italic;
-    font-size: 2.8rem;
+    font-size: clamp(2rem, 7vw, 2.8rem);
     font-weight: 400;
     letter-spacing: -0.015em;
     color: var(--bl-ink-100);
     line-height: 1.04;
     margin-bottom: 0.65rem;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 .hc-sub {
     color: var(--bl-ink-60);
@@ -107,9 +109,9 @@ _HC_LOCAL_CSS = """
     font-size: 0.62rem;
     font-weight: 600;
     letter-spacing: 0.22em;
-    color: var(--bl-red);
-    background: rgba(230,69,48,0.08);
-    border: 1px solid rgba(230,69,48,0.22);
+    color: var(--bl-gold);
+    background: rgba(232,193,112,0.08);
+    border: 1px solid rgba(232,193,112,0.22);
     border-radius: 999px;
     padding: 0.42rem 0.85rem;
     text-transform: uppercase;
@@ -118,8 +120,8 @@ _HC_LOCAL_CSS = """
 .hc-mode-pill-dot {
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--bl-red);
-    box-shadow: 0 0 8px var(--bl-red);
+    background: var(--bl-gold);
+    box-shadow: 0 0 8px rgba(232,193,112,0.6);
 }
 
 /* ===========  BADGE STRIP (Personal Best / Above Avg / Trending Up)  =========== */
@@ -156,9 +158,9 @@ _HC_LOCAL_CSS = """
     border-color: rgba(232,193,112,0.32);
 }
 .hc-badge.is-above {
-    color: var(--bl-red);
-    background: rgba(230,69,48,0.06);
-    border-color: rgba(230,69,48,0.30);
+    color: var(--bl-ink-80);
+    background: rgba(244,239,230,0.05);
+    border-color: var(--bl-line-hi);
 }
 .hc-badge.is-streak {
     color: var(--bl-ink-80);
@@ -228,7 +230,7 @@ _HC_LOCAL_CSS = """
     font-size: 0.6rem;
     font-weight: 600;
     letter-spacing: 0.26em;
-    color: var(--bl-red);
+    color: var(--bl-gold);
     text-transform: uppercase;
 }
 .hc-section-title {
@@ -282,9 +284,9 @@ _HC_LOCAL_CSS = """
     text-transform: uppercase !important;
 }
 .hc-controls-card [data-testid="stCheckbox"] [data-baseweb="checkbox"][aria-checked="true"] div[role="checkbox"] {
-    background: var(--bl-red) !important;
-    border-color: var(--bl-red) !important;
-    box-shadow: 0 0 8px rgba(230,69,48,0.4) !important;
+    background: var(--bl-gold) !important;
+    border-color: var(--bl-gold) !important;
+    box-shadow: 0 0 8px rgba(232,193,112,0.4) !important;
 }
 
 /* ===========  CHART CARD  =========== */
@@ -510,7 +512,7 @@ _HC_LOCAL_CSS = """
     background: var(--bl-surface-1);
     border: 1px dashed var(--bl-line-hi);
 }
-.hc-empty-icon { font-size: 2.4rem; color: var(--bl-red); margin-bottom: 1rem; opacity: 0.7; }
+.hc-empty-icon { font-size: 2.4rem; color: var(--bl-gold); margin-bottom: 1rem; opacity: 0.7; }
 .hc-empty-title { font-family: var(--bl-sans); font-size: 1.3rem; font-weight: 600; color: var(--bl-ink-100); margin-bottom: 0.55rem; letter-spacing: -0.012em; }
 .hc-empty-sub { color: var(--bl-ink-60); font-size: 0.95rem; line-height: 1.55; max-width: 460px; margin: 0 auto; }
 
@@ -733,6 +735,32 @@ def _largest_opportunity(df: pd.DataFrame, numeric_metrics: list) -> Optional[tu
     return worst
 
 
+# Plain-language labels so the page never shows raw jargon like
+# "Peak hip-shoulder separation (Match %)". Maps the analysis column names
+# to friendly names; the underlying data/columns are untouched.
+_FRIENDLY_METRIC = {
+    "Swing Score":                                  "Swing Score",
+    "Swing Duration (ms)":                          "Swing length",
+    "Peak hip-shoulder separation":                 "Hip-shoulder turn",
+    "Peak hip-shoulder separation (Match %)":       "Hip-shoulder turn (vs pros)",
+    "Launch → contact":                             "Swing timing",
+    "Launch → contact (Match %)":                   "Swing timing (vs pros)",
+    "Total head drift (torso-rel)":                 "Head movement",
+    "Total head drift (torso-rel) (Match %)":       "Head movement (vs pros)",
+}
+
+
+def _friendly_metric(col) -> str:
+    """Friendly display name for a metric column (no jargon)."""
+    if col in _FRIENDLY_METRIC:
+        return _FRIENDLY_METRIC[col]
+    label = str(col)
+    label = label.replace(" (torso-rel)", "")
+    label = label.replace("(Match %)", "(vs pros)").replace("Match %", "vs pros")
+    label = label.replace("→", "to")
+    return label
+
+
 # ============================================================
 #                         MAIN
 # ============================================================
@@ -752,12 +780,12 @@ def render_historical_charts():
     <div class="hc-hero">
       <div class="hc-hero-row">
         <div style="flex:1;min-width:0;">
-          <div class="hc-eyebrow">BarrelLabs Performance Lab</div>
-          <div class="hc-title">Performance Over Time</div>
+          <div class="hc-eyebrow">BarrelLabs Progress</div>
+          <div class="hc-title">Your progress over time</div>
           <div class="hc-sub">
-            Your personal swing-development analytics center. Track
-            every metric, spot trends, and prove progress with the
-            confidence of an MLB-grade dashboard.
+            See how your swing is trending. Every analysis you run
+            lands here so you can watch your score climb and spot what
+            is getting better.
           </div>
         </div>
         <div class="hc-mode-pill"><span class="hc-mode-pill-dot"></span> Progress Mode</div>
@@ -796,10 +824,9 @@ def render_historical_charts():
         st.markdown(
             '<div class="hc-empty" style="margin-bottom:1.4rem;">'
             '<div class="hc-empty-icon">↗</div>'
-            '<div class="hc-empty-title">One swing on file. Trend tracking unlocks at two.</div>'
-            f'<div class="hc-empty-sub">Upload another swing and Performance Over Time '
-            f'transforms into your full development analytics center — KPIs, insights, '
-            f'milestones, and metric trends.</div>'
+            '<div class="hc-empty-title">One swing on file. Trends start at two.</div>'
+            f'<div class="hc-empty-sub">Upload one more swing and this page starts '
+            f'charting your progress, so you can see what is improving over time.</div>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -898,8 +925,8 @@ def render_historical_charts():
     st.markdown(
         '<div class="hc-section-header">'
         '<div>'
-        '<div class="hc-section-eyebrow">METRIC TRENDS</div>'
-        '<div class="hc-section-title">Pick a metric to chart</div>'
+        '<div class="hc-section-eyebrow">TRENDS</div>'
+        '<div class="hc-section-title">Pick what to track</div>'
         '</div>'
         '</div>',
         unsafe_allow_html=True,
@@ -921,13 +948,17 @@ def render_historical_charts():
     st.markdown('<div class="hc-controls-card">', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns([2, 1.4, 1, 1])
     with c1:
-        selected_metric = st.selectbox("CHOOSE METRIC", ordered, key="hc_metric_select")
+        selected_metric = st.selectbox(
+            "WHAT TO TRACK", ordered, key="hc_metric_select",
+            format_func=_friendly_metric,
+        )
     with c2:
         compare_options = ["None"] + [m for m in ordered if m != selected_metric]
         compare_metric = st.selectbox(
             "COMPARE WITH (OPTIONAL)",
             compare_options,
             key="hc_compare_metric",
+            format_func=_friendly_metric,
         )
     with c3:
         time_range = st.selectbox(
@@ -986,7 +1017,7 @@ def render_historical_charts():
         '<div class="hc-chart-card">'
         '<div class="hc-chart-head">'
         '<div>'
-        f'<div class="hc-chart-title">{selected_metric}</div>'
+        f'<div class="hc-chart-title">{_friendly_metric(selected_metric)}</div>'
         f'<div class="hc-chart-sub">{len(chart_df)} reading{"s" if len(chart_df) != 1 else ""} · {time_range}</div>'
         '</div>'
         f'{trend_html}'
@@ -1003,10 +1034,10 @@ def render_historical_charts():
             x=chart_df["Analysis #"],
             y=chart_df[selected_metric],
             mode="lines+markers",
-            line=dict(color="rgba(230,69,48,0.95)", width=2.5, shape="spline", smoothing=0.7),
-            marker=dict(color=BL_RED, size=8, line=dict(color="#0a0a0c", width=2)),
+            line=dict(color="rgba(232,193,112,0.95)", width=2.5, shape="spline", smoothing=0.7),
+            marker=dict(color=BL_GOLD, size=8, line=dict(color="#0a0a0c", width=2)),
             fill="tozeroy" if len(chart_df) >= 2 else None,
-            fillcolor="rgba(230,69,48,0.10)",
+            fillcolor="rgba(232,193,112,0.10)",
             hovertemplate=("<b>Analysis %{x}</b><br>" + f"{selected_metric}: " + "%{y:.2f}<extra></extra>"),
             name=selected_metric,
         ))
@@ -1230,7 +1261,7 @@ def render_historical_charts():
             pct_cls = net_cls
         rows_html.append(
             f'<div class="hc-table-row">'
-            f'<div class="hc-table-metric">{row["metric"]}</div>'
+            f'<div class="hc-table-metric">{_friendly_metric(row["metric"])}</div>'
             f'<div class="hc-table-num">{first_s}</div>'
             f'<div class="hc-table-num is-strong">{last_s}</div>'
             f'<div class="hc-table-num {net_cls}">{net_s}</div>'
@@ -1258,19 +1289,19 @@ def render_historical_charts():
         },
         {
             "title": "10 Analyses Completed",
-            "sub":   "Trends are getting statistically meaningful.",
+            "sub":   "Enough history to see real trends.",
             "icon":  "✓",
             "done":  total_analyses >= 10,
         },
         {
             "title": "First 80+ Score",
-            "sub":   "Elite-tier swing mechanics achieved.",
+            "sub":   "A really strong swing. Great work.",
             "icon":  "★",
             "done":  (best_score or 0) >= 80,
         },
         {
             "title": "20-Point Improvement",
-            "sub":   "Massive jump from your first swing to your latest.",
+            "sub":   "Big jump from your first swing to your latest.",
             "icon":  "✦",
             "done":  (score_delta or 0) >= 20,
         },
@@ -1385,7 +1416,7 @@ def render_historical_charts():
             f'<th style="padding:0.7rem 1.1rem;text-align:left;white-space:nowrap;'
             f'font-family:var(--bl-mono);font-size:0.56rem;font-weight:600;'
             f'letter-spacing:0.18em;color:var(--bl-ink-40);text-transform:uppercase;">'
-            f'{c}</th>'
+            f'{_friendly_metric(c)}</th>'
             for c in cols
         )
         body_rows = []

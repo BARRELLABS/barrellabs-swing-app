@@ -332,11 +332,21 @@ def _logged_today(log: dict, drill_id: str) -> bool:
 
 
 def _log_drill_done(player_id, cat_title: str, drill: dict) -> None:
-    """Append a completion event for this library drill, matching the
-    Training Plan's format so drill mastery reconciles across both."""
+    """Record a library drill completion in the player's training log.
+
+    Two stores (both inside training_logs, no schema migration):
+      1. _completion_events + drill_log[drill_id] -> drill MASTERY, matching
+         the Training Plan's "{category}::{drill}" id so counts reconcile.
+      2. The gamification _swing_meta bucket under a synthetic "library"
+         swing id -> feeds total_drills_completed (XP) AND bumps the streak
+         (save_swing_meta fires _on_qualifying_activity on a new completion).
+    """
     from datetime import datetime as _dt
-    drill_id = f"{cat_title}::{drill.get('name','')}"
+    drill_name = drill.get("name", "")
+    drill_id = f"{cat_title}::{drill_name}"
     now = _dt.now().isoformat(timespec="seconds")
+
+    # 1) mastery + history
     log = _load_log(player_id)
     drill_log = log.setdefault("drills", {})
     drill_log[drill_id] = {
@@ -346,19 +356,26 @@ def _log_drill_done(player_id, cat_title: str, drill: dict) -> None:
     }
     drill_log.setdefault("_completion_events", []).append({
         "drill_id": drill_id,
-        "drill_name": drill.get("name", ""),
+        "drill_name": drill_name,
         "completed_at": now,
         "source_swing_date": None,
         "reps_done": drill.get("reps", ""),
         "source": "library",
     })
     st.session_state[f"_dl_log_{player_id}"] = log  # keep run cache fresh
-    if player_id:
-        try:
-            from player_storage import save_training_log
-            save_training_log(player_id, log)
-        except Exception:
-            pass
+    if not player_id:
+        return
+    try:
+        from player_storage import (
+            save_training_log, load_swing_meta, save_swing_meta,
+        )
+        save_training_log(player_id, log)
+        # 2) XP + streak: count this drill in the gamification bucket.
+        done = load_swing_meta(player_id, "library").get("drills_completed", {}) or {}
+        done[drill_name] = True
+        save_swing_meta(player_id, "library", drills_completed=done)
+    except Exception:
+        pass
 
 
 def render_drill_library():
@@ -490,7 +507,7 @@ def render_drill_library():
                         _log_drill_done(player_id, cat["title"], d)
                         st.session_state[f"_dl_doneflag_{drill_id}"] = True
                         try:
-                            st.toast(f"Logged · {d['name']}", icon="✅")
+                            st.toast(f"+10 XP · {d['name']} logged", icon="⚡")
                         except Exception:
                             pass
                         st.rerun()
