@@ -876,6 +876,35 @@ def render_edge_masthead(
                         st.session_state.pop(_k, None)
                 st.rerun()
 
+    # Ghost-masthead killer. In-session st.rerun nav can leave stale full-bleed
+    # masthead copies in the DOM that stack as duplicate nav bars. A pure-CSS
+    # guard can't reliably target them (they may not be siblings). This runs a
+    # safe, ONE-SHOT same-origin script: the live masthead is the one rendered
+    # immediately before this component (frameElement), so we keep that and
+    # remove any others. No observer -> no risk of fighting future renders.
+    import streamlit.components.v1 as _components
+    _components.html(
+        """
+<script>
+(function(){
+  try {
+    var D = window.parent.document, frame = window.frameElement;
+    if (!frame) return;
+    var all = D.querySelectorAll('.st-key-bl_edge_masthead');
+    if (all.length < 2) return;
+    var live = null;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].compareDocumentPosition(frame) & Node.DOCUMENT_POSITION_FOLLOWING) live = all[i];
+    }
+    if (!live) live = all[all.length - 1];
+    for (var j = 0; j < all.length; j++) { if (all[j] !== live) all[j].remove(); }
+  } catch (e) {}
+})();
+</script>
+""",
+        height=0,
+    )
+
 
 
 
