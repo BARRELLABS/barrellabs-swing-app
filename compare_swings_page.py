@@ -201,6 +201,15 @@ _CMP_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap');
 
+/* ====================================================================
+   TOKENS + LAYOUT scoped to the REAL content container.
+   Streamlit auto-closes a bare `<div class="cmp-wrap">` into an empty
+   phantom node, so design tokens keyed only to `.cmp-wrap` never reach
+   the page content (it renders as SIBLINGS of the phantom inside
+   [data-testid="stMainBlockContainer"]). We define everything on the
+   block container itself — on a Compare render it holds only this page.
+   The `.cmp-wrap` fallback keeps tokens valid for any nested use. */
+[data-testid="stMainBlockContainer"]:has(.cmp-wrap),
 .cmp-wrap{
   --bone:#F4EFE6; --bone-70:rgba(244,239,230,0.70); --bone-50:rgba(244,239,230,0.50);
   --bone-35:rgba(244,239,230,0.35); --ink:#0A0B0E; --gold:#E8C170; --red:#E64530;
@@ -209,9 +218,15 @@ _CMP_CSS = """
   --serif:'Instrument Serif',Georgia,serif; --sans:'Geist',-apple-system,sans-serif;
   --mono:'Geist Mono',ui-monospace,monospace;
   font-family:var(--sans); color:var(--bone);
-  position:relative; padding:8px 2px 64px;
 }
-.cmp-wrap *{box-sizing:border-box;}
+/* Real content frame (1560 / 40px) so Compare aligns with the nav and
+   every other page, with no horizontal overflow. */
+[data-testid="stMainBlockContainer"]:has(.cmp-wrap){
+  max-width:1560px !important; margin:0 auto !important;
+  padding:8px 40px 64px !important; box-sizing:border-box !important;
+}
+.cmp-wrap{ display:contents; }
+[data-testid="stMainBlockContainer"]:has(.cmp-wrap) *{box-sizing:border-box;}
 @keyframes cmpUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
 .cmp-rise{opacity:0; animation:cmpUp .7s cubic-bezier(.2,.7,.2,1) forwards;}
 
@@ -355,6 +370,47 @@ _CMP_CSS = """
 .cmp-empty .ic{font-size:30px; color:var(--bone-35); margin-bottom:14px;}
 .cmp-empty .t{font-family:var(--serif); font-style:italic; font-size:1.7rem; color:var(--bone); margin-bottom:10px;}
 .cmp-empty .b{font-family:var(--sans); font-size:14px; color:var(--bone-50); line-height:1.6; max-width:46ch; margin:0 auto;}
+
+/* ====================================================================
+   SWING PICKERS — a real keyed st.container so the editorial card frame
+   + dark selectbox polish actually wrap the two st.selectbox widgets
+   (the default Streamlit white selects were the "old looking" controls).
+   Scoped to the keyed container so it can't bleed into the masthead.
+   ==================================================================== */
+.st-key-cmp_picker_card{
+  background:var(--glass) !important; border:1px solid var(--line) !important;
+  border-radius:16px !important; padding:16px 18px 18px !important;
+  margin:24px 0 8px !important;
+}
+.st-key-cmp_picker_card .cmp-picker-eyebrow{
+  font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--bone-50); margin-bottom:12px;}
+.st-key-cmp_picker_card label, .st-key-cmp_picker_card label p{
+  font-family:var(--mono) !important; font-size:10px !important;
+  letter-spacing:.18em !important; text-transform:uppercase !important;
+  color:var(--bone-50) !important;}
+.st-key-cmp_picker_card [data-baseweb="select"] > div{
+  background:#0F1115 !important; border-color:var(--line-hi) !important;
+  color:var(--bone) !important; border-radius:12px !important;
+  font-family:var(--sans) !important;}
+.st-key-cmp_picker_card [data-baseweb="select"] div{ color:var(--bone) !important; }
+.st-key-cmp_picker_card [data-baseweb="select"] svg{ fill:var(--bone-50) !important; }
+
+/* ====================================================================
+   RESPONSIVE GUTTER — placed AFTER base rules so source order can't let
+   the base 40px padding override these (known codebase gotcha). The
+   gutter lives on the block container, tracking the masthead's gutter. */
+@media(max-width:1100px){
+  [data-testid="stMainBlockContainer"]:has(.cmp-wrap){
+    padding:8px 22px 64px !important;}
+  .cmp-title{font-size:2.8rem;}
+}
+@media(max-width:560px){
+  [data-testid="stMainBlockContainer"]:has(.cmp-wrap){
+    padding:8px 16px 56px !important;}
+  .cmp-title{font-size:2.4rem;}
+  .cmp-hero{padding:12px 0 14px;}
+}
 </style>
 """
 
@@ -595,16 +651,22 @@ def render_compare_swings_page(user: Dict[str, Any]) -> None:
         return
 
     # --- in-session swing pickers (default to the latest two) ---
+    # Wrapped in a real keyed container so the editorial card frame + dark
+    # selectbox polish actually reach the widgets (a bare markdown <div>
+    # collapses into a phantom sibling and never wraps them).
     labels = [f"{swing_label(r)} · {int(round(score_of(r))) if score_of(r) is not None else '—'} · {fmt_date(r)}"
               for r in history]
     idxs = list(range(total))
-    c1, c2 = st.columns(2)
-    with c1:
-        a_idx = st.selectbox("Swing A (earlier)", idxs, index=total - 2,
-                             format_func=lambda i: labels[i], key="cmp_swing_a")
-    with c2:
-        b_idx = st.selectbox("Swing B (later)", idxs, index=total - 1,
-                             format_func=lambda i: labels[i], key="cmp_swing_b")
+    with st.container(key="cmp_picker_card"):
+        st.markdown('<div class="cmp-picker-eyebrow">Pick two swings</div>',
+                    unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            a_idx = st.selectbox("Swing A (earlier)", idxs, index=total - 2,
+                                 format_func=lambda i: labels[i], key="cmp_swing_a")
+        with c2:
+            b_idx = st.selectbox("Swing B (later)", idxs, index=total - 1,
+                                 format_func=lambda i: labels[i], key="cmp_swing_b")
 
     # Enforce earlier→later regardless of pick order, so "improved/regressed"
     # and the score delta are always computed in the right direction. History
