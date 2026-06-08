@@ -2272,162 +2272,50 @@ body::before {
     </div>
   </div>
 
-  <!-- FORM QUADRANTS + PHASE TIMING SPECTRUM -->
-  <div class="section-head fade-in d8 m-hide">
+  <!-- DRILL PRESCRIPTION · § 10 · the personalized action plan -->
+  <div class="section-head fade-in d11 m-hide">
     <div>
-      <div class="section-eyebrow">§ 06 · Form &amp; Timing</div>
-      <h2 class="section-title">Where you <span class="ital">match</span>, where you don't.</h2>
+      <div class="section-eyebrow">§ 10 · Drill Prescription</div>
+      <h2 class="section-title">Three <span class="ital">drills</span>, prescribed.</h2>
     </div>
-    <div class="section-sub">Pose-derived sub-metrics scored vs your MLB match · last 7 days</div>
+    <div class="section-sub">AI-generated from your top gap categories · refreshed after each session</div>
   </div>
 
-  <div class="diamond-row m-hide">
-    <div class="card">
-      <div class="card-eyebrow">Form quadrants · similarity scores</div>
-      <h3 class="card-title">Your <span class="ital">strong</span> regions.</h3>
-      <div class="zone-axes" style="margin-top:24px;"><span>Sep · sep @ FP · sep @ contact</span></div>
-      <div class="zone-grid">
-        <div class="zone-cell heat-3"><span class="n">SEP PEAK</span><span class="pct">94</span></div>
-        <div class="zone-cell heat-2"><span class="n">SEP @ FP</span><span class="pct">81</span></div>
-        <div class="zone-cell heat-3"><span class="n">SEP @ CON</span><span class="pct">89</span></div>
-        <div class="zone-cell heat-2"><span class="n">HIP @ FP</span><span class="pct">76</span></div>
-        <div class="zone-cell heat-3"><span class="n">HIP @ CON</span><span class="pct">88</span></div>
-        <div class="zone-cell heat-3"><span class="n">HIP RANGE</span><span class="pct">86</span></div>
-        <div class="zone-cell heat-1"><span class="n">KNEE @ FP</span><span class="pct">62</span></div>
-        <div class="zone-cell heat-2"><span class="n">KNEE MIN</span><span class="pct">74</span></div>
-        <div class="zone-cell heat-3"><span class="n">RE-EXT</span><span class="pct">91</span></div>
-      </div>
-      <div class="zone-axes"><span>rotation</span><span>knee drive</span></div>
-      <div class="spray-stat">
-        <div><div class="v">94</div><div class="l">peak sep — top sub-metric</div></div>
-        <div><div class="v">83</div><div class="l">9-cell weighted average</div></div>
-        <div><div class="v">62</div><div class="l">knee @ FP — focus area</div></div>
+  <div class="coach-grid fade-in d11 m-hide">
+    <div class="coach-card">
+      <div class="num">01</div>
+      <div class="why">▲ flatten bat path · −3° steep entry</div>
+      <div class="drill">Early hand-set <span class="ital">tee work.</span></div>
+      <div class="target">Target · barrel "tips" toward ball <span class="v">before front foot lands</span></div>
+      <p class="body">Set the tee middle-up. Cock your hands to launch-position before the leg lift starts. Feel the barrel tip toward the ball before the front foot plants.</p>
+      <div class="cta-row">
+        <a class="cta" href="#">Open drill →</a>
+        <span class="reps">3 × 8 swings</span>
       </div>
     </div>
-
-    <div class="card spray">
-      <div class="card-eyebrow">Phase timing spectrum · vs MLB band</div>
-      <h3 class="card-title">Your <span class="ital">tempo</span>, phase by phase.</h3>
-      <svg viewBox="0 0 540 380" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="bandGrad" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%"  stop-color="rgba(230,69,48,0.05)"/>
-            <stop offset="50%" stop-color="rgba(230,69,48,0.22)"/>
-            <stop offset="100%" stop-color="rgba(230,69,48,0.05)"/>
-          </linearGradient>
-        </defs>
-
-        <!-- horizontal phase rows, each row is a phase interval; -->
-        <!-- the red band is the MLB reference range, the bone dot is the user. -->
-        <!-- 5 phases: Load→FP, FP→Launch, Launch→Contact, Contact→PeakRot, PeakRot→Finish -->
-        <!-- y positions: 50, 110, 170, 230, 290 -->
-        <!-- x range: 60 (start) to 480 (end). values shown to scale 0..1000 ms -->
-
-        <!-- phase 1: Load → Foot plant -->
-        <g>
-          <text class="field-text" x="60"  y="36">LOAD → FOOT PLANT</text>
-          <text class="field-text" x="480" y="36" text-anchor="end">496 ms · MLB 488 ± 60</text>
-          <line x1="60" y1="50" x2="480" y2="50" stroke="rgba(244,239,230,0.06)" stroke-width="1"/>
-          <!-- MLB band 428-548 ms → scaled across x60..x480 with 1000ms = 420px → x = 60 + (ms/1000)*420 -->
-          <rect x="240" y="44" width="50" height="12" rx="2" fill="url(#bandGrad)" stroke="rgba(230,69,48,0.5)" stroke-width="0.8"/>
-          <!-- user dot at 496 ms -->
-          <line x1="268" y1="42" x2="268" y2="58" stroke="#F4EFE6" stroke-width="1.4"/>
-          <circle cx="268" cy="50" r="4.5" fill="#F4EFE6"/>
-        </g>
-
-        <!-- phase 2: Foot plant → Launch -->
-        <g>
-          <text class="field-text" x="60"  y="96">FOOT PLANT → LAUNCH</text>
-          <text class="field-text" x="480" y="96" text-anchor="end">156 ms · MLB 171 ± 25</text>
-          <line x1="60" y1="110" x2="480" y2="110" stroke="rgba(244,239,230,0.06)" stroke-width="1"/>
-          <rect x="121" y="104" width="22" height="12" rx="2" fill="url(#bandGrad)" stroke="rgba(230,69,48,0.5)" stroke-width="0.8"/>
-          <line x1="125" y1="102" x2="125" y2="118" stroke="#F4EFE6" stroke-width="1.4"/>
-          <circle cx="125" cy="110" r="4.5" fill="#F4EFE6"/>
-        </g>
-
-        <!-- phase 3: Launch → Contact -->
-        <g>
-          <text class="field-text" x="60"  y="156">LAUNCH → CONTACT</text>
-          <text class="field-text" x="480" y="156" text-anchor="end">184 ms · MLB 175 ± 22</text>
-          <line x1="60" y1="170" x2="480" y2="170" stroke="rgba(244,239,230,0.06)" stroke-width="1"/>
-          <rect x="124" y="164" width="22" height="12" rx="2" fill="url(#bandGrad)" stroke="rgba(230,69,48,0.5)" stroke-width="0.8"/>
-          <line x1="137" y1="162" x2="137" y2="178" stroke="#E8C170" stroke-width="1.6"/>
-          <circle cx="137" cy="170" r="5" fill="#E8C170"/>
-        </g>
-
-        <!-- phase 4: Contact → Peak rotation -->
-        <g>
-          <text class="field-text" x="60"  y="216">CONTACT → PEAK ROTATION</text>
-          <text class="field-text" x="480" y="216" text-anchor="end">122 ms · MLB 119 ± 18</text>
-          <line x1="60" y1="230" x2="480" y2="230" stroke="rgba(244,239,230,0.06)" stroke-width="1"/>
-          <rect x="105" y="224" width="20" height="12" rx="2" fill="url(#bandGrad)" stroke="rgba(230,69,48,0.5)" stroke-width="0.8"/>
-          <line x1="111" y1="222" x2="111" y2="238" stroke="#F4EFE6" stroke-width="1.4"/>
-          <circle cx="111" cy="230" r="4.5" fill="#F4EFE6"/>
-        </g>
-
-        <!-- phase 5: Peak rotation → Finish -->
-        <g>
-          <text class="field-text" x="60"  y="276">PEAK ROTATION → FINISH</text>
-          <text class="field-text" x="480" y="276" text-anchor="end">244 ms · MLB 265 ± 32</text>
-          <line x1="60" y1="290" x2="480" y2="290" stroke="rgba(244,239,230,0.06)" stroke-width="1"/>
-          <rect x="158" y="284" width="28" height="12" rx="2" fill="url(#bandGrad)" stroke="rgba(230,69,48,0.5)" stroke-width="0.8"/>
-          <line x1="162" y1="282" x2="162" y2="298" stroke="#F4EFE6" stroke-width="1.4"/>
-          <circle cx="162" cy="290" r="4.5" fill="#F4EFE6"/>
-        </g>
-
-        <!-- timeline ruler -->
-        <g stroke="rgba(244,239,230,0.10)" stroke-dasharray="2 4">
-          <line x1="60"  y1="320" x2="60"  y2="358"/>
-          <line x1="186" y1="320" x2="186" y2="358"/>
-          <line x1="312" y1="320" x2="312" y2="358"/>
-          <line x1="438" y1="320" x2="438" y2="358"/>
-        </g>
-        <g font-family="Geist Mono, monospace" font-size="9.5" fill="#565A62" letter-spacing="0.12em">
-          <text x="60"  y="358">0 ms</text>
-          <text x="186" y="358">300</text>
-          <text x="312" y="358">600</text>
-          <text x="438" y="358" text-anchor="end">900 ms</text>
-        </g>
-      </svg>
-
-      <div class="spray-legend">
-        <span><span class="dot" style="background:#F4EFE6"></span>You · this swing</span>
-        <span><span class="dot" style="background:rgba(230,69,48,0.55);border:1px solid rgba(230,69,48,0.5)"></span>MLB ref range</span>
-        <span><span class="dot" style="background:#E8C170"></span>Citrine = sweet spot</span>
+    <div class="coach-card">
+      <div class="num">02</div>
+      <div class="why">▲ lock in 42° hip-shoulder separation</div>
+      <div class="drill">Walking stride <span class="ital">hip-leads.</span></div>
+      <div class="target">Target · hip-Sh sep peak <span class="v">≥ 42° for 5 of 8 reps</span></div>
+      <p class="body">Replicate your Tuesday-night sequence. Walk into a slow stride and stall at foot plant for a half-second before launching. Builds muscle memory for the separation peak.</p>
+      <div class="cta-row">
+        <a class="cta" href="#">Open drill →</a>
+        <span class="reps">3 × 6 reps</span>
       </div>
-      <div class="spray-stat">
-        <div><div class="v">1,202 ms</div><div class="l">total swing window</div></div>
-        <div><div class="v">96.9%</div><div class="l">phase-alignment score</div></div>
-        <div><div class="v">3 of 5</div><div class="l">phases inside MLB band</div></div>
+    </div>
+    <div class="coach-card">
+      <div class="num">03</div>
+      <div class="why">▲ tighten knee re-extension · 74 → 90+</div>
+      <div class="drill">Overload / underload <span class="ital">set.</span></div>
+      <div class="target">Target · knee re-ext score <span class="v">≥ 90 by next session</span></div>
+      <p class="body">2 swings with a +6 oz weighted bat, 2 with a −6 oz speed bat, 2 game bats. Cue: drive the front knee back into extension through contact.</p>
+      <div class="cta-row">
+        <a class="cta" href="#">Open drill →</a>
+        <span class="reps">3 full rounds</span>
       </div>
     </div>
   </div>
-
-  <!-- VELOCITY LADDER -->
-  <div class="card ladder-card fade-in d9 m-hide" style="margin-top:28px;">
-    <div class="ladder">
-      <div class="ladder-vis" style="padding-bottom: 24px;">
-        <div class="bar" style="height: 38%;"><span class="v">62</span><span class="wk">WK 1</span></div>
-        <div class="bar" style="height: 46%;"><span class="v">66</span><span class="wk">WK 2</span></div>
-        <div class="bar" style="height: 52%;"><span class="v">71</span><span class="wk">WK 3</span></div>
-        <div class="bar" style="height: 58%;"><span class="v">76</span><span class="wk">WK 4</span></div>
-        <div class="bar" style="height: 64%;"><span class="v">80</span><span class="wk">WK 5</span></div>
-        <div class="bar" style="height: 73%;"><span class="v">83</span><span class="wk">WK 6</span></div>
-        <div class="bar" style="height: 84%;"><span class="v">87</span><span class="wk">WK 7</span></div>
-        <div class="bar peak" style="height: 100%;"><span class="v">91</span><span class="wk">WK 8</span></div>
-      </div>
-      <div class="ladder-narrative">
-        <div class="card-eyebrow">Match score · 8 wk progression · vs MLB match</div>
-        <div class="num">+ <span class="ital">29</span> pts</div>
-        <div class="label">composite gain over 8 weeks</div>
-        <div class="body">
-          You started this block at a <span class="em">62%</span> match against your MLB match; you sit at <span class="em">91%</span> tonight — a climb out of the "decent match" band into "strong match" territory. Most of the gain came from <span class="em">hip-shoulder separation</span> and <span class="em">launch-to-contact timing</span>; knee drive is the next lever.
-        </div>
-      </div>
-    </div>
-  </div>
-
-
 
   <!-- 12 WEEKS OF PROGRESS · long-term development story -->
   <div class="section-head fade-in d10 m-hide">
@@ -2574,51 +2462,6 @@ body::before {
           <div class="when">Apr 22 · wk 9</div>
           <div class="detail">First century cut</div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- DRILL PRESCRIPTION · § 10 · the personalized action plan -->
-  <div class="section-head fade-in d11 m-hide">
-    <div>
-      <div class="section-eyebrow">§ 10 · Drill Prescription</div>
-      <h2 class="section-title">Three <span class="ital">drills</span>, prescribed.</h2>
-    </div>
-    <div class="section-sub">AI-generated from your top gap categories · refreshed after each session</div>
-  </div>
-
-  <div class="coach-grid fade-in d11 m-hide">
-    <div class="coach-card">
-      <div class="num">01</div>
-      <div class="why">▲ flatten bat path · −3° steep entry</div>
-      <div class="drill">Early hand-set <span class="ital">tee work.</span></div>
-      <div class="target">Target · barrel "tips" toward ball <span class="v">before front foot lands</span></div>
-      <p class="body">Set the tee middle-up. Cock your hands to launch-position before the leg lift starts. Feel the barrel tip toward the ball before the front foot plants.</p>
-      <div class="cta-row">
-        <a class="cta" href="#">Open drill →</a>
-        <span class="reps">3 × 8 swings</span>
-      </div>
-    </div>
-    <div class="coach-card">
-      <div class="num">02</div>
-      <div class="why">▲ lock in 42° hip-shoulder separation</div>
-      <div class="drill">Walking stride <span class="ital">hip-leads.</span></div>
-      <div class="target">Target · hip-Sh sep peak <span class="v">≥ 42° for 5 of 8 reps</span></div>
-      <p class="body">Replicate your Tuesday-night sequence. Walk into a slow stride and stall at foot plant for a half-second before launching. Builds muscle memory for the separation peak.</p>
-      <div class="cta-row">
-        <a class="cta" href="#">Open drill →</a>
-        <span class="reps">3 × 6 reps</span>
-      </div>
-    </div>
-    <div class="coach-card">
-      <div class="num">03</div>
-      <div class="why">▲ tighten knee re-extension · 74 → 90+</div>
-      <div class="drill">Overload / underload <span class="ital">set.</span></div>
-      <div class="target">Target · knee re-ext score <span class="v">≥ 90 by next session</span></div>
-      <p class="body">2 swings with a +6 oz weighted bat, 2 with a −6 oz speed bat, 2 game bats. Cue: drive the front knee back into extension through contact.</p>
-      <div class="cta-row">
-        <a class="cta" href="#">Open drill →</a>
-        <span class="reps">3 full rounds</span>
       </div>
     </div>
   </div>
