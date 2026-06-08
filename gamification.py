@@ -181,14 +181,14 @@ def determine_achievements(state: dict) -> list:
 # --------------------------------------------------------------------
 #  REWARDS — gated by streak days
 # --------------------------------------------------------------------
-# Premium athlete loyalty progression. ALL rewards are DIGITAL \u2014 no physical
-# fulfillment, no shipping, no inventory cost. The progression peaks with an
-# animated "Legend" card at 180d and the Hall of Fame legacy status at 365d.
-# (We deliberately avoid physical merch like patches/hoodies: zero capital
-# tied up, instant delivery, and digital collectibles still feel earned.)
+# Premium athlete loyalty progression. Mostly digital collectibles (badges,
+# cards, titles); the one hero PHYSICAL reward is the 180-day Hoodie \u2014 the
+# capstone before Hall of Fame at 365d. The Milestone Patch is DIGITAL (lives
+# in the in-app trophy case); only the Hoodie ships, so it's the lone item
+# with real fulfillment cost.
 #
 # `kind` drives the type-badge color in the UI:
-#   status | collectible | graphic | report | title | perk | legacy
+#   status | collectible | graphic | report | title | physical | perk | legacy
 REWARDS = [
     {"id": "r_silver_badge",    "title": "Silver Streak Badge",                "kind": "status",      "day_threshold": 7,
      "description": "Your first week of consistency. Unlocks a premium profile badge."},
@@ -200,10 +200,10 @@ REWARDS = [
      "description": "Professional development report summarizing strengths, weaknesses, and biggest improvements."},
     {"id": "r_locker_title",    "title": "Locker Room Title",                  "kind": "title",       "day_threshold": 90,
      "description": "Earn an elite title such as \u201cCertified Grinder,\u201d \u201cBarrel Hunter,\u201d or \u201cLab Veteran.\u201d"},
-    {"id": "r_legend_card",     "title": "Animated Legend Card",               "kind": "graphic",     "day_threshold": 180,
-     "description": "A rare animated version of your player card \u2014 six months of consistency, immortalized. Earned, never bought."},
-    {"id": "r_priority_access", "title": "Founding Athlete Access",            "kind": "perk",        "day_threshold": 270,
-     "description": "Early access to new BarrelLabs features before anyone else, plus a permanent Founding Athlete flair."},
+    {"id": "r_hoodie",          "title": "Limited Edition BarrelLabs Hoodie",  "kind": "physical",    "day_threshold": 180,
+     "description": "Exclusive hoodie earned through six months of consistency. Not available for purchase."},
+    {"id": "r_merch_discount",  "title": "Lifetime 25% Merch Discount",        "kind": "perk",        "day_threshold": 270,
+     "description": "Permanent discount on future BarrelLabs merchandise."},
     {"id": "r_hall_of_fame",    "title": "Hall of Fame Status",                "kind": "legacy",      "day_threshold": 365,
      "description": "Permanent recognition as one of BarrelLabs\u2019 most dedicated athletes."},
 ]

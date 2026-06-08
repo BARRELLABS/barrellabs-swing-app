@@ -100,7 +100,10 @@ html, body {
   margin: 0; padding: 0;
   background: var(--bg); color: var(--bone);
   font-family: var(--sans);
-  font-feature-settings: "ss01", "cv01";
+  font-feature-settings: "ss01", "cv01", "tnum";
+  /* Broadcast/stat-sheet feel: every figure renders as tabular (fixed-width)
+     numerals so columns of stats line up like a scoreboard / box score. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -224,14 +227,17 @@ body::before {
 }
 .hero-eyebrow .swatch { display: inline-block; width: 22px; height: 1px; background: var(--red); }
 .hero-headline {
-  font-family: var(--serif); font-weight: 400;
-  font-size: 78px; line-height: 1.02; letter-spacing: -0.025em;
+  /* Broadcast: condensed sans, not editorial serif. Tight tracking + heavier
+     weight reads like a stat-graphic headline rather than a magazine title. */
+  font-family: var(--sans); font-weight: 600;
+  font-size: 72px; line-height: 1.04; letter-spacing: -0.03em;
   color: var(--bone); margin: 0 0 24px;
 }
 /* Generous breathing room around the highlighted metric so the eye
    has space to land on it. Inline-block so the margins actually take. */
 .hero-headline .ital {
-  font-style: italic; color: var(--gold);
+  /* the highlighted metric: gold data-accent, no editorial italic */
+  font-style: normal; color: var(--gold);
   display: inline-block;
   padding: 0 0.08em;
   margin: 0 0.06em;
@@ -274,8 +280,9 @@ body::before {
 }
 .doppel-eyebrow .num { color: var(--gold); font-weight: 500; }
 .doppel-name {
-  font-family: var(--serif); font-style: italic;
-  font-size: 36px; line-height: 1; letter-spacing: -0.02em;
+  /* Broadcast: player names render like a lower-third / box-score name. */
+  font-family: var(--sans); font-style: normal; font-weight: 700;
+  font-size: 32px; line-height: 1; letter-spacing: -0.005em; text-transform: uppercase;
   color: var(--bone); margin: 8px 0 4px;
 }
 .doppel-team {
@@ -317,10 +324,13 @@ body::before {
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--red);
 }
 .section-title {
-  font-family: var(--serif); font-size: 28px; font-weight: 400;
-  letter-spacing: -0.01em; color: var(--bone); margin: 6px 0 0;
+  /* Broadcast: uppercase condensed sans = a stat-block label, not a headline. */
+  font-family: var(--sans); font-size: 22px; font-weight: 700;
+  letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--bone); margin: 6px 0 0;
 }
-.section-title .ital { font-style: italic; }
+/* was an editorial italic; broadcast wants a gold data-accent keyword */
+.section-title .ital { font-style: normal; color: var(--gold); }
 .section-sub {
   font-family: var(--sans); font-size: 12.5px; color: var(--gray-1);
   font-weight: 400; letter-spacing: 0;
@@ -339,8 +349,10 @@ body::before {
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--red);
 }
 .card-title {
-  font-family: var(--serif); font-size: 26px; font-weight: 400;
-  letter-spacing: -0.01em; color: var(--bone); margin: 6px 0 0;
+  /* Broadcast: uppercase sans, matches .section-title's stat-label voice. */
+  font-family: var(--sans); font-size: 19px; font-weight: 700;
+  letter-spacing: 0.01em; text-transform: uppercase;
+  color: var(--bone); margin: 6px 0 0;
 }
 .card-title .ital { font-style: italic; }
 
@@ -700,10 +712,10 @@ body::before {
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--red);
 }
 .sig-title {
-  font-family: var(--serif); font-size: 54px; line-height: 1;
-  letter-spacing: -0.02em; color: var(--bone); margin: 16px 0;
+  font-family: var(--sans); font-weight: 700; font-size: 48px; line-height: 1.02;
+  letter-spacing: -0.02em; text-transform: uppercase; color: var(--bone); margin: 16px 0;
 }
-.sig-title .ital { font-style: italic; color: var(--gold); }
+.sig-title .ital { font-style: normal; color: var(--gold); }
 .sig-body {
   font-family: var(--sans); font-size: 15px; line-height: 1.6;
   color: var(--bone-dim); max-width: 460px; margin: 12px 0 32px;
@@ -1105,10 +1117,10 @@ body::before {
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold);
 }
 .pricing-title {
-  font-family: var(--serif); font-size: 46px; font-weight: 400;
-  line-height: 1; letter-spacing: -0.02em; color: var(--bone); margin: 12px 0 14px;
+  font-family: var(--sans); font-size: 40px; font-weight: 700;
+  line-height: 1.02; letter-spacing: -0.02em; text-transform: uppercase; color: var(--bone); margin: 12px 0 14px;
 }
-.pricing-title .ital { font-style: italic; color: var(--gold); }
+.pricing-title .ital { font-style: normal; color: var(--gold); }
 .pricing-sub {
   font-family: var(--sans); font-size: 14px; line-height: 1.55; color: var(--bone-dim);
 }
@@ -1215,10 +1227,10 @@ body::before {
   margin-bottom: 6px;
 }
 .tier-name {
-  font-family: var(--serif); font-size: 28px; font-weight: 400;
-  line-height: 1; letter-spacing: -0.02em; color: var(--bone);
+  font-family: var(--sans); font-size: 22px; font-weight: 700;
+  line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; color: var(--bone);
 }
-.tier-name .ital { font-style: italic; }
+.tier-name .ital { font-style: normal; color: var(--gold); }
 .tier-seats {
   font-family: var(--mono); font-size: 9.5px;
   padding: 3px 9px; border-radius: 100px;
@@ -1543,8 +1555,11 @@ body::before {
   text-align: center;
 }
 .edge-num .v {
-  font-family: var(--serif); font-style: italic;
-  font-size: 96px; line-height: 1; color: var(--bone); letter-spacing: -0.04em;
+  /* Broadcast: the hero EDGE SCORE is the page's headline number — render it as
+     hard data (tabular mono), not an editorial serif. */
+  font-family: var(--mono); font-style: normal; font-weight: 500;
+  font-size: 88px; line-height: 1; color: var(--bone); letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 .edge-num .out {
   font-family: var(--mono); font-size: 11px;
@@ -1596,8 +1611,8 @@ body::before {
 }
 .tier-name {
   margin-top: 14px;
-  font-family: var(--serif); font-style: italic;
-  font-size: 56px; line-height: 0.95; letter-spacing: -0.025em;
+  font-family: var(--sans); font-style: normal; font-weight: 700;
+  font-size: 48px; line-height: 0.98; letter-spacing: -0.02em; text-transform: uppercase;
   color: var(--bone);
 }
 .tier-sub {
@@ -1727,8 +1742,8 @@ body::before {
   color: var(--bone-dim); letter-spacing: 0;
 }
 .match-name {
-  font-family: var(--serif); font-style: italic; font-weight: 400;
-  font-size: 82px; line-height: 0.92; letter-spacing: -0.03em;
+  font-family: var(--sans); font-style: normal; font-weight: 700;
+  font-size: 72px; line-height: 0.94; letter-spacing: -0.03em; text-transform: uppercase;
   color: var(--bone); margin: 6px 0 0;
 }
 .match-tagline {
@@ -2727,7 +2742,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2750,7 +2765,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2775,7 +2790,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2804,7 +2819,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2827,7 +2842,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2852,7 +2867,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
+          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>

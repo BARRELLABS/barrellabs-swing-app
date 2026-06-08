@@ -964,7 +964,7 @@ def _build_tier_card_html(plan_id: str, interval: str, *, featured: bool) -> str
             "Full personalized drill plan",
             "Swing video saved to your history",
             "Full Development Tracker (XP, streaks, achievements)",
-            "Rewards Roadmap (incl. animated Legend card at 180d)",
+            "Rewards Roadmap (incl. limited-edition hoodie at 180d)",
             "PDF report export",
             "Side-by-side swing comparisons",
             "Full MLB comp library",
