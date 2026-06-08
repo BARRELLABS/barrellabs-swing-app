@@ -1368,6 +1368,21 @@ def _facility_founder_code() -> str:
         return "BL-FOUNDER-2026"
 
 
+def _logo_to_data_uri(file_bytes):
+    """Resize an uploaded logo to a small PNG and return a data-URI so it can be
+    stored on the facility row + rendered in reports with no signed-URL expiry."""
+    try:
+        from PIL import Image
+        import io, base64
+        img = Image.open(io.BytesIO(file_bytes)).convert("RGBA")
+        img.thumbnail((240, 240))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        return None
+
+
 def _render_facility_section(profile: Dict[str, Any]) -> None:
     """Facility & coaching: join an academy via code (any player), or create a
     facility you coach (founder-code gated). Sponsored Pro + the coach Roster
@@ -1428,6 +1443,34 @@ def _render_facility_section(profile: Dict[str, Any]) -> None:
                 f'JOIN CODE: {html.escape(existing.get("join_code") or "")}</span>'
                 f'</div></div><div></div><div></div></div>',
                 unsafe_allow_html=True)
+
+            # Academy logo — co-brands every sponsored hitter's report.
+            cur_logo = existing.get("logo_url") or ""
+            if cur_logo:
+                st.markdown(
+                    f'<div style="margin:6px 0 2px;"><img src="{cur_logo}" '
+                    f'alt="logo" style="height:46px;width:auto;border-radius:8px;'
+                    f'background:rgba(255,255,255,0.04);padding:4px;"></div>',
+                    unsafe_allow_html=True)
+            _up = st.file_uploader(
+                "Academy logo — shown on every sponsored hitter's report",
+                type=["png", "jpg", "jpeg", "webp"], key="ps_fac_logo")
+            if _up is not None:
+                import hashlib
+                _h = hashlib.md5(_up.getvalue()).hexdigest()
+                if st.session_state.get("_fac_logo_h") != _h:
+                    st.session_state["_fac_logo_h"] = _h
+                    _uri = _logo_to_data_uri(_up.getvalue())
+                    if not _uri:
+                        st.error("Couldn't read that image — try a PNG or JPG.")
+                    else:
+                        _r = _fac.set_facility_logo(existing.get("id"), _uri)
+                        if _r.get("ok"):
+                            st.success("Logo saved — it now co-brands your hitters' reports.")
+                            st.rerun()
+                        else:
+                            st.error(_r.get("error") or "Could not save the logo.")
+
             if st.button("Open coach roster →", key="ps_fac_open_roster"):
                 st.session_state["page"] = "facility"
                 st.rerun()

@@ -176,3 +176,35 @@ def is_player_sponsored(player_id: str) -> bool:
         return False
     except Exception:
         return False
+
+
+def get_facility_for_player(player_id: str) -> Optional[dict]:
+    """Return the ACTIVE sponsoring facility (id, name, logo_url) for a player,
+    or None. Used to co-brand the player's report with their academy's logo.
+    None on error (safe — the report just stays BarrelLabs-only)."""
+    if not player_id or _get_client is None:
+        return None
+    try:
+        res = (_get_client().table("facility_members")
+               .select("facilities(id,name,logo_url,status)")
+               .eq("player_id", player_id).is_("left_at", "null").execute())
+        for r in _rows(res):
+            fac = r.get("facilities") or {}
+            if fac.get("status") == "active":
+                return fac
+        return None
+    except Exception:
+        return None
+
+
+def set_facility_logo(facility_id: str, logo_url: str) -> dict:
+    """Owner-only (RLS) update of a facility's logo. logo_url is a small PNG
+    data-URI so it renders in reports with no signed-URL expiry."""
+    if not facility_id or _get_client is None:
+        return {"ok": False, "error": "backend not configured"}
+    try:
+        _get_client().table("facilities").update(
+            {"logo_url": logo_url}).eq("id", facility_id).execute()
+        return {"ok": True}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}

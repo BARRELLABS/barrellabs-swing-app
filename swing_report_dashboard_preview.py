@@ -3183,6 +3183,37 @@ def render_swing_report_dashboard_preview(
     st.html(tail_html)
 
 
+def _facility_cobrand_html() -> str:
+    """Logo + name of the active player's sponsoring facility, or '' if none.
+    Co-brands the report so every athlete who shares it also markets their
+    academy (the Model-B viral hook). Inline styles so it survives st.html."""
+    try:
+        import streamlit as _st
+        import facility_storage as _fac
+        active = _st.session_state.get("player") or _st.session_state.get("user") or {}
+        pid = (active or {}).get("id")
+        if not pid:
+            return ""
+        facility = _fac.get_facility_for_player(pid)
+        if not facility:
+            return ""
+        name = html.escape(facility.get("name") or "")
+        logo = facility.get("logo_url") or ""
+        logo_html = (
+            f'<img src="{logo}" alt="{name}" style="height:30px;width:auto;'
+            f'border-radius:6px;background:rgba(255,255,255,0.05);padding:3px;">'
+            if logo else "")
+        return (
+            '<div style="display:flex;align-items:center;gap:10px;margin-top:12px;">'
+            + logo_html
+            + '<span style="font-family:\'Geist Mono\',ui-monospace,monospace;'
+              'font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;'
+              f'color:#C9A350;">In partnership with <strong style="color:#F4EFE6;">{name}</strong></span>'
+            + '</div>')
+    except Exception:
+        return ""
+
+
 def _build_header_production(record: Dict[str, Any]) -> str:
     """Same page header as `_build_header` but without the preview banner.
 
@@ -3196,6 +3227,7 @@ def _build_header_production(record: Dict[str, Any]) -> str:
   <div>
     <div class="srd-eyebrow">Premium Swing Report</div>
     <h1 class="srd-pagehead-title">{html.escape(swing)}</h1>
+    {_facility_cobrand_html()}
   </div>
   <div class="srd-pagehead-meta">
     Captured<strong>{html.escape(date)}</strong>
