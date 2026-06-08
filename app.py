@@ -960,18 +960,16 @@ st.markdown("""
 
 # ===== GLOBAL PAGE ROUTING =====
 # Placed AFTER the premium CSS injection so sub-pages inherit the theme.
-if st.session_state.get("page") == "development_tracker":
-    render_development_tracker()
-    st.stop()
-
-if st.session_state.get("page") == "historical_charts":
-    render_historical_charts()
-    st.stop()
-
-if st.session_state.get("page") == "drill_library":
-    render_drill_library()
-    st.stop()
-
+#
+# NOTE: development_tracker / historical_charts / drill_library used to be
+# dispatched HERE (before the auth gate). That rendered their Edge masthead at
+# a different element-tree position than the post-auth pages (dashboard,
+# sessions, compare), so navigating between an early page and a late one made
+# Streamlit tear down + rebuild the full-bleed masthead, leaving a stale
+# "ghost" nav bar that flashed on every Library/Progress/Training-Plan click.
+# They are now dispatched alongside the other nav pages (see "NAV PAGE ROUTING"
+# further down) so the masthead renders at a consistent position and Streamlit
+# reuses it in place. Keep pricing/legal here (they have no masthead).
 if st.session_state.get("page") == "pricing":
     render_pricing_page()
     st.stop()
@@ -2925,6 +2923,7 @@ _pages_with_own_hero = {
     "compare_swings",
     "development_tracker",
     "historical_charts",
+    "drill_library",
     "billing",
     "launch_progress",
     "player_settings",
@@ -3440,6 +3439,25 @@ if st.session_state.get("page") == "billing":
     from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
     _render_edge_masthead(user, active_page="billing")
     _render_billing_page()
+    st.stop()
+
+
+# ---------- NAV PAGE ROUTING (Training Plan / Progress / Library) ----------
+# Moved here from the pre-auth GLOBAL PAGE ROUTING block so their Edge masthead
+# renders at the SAME element-tree position as the other nav pages above
+# (dashboard / sessions / compare). That lets Streamlit reuse the single
+# full-bleed masthead in place instead of tearing it down and leaving a ghost
+# nav bar that flashed on navigation.
+if st.session_state.get("page") == "development_tracker":
+    render_development_tracker()
+    st.stop()
+
+if st.session_state.get("page") == "historical_charts":
+    render_historical_charts()
+    st.stop()
+
+if st.session_state.get("page") == "drill_library":
+    render_drill_library()
     st.stop()
 
 
