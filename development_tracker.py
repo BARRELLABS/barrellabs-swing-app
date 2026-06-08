@@ -6371,11 +6371,14 @@ def render_development_tracker():
         cat_drills = category.get("drills", [])
         # Push COMPLETED drills to the bottom of each category so the drills
         # you still need to do sit at the top (less scrolling). Stable sort
-        # keeps the original order within the pending / done groups.
+        # keeps the original order within the pending / done groups. NOTE: build
+        # the drill_id the SAME way drill_states keys were built (title default
+        # '' there, not 'Drills') so a title-less category still sorts correctly.
+        _sort_title = category.get("title", "")
         cat_drills = sorted(
             cat_drills,
             key=lambda d: 1 if drill_states.get(
-                f"{cat_title}::{d.get('name','')}", False) else 0,
+                f"{_sort_title}::{d.get('name','')}", False) else 0,
         )
         cat_why = category.get("why_it_matters") or ""
 

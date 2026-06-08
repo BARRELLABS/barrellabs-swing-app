@@ -1245,6 +1245,14 @@ if st.session_state.get("player"):
     if st.session_state.get("_active_player_id") != _active_pid:
         st.session_state["_active_player_id"] = _active_pid
         st.session_state.pop("player_settings_extras", None)
+        # Drop the cached plan + per-player facility-sponsorship so the newly
+        # active profile re-resolves its OWN entitlement (a sponsored kid must
+        # not leak Pro to a non-sponsored sibling on profile switch).
+        try:
+            from subscription_storage import invalidate_my_plan_cache
+            invalidate_my_plan_cache()
+        except Exception:
+            pass
 
 
 # ---------- STRIPE CHECKOUT RETURN HANDLER ----------
@@ -1371,8 +1379,8 @@ inject_global_theme()
 # no target.
 _ALLOWED_PAGES_FROM_URL = {
     "dashboard", "saved_reports", "swing_report", "compare_swings",
-    "development_tracker", "historical_charts", "billing",
-    "launch_progress", "pricing", "upload", "family",
+    "development_tracker", "historical_charts", "drill_library", "billing",
+    "launch_progress", "pricing", "upload", "family", "facility",
     "player_settings",  # Stripe billing-portal return URL routes here
 }
 try:
@@ -2925,6 +2933,7 @@ _pages_with_own_hero = {
     "historical_charts",
     "drill_library",
     "facility",
+    "family",
     "billing",
     "launch_progress",
     "player_settings",
@@ -3875,6 +3884,13 @@ if st.session_state.get("page") == "player_settings":
 
 # ---------- FAMILY DASHBOARD (Family Pro households only) ----------
 if st.session_state.get("page") == "family":
+    # Render the masthead ONCE at the top (consistent position, and so the
+    # upload/landing block can't ALSO render one -> previously a duplicate-key
+    # crash for a non-Family-Pro user reaching ?page=family).
+    from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
+    from bl_theme import inject_global_theme as _inject_theme
+    _inject_theme()
+    _render_edge_masthead(user, active_page="family")
     import family_storage as _fam_storage
     _fam_user_id = (
         (user or {}).get("user_id")
@@ -3886,10 +3902,7 @@ if st.session_state.get("page") == "family":
         or _fam_storage.load_family_for_user(_fam_user_id) is not None
     )
     if not _has_family:
-        from bl_edge_chrome import render_edge_masthead, render_edge_page_wrapper_open, render_edge_page_wrapper_close
-        from bl_theme import inject_global_theme
-        inject_global_theme()
-        render_edge_masthead(user, active_page="family")
+        from bl_edge_chrome import render_edge_page_wrapper_open, render_edge_page_wrapper_close
         render_edge_page_wrapper_open()
         st.error("The Family Dashboard is for Family Pro households.")
         if st.button("View pricing →", key="family_guard_pricing"):
