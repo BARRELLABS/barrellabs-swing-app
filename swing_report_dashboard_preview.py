@@ -3198,9 +3198,13 @@ def _facility_cobrand_html() -> str:
         if not facility:
             return ""
         name = html.escape(facility.get("name") or "")
+        # Only render a PNG data-URI logo, and escape it — defense in depth
+        # against a crafted logo_url reaching a sponsored kid's report (XSS).
         logo = facility.get("logo_url") or ""
+        if not logo.startswith("data:image/png;base64,"):
+            logo = ""
         logo_html = (
-            f'<img src="{logo}" alt="{name}" style="height:30px;width:auto;'
+            f'<img src="{html.escape(logo, quote=True)}" alt="{name}" style="height:30px;width:auto;'
             f'border-radius:6px;background:rgba(255,255,255,0.05);padding:3px;">'
             if logo else "")
         return (

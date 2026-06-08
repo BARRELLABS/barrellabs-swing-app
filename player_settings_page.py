@@ -1445,10 +1445,11 @@ def _render_facility_section(profile: Dict[str, Any]) -> None:
                 unsafe_allow_html=True)
 
             # Academy logo — co-brands every sponsored hitter's report.
+            # Only render a validated PNG data-URI, escaped (XSS guard).
             cur_logo = existing.get("logo_url") or ""
-            if cur_logo:
+            if cur_logo.startswith("data:image/png;base64,"):
                 st.markdown(
-                    f'<div style="margin:6px 0 2px;"><img src="{cur_logo}" '
+                    f'<div style="margin:6px 0 2px;"><img src="{html.escape(cur_logo, quote=True)}" '
                     f'alt="logo" style="height:46px;width:auto;border-radius:8px;'
                     f'background:rgba(255,255,255,0.04);padding:4px;"></div>',
                     unsafe_allow_html=True)

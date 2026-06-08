@@ -197,11 +197,32 @@ def get_facility_for_player(player_id: str) -> Optional[dict]:
         return None
 
 
+_LOGO_PREFIX = "data:image/png;base64,"
+
+
+def _is_valid_png_data_uri(s, max_bytes: int = 400_000) -> bool:
+    """Only a small PNG data-URI is an acceptable logo. This is the security
+    boundary: the value is rendered unescaped-adjacent into an <img src> in
+    sponsored kids' reports, and a facility owner has RLS update access to their
+    own row, so we must validate on write (not trust the uploader UI)."""
+    try:
+        if not isinstance(s, str) or not s.startswith(_LOGO_PREFIX):
+            return False
+        import base64
+        raw = base64.b64decode(s[len(_LOGO_PREFIX):], validate=True)
+        return len(raw) <= max_bytes and raw[:8] == b"\x89PNG\r\n\x1a\n"
+    except Exception:
+        return False
+
+
 def set_facility_logo(facility_id: str, logo_url: str) -> dict:
-    """Owner-only (RLS) update of a facility's logo. logo_url is a small PNG
-    data-URI so it renders in reports with no signed-URL expiry."""
+    """Owner-only (RLS) update of a facility's logo. logo_url MUST be a small PNG
+    data-URI (validated here) so it renders in reports with no signed-URL expiry
+    and can't carry an XSS payload into sponsored kids' reports."""
     if not facility_id or _get_client is None:
         return {"ok": False, "error": "backend not configured"}
+    if not _is_valid_png_data_uri(logo_url):
+        return {"ok": False, "error": "Logo must be a PNG image under 400 KB."}
     try:
         _get_client().table("facilities").update(
             {"logo_url": logo_url}).eq("id", facility_id).execute()
