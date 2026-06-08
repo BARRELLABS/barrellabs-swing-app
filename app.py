@@ -2924,6 +2924,7 @@ _pages_with_own_hero = {
     "development_tracker",
     "historical_charts",
     "drill_library",
+    "facility",
     "billing",
     "launch_progress",
     "player_settings",
@@ -3898,6 +3899,17 @@ if st.session_state.get("page") == "family":
         st.stop()
     import family_dashboard as _fam_dash
     _fam_dash.render_family_dashboard()
+    st.stop()
+
+
+# ---------- FACILITY / COACH ROSTER (facility owners only) ----------
+if st.session_state.get("page") == "facility":
+    from bl_edge_chrome import render_edge_masthead as _render_edge_masthead
+    from bl_theme import inject_global_theme as _inject_theme
+    _inject_theme()
+    _render_edge_masthead(user, active_page="facility")
+    import facility_dashboard as _fac_dash
+    _fac_dash.render_facility_dashboard()
     st.stop()
 
 

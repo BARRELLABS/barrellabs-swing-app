@@ -1357,6 +1357,102 @@ def _page_label_for(page_key: str) -> str:
 # ---------------------------------------------------------------------
 # THE RENDER FUNCTION
 # ---------------------------------------------------------------------
+def _facility_founder_code() -> str:
+    """Founder access code that gates facility creation. Set it in
+    st.secrets[facility][founder_code]; falls back to a default Logan shares
+    with founding facilities so creation isn't an open free-Pro loophole."""
+    try:
+        v = str(st.secrets.get("facility", {}).get("founder_code") or "").strip()
+        return v or "BL-FOUNDER-2026"
+    except Exception:
+        return "BL-FOUNDER-2026"
+
+
+def _render_facility_section(profile: Dict[str, Any]) -> None:
+    """Facility & coaching: join an academy via code (any player), or create a
+    facility you coach (founder-code gated). Sponsored Pro + the coach Roster
+    nav follow from these."""
+    import facility_storage as _fac
+
+    active = st.session_state.get("player") or profile or {}
+    player_id = (active or {}).get("id")
+    user_id = (profile or {}).get("user_id") or (profile or {}).get("id") or ""
+
+    _label = ('<div style="font-family:var(--ps-mono); font-size:9.5px; '
+              'letter-spacing:0.20em; text-transform:uppercase; '
+              'color:var(--ps-bone-60); padding:{pad};">{txt}</div>')
+
+    with st.container(key="ps_sec_facility"):
+        _sec_head("04c", "Facility", "Facility & coaching",
+                  "Join your academy with a code, or create a facility you coach.")
+
+        # ---- Join a facility (any player) ----
+        st.markdown(_label.format(pad="0.4rem 0 0.4rem", txt="Join a facility"),
+                    unsafe_allow_html=True)
+        jc1, jc2 = st.columns([3, 1])
+        with jc1:
+            code = st.text_input("Join code", key="ps_fac_join_code",
+                                 placeholder="e.g. 7F3A9C", label_visibility="collapsed")
+        with jc2:
+            join_clicked = st.button("Join", key="ps_fac_join_btn", use_container_width=True)
+        if join_clicked:
+            if not player_id:
+                st.error("No active player profile to link.")
+            else:
+                res = _fac.join_by_code(code, player_id)
+                if res.get("ok"):
+                    try:
+                        from subscription_storage import invalidate_my_plan_cache
+                        invalidate_my_plan_cache()
+                    except Exception:
+                        pass
+                    st.session_state.pop(f"_owns_facility_{user_id}", None)
+                    st.success("Joined. Your facility now sponsors your full BarrelLabs access.")
+                    st.rerun()
+                else:
+                    st.error(res.get("error") or "Could not join that facility.")
+
+        # ---- Create a facility (coaches; founder-code gated) ----
+        st.markdown(_label.format(pad="1.1rem 0 0.4rem", txt="Create a facility (coaches)"),
+                    unsafe_allow_html=True)
+        try:
+            existing = _fac.load_facility_for_owner(user_id) if user_id else None
+        except Exception:
+            existing = None
+        if existing:
+            st.markdown(
+                f'<div class="ps-plan-row"><div><div class="ps-plan-name">'
+                f'{html.escape(existing.get("name") or "Your facility")}'
+                f'<span style="font-family:var(--ps-mono);font-size:11px;letter-spacing:0.16em;'
+                f'color:var(--ps-gold);margin-left:10px;font-style:normal;">'
+                f'JOIN CODE: {html.escape(existing.get("join_code") or "")}</span>'
+                f'</div></div><div></div><div></div></div>',
+                unsafe_allow_html=True)
+            if st.button("Open coach roster →", key="ps_fac_open_roster"):
+                st.session_state["page"] = "facility"
+                st.rerun()
+        else:
+            fname = st.text_input("Facility name", key="ps_fac_name",
+                                  placeholder="e.g. Hitz Academy")
+            fcode = st.text_input("Founder access code", key="ps_fac_founder",
+                                  placeholder="from BarrelLabs", type="password")
+            if st.button("Create facility", key="ps_fac_create_btn"):
+                if not (fname or "").strip():
+                    st.error("Enter a facility name.")
+                elif (fcode or "").strip() != _facility_founder_code():
+                    st.error("That founder access code isn't valid.")
+                else:
+                    res = _fac.create_facility(fname.strip())
+                    if res.get("ok"):
+                        st.session_state.pop(f"_owns_facility_{user_id}", None)
+                        fac = res.get("facility") or {}
+                        st.success("Facility created. Share this join code with your "
+                                   f"hitters: {fac.get('join_code','')}")
+                        st.rerun()
+                    else:
+                        st.error(res.get("error") or "Could not create the facility.")
+
+
 def render_player_settings_page(
     user: Dict[str, Any],
     build_pdf_fn: Optional[Callable[[Dict[str, Any]], bytes]] = None,
@@ -1747,6 +1843,9 @@ def render_player_settings_page(
 
         # ============== SECTION 04b — HOUSEHOLD ==============
         _render_household_section(user)
+
+        # ============== SECTION 04c — FACILITY / COACHING ==============
+        _render_facility_section(user)
 
         # ============== SECTION 05 — PRIVACY & DATA ==============
         with st.container(key="ps_sec_priv"):

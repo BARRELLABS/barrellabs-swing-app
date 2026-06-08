@@ -113,6 +113,9 @@ _NAV_ENTRIES: List[Tuple[str, str, Tuple[str, ...]]] = [
 # so it only appears for Family Pro households. We keep a sentinel here
 # for callers that introspect _NAV_ENTRIES to resolve active pages.
 _FAMILY_NAV_ENTRY: Tuple[str, str, Tuple[str, ...]] = ("Family", "family", ())
+# Coach roster — shown only to users who OWN a facility (built per-user in
+# render_edge_masthead, same pattern as the Family entry).
+_FACILITY_NAV_ENTRY: Tuple[str, str, Tuple[str, ...]] = ("Roster", "facility", ())
 
 
 _EDGE_MASTHEAD_CSS = """
@@ -701,7 +704,7 @@ def _streak_value(user: Dict[str, Any]) -> Optional[int]:
 
 def _resolve_active(active_page: str) -> str:
     """Map sub-pages (e.g., swing_report) to their parent nav entry."""
-    all_entries = list(_NAV_ENTRIES) + [_FAMILY_NAV_ENTRY]
+    all_entries = list(_NAV_ENTRIES) + [_FAMILY_NAV_ENTRY, _FACILITY_NAV_ENTRY]
     for label, key, alts in all_entries:
         if active_page == key or active_page in alts:
             return key
@@ -717,6 +720,25 @@ def _show_family_nav(user: Optional[Dict[str, Any]]) -> bool:
             family_storage.is_family_pro_member(uid)
             or family_storage.load_family_for_user(uid) is not None
         )
+    except Exception:
+        return False
+
+
+def _show_facility_nav(user: Optional[Dict[str, Any]]) -> bool:
+    """Return True if the Roster nav item should appear — i.e. this user owns a
+    facility. Cached per-render run to avoid a DB hit on every masthead paint."""
+    try:
+        uid = (user or {}).get("user_id") or (user or {}).get("id") or ""
+        if not uid:
+            return False
+        import streamlit as _st
+        ck = f"_owns_facility_{uid}"
+        if ck in _st.session_state:
+            return bool(_st.session_state[ck])
+        import facility_storage
+        val = bool(facility_storage.load_facility_for_owner(uid))
+        _st.session_state[ck] = val
+        return val
     except Exception:
         return False
 
@@ -797,11 +819,14 @@ def render_edge_masthead(
         # Family appears after Sessions (index 1) so it reads as a
         # sibling to the individual player's session view.
         _show_fam = _show_family_nav(user)
+        _show_fac = _show_facility_nav(user)
         _nav_to_render = []
         for _entry in _NAV_ENTRIES:
             _nav_to_render.append(_entry)
             if _entry[1] == "saved_reports" and _show_fam:
                 _nav_to_render.append(_FAMILY_NAV_ENTRY)
+        if _show_fac:
+            _nav_to_render.append(_FACILITY_NAV_ENTRY)
 
         # Primary action — "Analyze new swing". This is the single entry
         # point into the upload flow now that the left sidebar (which
