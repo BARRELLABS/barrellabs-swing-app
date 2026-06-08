@@ -18,7 +18,12 @@ CREATE TABLE IF NOT EXISTS public.facilities (
   plan_tier      text NOT NULL DEFAULT 'academy',   -- team|academy|academy_plus|facility|facility_pro
   roster_ceiling integer NOT NULL DEFAULT 100,
   billing_mode   text NOT NULL DEFAULT 'license',   -- license | revshare
-  status         text NOT NULL DEFAULT 'active',    -- active|trialing|past_due|canceled
+  status         text NOT NULL DEFAULT 'pending',   -- pending|active|trialing|past_due|canceled
+  -- SECURITY: a facility sponsors Pro for its members ONLY when status='active'
+  -- (see is_player_sponsored). New facilities are born 'pending' so that
+  -- create_facility -> self-join can NOT mint free Pro. A facility is activated
+  -- out of band: BarrelLabs flips it to 'active' after the founder deal / billing
+  -- (manual for v1: UPDATE public.facilities SET status='active' WHERE id=...).
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS facilities_owner_idx ON public.facilities(owner_user_id);
@@ -83,8 +88,10 @@ BEGIN
     v_code := upper(substr(md5(gen_random_uuid()::text), 1, 6));
     EXIT WHEN NOT EXISTS (SELECT 1 FROM public.facilities WHERE join_code = v_code);
   END LOOP;
-  INSERT INTO public.facilities (owner_user_id, name, join_code, plan_tier, roster_ceiling, billing_mode)
-  VALUES (v_uid, trim(p_name), v_code, p_tier, p_ceiling, p_billing_mode)
+  -- status forced to 'pending' here: creating a facility must NOT grant Pro to
+  -- anyone (no self-comp loophole). BarrelLabs activates it out of band.
+  INSERT INTO public.facilities (owner_user_id, name, join_code, plan_tier, roster_ceiling, billing_mode, status)
+  VALUES (v_uid, trim(p_name), v_code, p_tier, p_ceiling, p_billing_mode, 'pending')
   RETURNING * INTO result;
   RETURN result;
 END;
@@ -104,11 +111,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.players WHERE id = p_player_id AND user_id = v_uid) THEN
     RAISE EXCEPTION 'join_facility: player not owned by caller';
   END IF;
-  SELECT * INTO v_fac FROM public.facilities WHERE join_code = upper(trim(p_code));
+  -- Lock the parent facility row so concurrent joins serialize on the cap check.
+  -- (Locking member rows is a no-op on an empty/low roster, letting two racers
+  -- both pass the ceiling; locking the facility row serializes regardless.)
+  SELECT * INTO v_fac FROM public.facilities WHERE join_code = upper(trim(p_code)) FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'join_facility: invalid code'; END IF;
-  -- Lock the facility's member rows so two concurrent joins can't both pass the cap.
-  PERFORM 1 FROM public.facility_members
-   WHERE facility_id = v_fac.id AND left_at IS NULL FOR UPDATE;
   SELECT count(*) INTO v_active FROM public.facility_members
    WHERE facility_id = v_fac.id AND left_at IS NULL;
   IF v_active >= v_fac.roster_ceiling THEN

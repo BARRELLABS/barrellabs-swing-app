@@ -1357,15 +1357,18 @@ def _page_label_for(page_key: str) -> str:
 # ---------------------------------------------------------------------
 # THE RENDER FUNCTION
 # ---------------------------------------------------------------------
-def _facility_founder_code() -> str:
-    """Founder access code that gates facility creation. Set it in
-    st.secrets[facility][founder_code]; falls back to a default Logan shares
-    with founding facilities so creation isn't an open free-Pro loophole."""
+def _facility_founder_code():
+    """Founder access code that gates facility creation in the UI. Read ONLY from
+    st.secrets[facility][founder_code]. Returns None when unset → creation is
+    disabled (fail closed). No hardcoded fallback: a committed default would be a
+    guessable secret in the shipped bundle. NOTE: this is a UX gate only — the
+    real security boundary is server-side (a created facility is `pending` and
+    sponsors nobody until it is activated). See the facility migration."""
     try:
         v = str(st.secrets.get("facility", {}).get("founder_code") or "").strip()
-        return v or "BL-FOUNDER-2026"
+        return v or None
     except Exception:
-        return "BL-FOUNDER-2026"
+        return None
 
 
 def _logo_to_data_uri(file_bytes):
@@ -1481,9 +1484,12 @@ def _render_facility_section(profile: Dict[str, Any]) -> None:
             fcode = st.text_input("Founder access code", key="ps_fac_founder",
                                   placeholder="from BarrelLabs", type="password")
             if st.button("Create facility", key="ps_fac_create_btn"):
+                _valid_code = _facility_founder_code()
                 if not (fname or "").strip():
                     st.error("Enter a facility name.")
-                elif (fcode or "").strip() != _facility_founder_code():
+                elif not _valid_code:
+                    st.error("Facility creation isn't enabled yet. Reach out to BarrelLabs.")
+                elif (fcode or "").strip() != _valid_code:
                     st.error("That founder access code isn't valid.")
                 else:
                     res = _fac.create_facility(fname.strip())

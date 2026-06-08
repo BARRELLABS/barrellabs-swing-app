@@ -155,6 +155,13 @@ def leave(member_id: str) -> dict:
         return {"ok": False, "error": "backend not configured"}
     try:
         _get_client().rpc("leave_facility", {"p_member_id": member_id}).execute()
+        # Sponsorship just ended — drop the cached plan + per-player sponsorship
+        # so the player actually loses Pro this session (not next reload).
+        try:
+            import subscription_storage
+            subscription_storage.invalidate_my_plan_cache()
+        except Exception:
+            pass
         return {"ok": True}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
