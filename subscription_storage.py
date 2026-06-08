@@ -112,21 +112,26 @@ def load_my_plan(force_refresh: bool = False) -> Optional[dict]:
     if not force_refresh:
         cached = st.session_state.get(_CACHE_KEY, _SENTINEL)
         if cached is not _SENTINEL:
-            return cached
+            return _apply_sponsorship(cached)
 
     snap = _query_my_plan()
     try:
         st.session_state[_CACHE_KEY] = snap
     except Exception:
         pass
-    return snap
+    return _apply_sponsorship(snap)
 
 
 def invalidate_my_plan_cache() -> None:
-    """Drop the cached snapshot so the next load_my_plan() re-reads."""
+    """Drop the cached snapshot so the next load_my_plan() re-reads. Also drops
+    the per-player facility-sponsorship cache so joining/leaving a facility
+    re-resolves immediately."""
     try:
         if _CACHE_KEY in st.session_state:
             del st.session_state[_CACHE_KEY]
+        for _k in [k for k in list(st.session_state.keys())
+                   if str(k).startswith("_sponsored_")]:
+            del st.session_state[_k]
     except Exception:
         pass
 
@@ -136,6 +141,64 @@ def invalidate_my_plan_cache() -> None:
 class _Sentinel:
     pass
 _SENTINEL = _Sentinel()
+
+
+# --------------------------------------------------------------------
+#  Facility sponsorship overlay (Model B)
+# --------------------------------------------------------------------
+# A facility sponsors full Pro for every active rostered player. Sponsorship is
+# per ACTIVE PLAYER (a family account may have one sponsored kid and one not),
+# while the base plan snapshot is per ACCOUNT — so we resolve sponsorship on top
+# of the (cached) account snapshot on every read, keyed to whoever is the active
+# profile. The sponsorship boolean itself is cached per-player to avoid a DB hit
+# on every can_X() check; invalidate_my_plan_cache() clears it (called after
+# join/leave and on profile switch).
+def _active_player_id():
+    try:
+        p = st.session_state.get("player") or st.session_state.get("user") or {}
+        return p.get("id")
+    except Exception:
+        return None
+
+
+def _is_active_player_sponsored() -> bool:
+    pid = _active_player_id()
+    if not pid:
+        return False
+    ck = f"_sponsored_{pid}"
+    cached = st.session_state.get(ck, _SENTINEL)
+    if cached is not _SENTINEL:
+        return bool(cached)
+    val = False
+    try:
+        import facility_storage
+        val = bool(facility_storage.is_player_sponsored(pid))
+    except Exception:
+        val = False
+    try:
+        st.session_state[ck] = val
+    except Exception:
+        pass
+    return val
+
+
+def _apply_sponsorship(snap):
+    """Layer the active player's facility sponsorship onto the account plan
+    snapshot. Best-of own sub vs sponsored Pro (never downgrades a payer). Returns
+    the snapshot unchanged when the player isn't sponsored."""
+    try:
+        if not _is_active_player_sponsored():
+            return snap
+        from entitlements import resolve_effective_plan
+        eff = resolve_effective_plan(snap, sponsored=True)
+        base = dict(snap or {})
+        if base.get("plan_id") != eff:
+            base["plan_id"] = eff
+            base.setdefault("status", "active")
+            base["sponsored"] = True
+        return base
+    except Exception:
+        return snap
 
 
 # --------------------------------------------------------------------
