@@ -571,7 +571,7 @@ _FEATURES_BASE = [
     "PDF report export",
     "Full Development Tracker (XP, streaks, achievements)",
     "Full MLB comp library",
-    "Rewards Roadmap — incl. limited-edition hoodie at 180 days",
+    "Rewards Roadmap — incl. animated Legend card at 180 days",
 ]
 
 _FEATURES_FAMILY_EXTRAS = [

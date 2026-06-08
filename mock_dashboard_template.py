@@ -2727,7 +2727,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2750,7 +2750,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2775,7 +2775,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2804,7 +2804,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2827,7 +2827,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>
@@ -2852,7 +2852,7 @@ body::before {
           <li>Full personalized drill plan</li>
           <li>Swing video saved to your history</li>
           <li>Full Development Tracker (XP, streaks, achievements)</li>
-          <li>Rewards Roadmap (incl. limited-edition hoodie at 180d)</li>
+          <li>Rewards Roadmap (incl. animated Legend card at 180d)</li>
           <li>PDF report export</li>
           <li>Side-by-side swing comparisons</li>
           <li>Full MLB comp library</li>

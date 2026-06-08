@@ -63,7 +63,14 @@ _DASHBOARD_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
 
-.srd-wrap {
+/* Design tokens live on :root, NOT on .srd-wrap. The live report is emitted as
+   3 separate st.html() calls (top sections, interactive Compare, Next Session);
+   a <div class="srd-wrap"> opened in the first chunk can't span the others
+   (Streamlit closes it at each chunk boundary). When these vars lived on
+   .srd-wrap, the Compare + Next Session chunks rendered OUTSIDE it and every
+   var(--srd-*) failed -> those sections lost all color/font and looked broken.
+   On :root they cascade to every chunk. */
+:root {
   --srd-bg:        #0A0B0E;
   --srd-bg-2:      #0F1115;
   --srd-bone:      #F4EFE6;
@@ -88,7 +95,8 @@ _DASHBOARD_CSS = """
   --srd-serif: 'Instrument Serif', 'Fraunces', Georgia, serif;
   --srd-sans:  'Geist', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
   --srd-mono:  'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-
+}
+.srd-wrap {
   background: var(--srd-bg);
   color: var(--srd-bone);
   font-family: var(--srd-sans);
@@ -98,6 +106,19 @@ _DASHBOARD_CSS = """
   max-width: 1560px;
   margin: 0 auto;
   padding: 1.8rem 40px 4rem;
+  font-feature-settings: "ss01", "ss02", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+/* Continuation frame for the live split-off chunks (Compare, Next Session):
+   same width + side gutter as .srd-wrap so they align with the top, but no
+   doubled vertical padding and no opaque background (avoids a seam). The page
+   behind the report is already the dark Edge theme. */
+.srd-frame {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 0 40px;
+  color: var(--srd-bone);
+  font-family: var(--srd-sans);
   font-feature-settings: "ss01", "ss02", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -3066,7 +3087,11 @@ def _render_compare_streamlit(record: Dict[str, Any],
 
     priors = _priors_of(record, history)
     if not priors:
-        st.html(_compare_section_html(record, history))  # st.html avoids leaks
+        # .srd-frame: this is a separate st.html chunk (outside the top
+        # .srd-wrap), so it needs the frame to align width + resolve tokens.
+        st.html('<div class="srd-frame">'
+                + _compare_section_html(record, history)
+                + '</div>')  # st.html avoids leaks
         return
 
     # Header (eyebrow + title) — same as static path
@@ -3079,7 +3104,9 @@ def _render_compare_streamlit(record: Dict[str, Any],
   <div class="srd-section-sub">{len(priors)} prior {'swings' if len(priors) != 1 else 'swing'} on file</div>
 </div>
 """
-    st.html(header_html)  # st.html (not markdown) — avoids blank-line HTML leaks
+    # .srd-frame wraps this split-off chunk so it aligns to the report width
+    # and the :root design tokens resolve (it renders outside the top .srd-wrap).
+    st.html('<div class="srd-frame">' + header_html + '</div>')
 
     # Selector — built from chronologically-newest-first priors.
     labels = [_opt_label(p, i) for i, p in enumerate(priors)]
@@ -3117,7 +3144,8 @@ def _render_compare_streamlit(record: Dict[str, Any],
   <div class="srd-cmp-footnote">Only metrics that exist in both swings are shown.</div>
 </div>
 """
-    st.html(body)  # st.html (not markdown) — the blank line above would leak raw HTML
+    # .srd-frame: split-off chunk → align width + resolve :root tokens.
+    st.html('<div class="srd-frame">' + body + '</div>')
 
 
 def render_swing_report_dashboard_preview(
@@ -3166,6 +3194,10 @@ def render_swing_report_dashboard_preview(
         + _build_breakdown(record)
         # Progress
         + _build_progress(record, history)
+        # Close .srd-wrap WITHIN this chunk. The Compare + Next Session chunks
+        # below are separate st.html() calls and get their own .srd-frame; a
+        # wrapper left open here would not reach them (see :root token note).
+        + '</div>'
     )
     # Use st.html (NOT st.markdown) for the big assembled report HTML. The
     # report body contains blank lines between sections, which break Streamlit's
@@ -3178,8 +3210,9 @@ def render_swing_report_dashboard_preview(
     # Live Compare section (selectbox + cards)
     _render_compare_streamlit(record, history)
 
-    # Footer — Next Session + closing wrapper
-    tail_html = _build_next_session(record) + '</div>'
+    # Footer — Next Session. Its own .srd-frame (the top chunk already closed
+    # .srd-wrap) so it aligns to the same width and the :root tokens resolve.
+    tail_html = '<div class="srd-frame">' + _build_next_session(record) + '</div>'
     st.html(tail_html)
 
 

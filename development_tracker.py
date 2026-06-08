@@ -6081,7 +6081,7 @@ def _render_rewards(state: dict, persisted: dict) -> None:
         classes = ["dt-reward", f"is-tier-{tier}"]
         if unlocked:
             classes.append("is-unlocked")
-        if rid == "r_hoodie":
+        if rid == "r_legend_card":
             classes.append("is-hoodie")
         elif rid == "r_hall_of_fame":
             classes.append("is-hof")

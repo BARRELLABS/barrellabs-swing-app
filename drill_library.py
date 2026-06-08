@@ -345,6 +345,56 @@ def _log_drill_done(player_id, cat_title: str, drill: dict) -> None:
         pass
 
 
+def _render_drill_card(d: dict, cat_title: str, card_key: str, log, player_id) -> None:
+    """One drill rendered as a card (the 'I did this' button lives INSIDE it).
+    Shared by the per-category grid and the pinned 'Your Kit' shelf so the
+    finicky overlap-fix markup lives in exactly one place. `card_key` must be
+    unique on the page (it keys the container + the done button); the done
+    STATE keys off drill_id (cat::name) so the same drill shown in two places
+    stays in sync."""
+    with st.container(key=f"dlcard_{card_key}"):
+        need = [a for a in d.get("equipment", []) if a != "none"]
+        if need:
+            tags = "".join(
+                f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
+                for a in need
+            )
+        else:
+            tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
+        st.markdown(
+            '<div class="dl-card-top">'
+            f'<div class="dl-card-name">{_esc(d["name"])}</div>'
+            f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
+            '</div>'
+            f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
+            f'<div class="dl-tags">{tags}</div>'
+            # Trailing spacer: Streamlit renders this markdown element's box
+            # ~16px shorter than its content, so the last row (the equipment
+            # tag) was spilling onto the "I did this" button below. The spacer
+            # absorbs that shortfall and leaves a clean gap.
+            '<div class="dl-cardpad"></div>',
+            unsafe_allow_html=True,
+        )
+        drill_id = f'{cat_title}::{d["name"]}'
+        done = (
+            st.session_state.get(f"_dl_doneflag_{drill_id}")
+            or _logged_today(log, drill_id)
+        )
+        if done:
+            st.markdown(
+                '<div class="dl-done">✓ Logged today</div>',
+                unsafe_allow_html=True,
+            )
+        elif st.button("✓ I did this", key=f"dldone_{card_key}"):
+            _log_drill_done(player_id, cat_title, d)
+            st.session_state[f"_dl_doneflag_{drill_id}"] = True
+            try:
+                st.toast(f"+10 XP · {d['name']} logged", icon="⚡")
+            except Exception:
+                pass
+            st.rerun()
+
+
 def render_drill_library():
     inject_global_theme()
     render_edge_masthead(
@@ -417,6 +467,40 @@ def render_drill_library():
             unsafe_allow_html=True,
         )
 
+    # ---- Your Kit shelf ----
+    # The per-category grids float gear drills to the top of EACH category, but
+    # that scatters your aid drills down the page (you have to scroll past 8
+    # category headers to find them all). This pinned shelf collects every drill
+    # that actually uses the gear you own into one spot up top, so adding a
+    # training aid immediately surfaces "here's what you can now do" without
+    # scrolling. Only shown when you've selected at least one aid.
+    if have:
+        kit = [
+            (cat["title"], d)
+            for cat in DRILL_DB.values()
+            for d in cat["drills"]
+            if [a for a in d.get("equipment", []) if a != "none"]
+            and _drill_available(d, have)
+        ]
+        if kit:
+            st.markdown(
+                '<div class="dl-cat dl-cat--kit">'
+                '<div class="dl-cat-head"><div>'
+                '<h2 class="dl-cat-title">Your Kit</h2>'
+                '<div class="dl-cat-goal">Drills unlocked by the gear you own — '
+                'start here.</div>'
+                '</div>'
+                f'<div class="dl-cat-n">{len(kit)} drill{"s" if len(kit)!=1 else ""}</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            for row in range(0, len(kit), 2):
+                cols = st.columns(2, gap="small")
+                for ci, (cat_title, d) in enumerate(kit[row:row + 2]):
+                    with cols[ci]:
+                        _render_drill_card(d, cat_title, f"kit_{row + ci}", log, player_id)
+            st.markdown('</div>', unsafe_allow_html=True)  # .dl-cat--kit
+
     # ---- Categories ----
     for cat_key, cat in DRILL_DB.items():
         avail = [d for d in cat["drills"] if _drill_available(d, have)]
@@ -444,48 +528,7 @@ def render_drill_library():
             cols = st.columns(2, gap="small")
             for ci, d in enumerate(avail[row:row + 2]):
                 with cols[ci]:
-                    with st.container(key=f"dlcard_{cat_key}_{row + ci}"):
-                        need = [a for a in d.get("equipment", []) if a != "none"]
-                        if need:
-                            tags = "".join(
-                                f'<span class="dl-tag">{_esc(EQUIPMENT.get(a, a))}</span>'
-                                for a in need
-                            )
-                        else:
-                            tags = '<span class="dl-tag dl-tag--bat">Just a bat</span>'
-                        st.markdown(
-                            '<div class="dl-card-top">'
-                            f'<div class="dl-card-name">{_esc(d["name"])}</div>'
-                            f'<div class="dl-reps">{_esc(d.get("reps",""))}</div>'
-                            '</div>'
-                            f'<div class="dl-how">{_esc(d.get("how",""))}</div>'
-                            f'<div class="dl-tags">{tags}</div>'
-                            # Trailing spacer: Streamlit renders this markdown
-                            # element's box ~16px shorter than its content, so
-                            # the last row (the equipment tag) was spilling onto
-                            # the "I did this" button below. The spacer absorbs
-                            # that shortfall and leaves a clean gap.
-                            '<div class="dl-cardpad"></div>',
-                            unsafe_allow_html=True,
-                        )
-                        drill_id = f'{cat["title"]}::{d["name"]}'
-                        done = (
-                            st.session_state.get(f"_dl_doneflag_{drill_id}")
-                            or _logged_today(log, drill_id)
-                        )
-                        if done:
-                            st.markdown(
-                                '<div class="dl-done">✓ Logged today</div>',
-                                unsafe_allow_html=True,
-                            )
-                        elif st.button("✓ I did this", key=f"dldone_{cat_key}_{row + ci}"):
-                            _log_drill_done(player_id, cat["title"], d)
-                            st.session_state[f"_dl_doneflag_{drill_id}"] = True
-                            try:
-                                st.toast(f"+10 XP · {d['name']} logged", icon="⚡")
-                            except Exception:
-                                pass
-                            st.rerun()
+                    _render_drill_card(d, cat["title"], f"{cat_key}_{row + ci}", log, player_id)
         st.markdown('</div>', unsafe_allow_html=True)  # .dl-cat
 
     st.markdown('</div>', unsafe_allow_html=True)  # .dl-page
