@@ -11,6 +11,16 @@ The on-screen report already co-branded sponsored kids; now the **PDF** does too
 visually by rendering a generated PDF (looks correct, matches the HTML report).
 Same PNG-data-URI guard as the HTML path; non-sponsored PDFs unchanged.
 
+### 1b. Found + fixed a real roster bug via visual QA (HTML leak)
+Rendered a populated coach roster (the core coach screen — never visually checked
+before) and caught every card's "ASK" tip + "soft nudge" box leaking as raw
+`<div class="fd-...">` text. Cause: those sub-blocks were indented multi-line
+f-strings, which Streamlit's markdown turns into literal code blocks. Latent in
+the FAMILY dashboard too. Fixed: render the card via `st.html` + flush-left the
+sub-blocks. Verified clean on desktop AND mobile. (Scanned for other instances
+of the same pattern — the directly-rendered HTML blocks elsewhere are fine; this
+card was the one real leak.)
+
 ### 2. Audited the whole facility + nav surface with two agents, fixed what's real
 Two static-review agents went deep on (a) facility-mode correctness/security and
 (b) the masthead/nav routing reorg. Findings + what I did:
