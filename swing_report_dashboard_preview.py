@@ -3175,11 +3175,20 @@ def render_swing_report_dashboard_preview(
     """
     import streamlit as st  # local — stubbed by the static renderer
 
+    # Inject the report stylesheet via st.markdown, NOT inside st.html below.
+    # st.html() SANITIZES its payload and STRIPS <style> blocks, so when
+    # _DASHBOARD_CSS was prepended to the st.html() chunk the ENTIRE report
+    # rendered unstyled (plain text). A <style> block survives
+    # st.markdown(unsafe_allow_html=True) because CommonMark treats <style> as a
+    # raw HTML block that runs to </style> (blank lines and all), so it is not
+    # markdown-processed and not stripped. (The static HTML preview never caught
+    # this because a plain .html file honors <style> regardless.)
+    st.markdown(_DASHBOARD_CSS, unsafe_allow_html=True)
+
     # Top sections — new two-system order + Progress
     power_html = _render_power_sequence(record)
     top_html = (
-        _DASHBOARD_CSS
-        + '<div class="srd-wrap">'
+        '<div class="srd-wrap">'
         + (_build_header(record, is_sample) if is_preview else _build_header_production(record))
         # Two-system layout: Match → reconcile → Score
         + _build_match_reveal(record)
