@@ -75,6 +75,39 @@ PLAN_CAPS[COACH_PLAN_ID]  = dict(PLAN_CAPS[SOLO_PLAN_ID])
 
 
 # --------------------------------------------------------------------
+#  FACILITY / ACADEMY TIERS — roster-size brackets (spec §6)
+# --------------------------------------------------------------------
+# A facility SPONSORS full Pro for every active rostered player. The tier
+# only sets the roster ceiling (and price, in plan_pricing.py); the caps a
+# sponsored player gets are SOLO's (full Pro). `coach_pro` is kept as a
+# deprecated alias mapping onto the `academy` tier so old references resolve.
+FACILITY_TIERS = {
+    "team":          {"roster_ceiling": 25},
+    "academy":       {"roster_ceiling": 100},
+    "academy_plus":  {"roster_ceiling": 250},
+    "facility":      {"roster_ceiling": 500},
+    "facility_pro":  {"roster_ceiling": 1000},
+}
+# Deprecated 20-seat coach_pro → smallest facility bracket that covers it.
+FACILITY_TIER_ALIASES = {"coach_pro": "academy"}
+
+
+def facility_tier_for_roster(n_players: int) -> str:
+    """Smallest facility tier whose ceiling covers n_players. Above 1000 we
+    return 'facility_pro' (the checkout routes 1000+ to a custom quote)."""
+    for tier in ("team", "academy", "academy_plus", "facility", "facility_pro"):
+        if n_players <= FACILITY_TIERS[tier]["roster_ceiling"]:
+            return tier
+    return "facility_pro"
+
+
+def facility_roster_ceiling(tier: str) -> int:
+    """Roster ceiling for a facility tier (accepts the coach_pro alias)."""
+    tier = FACILITY_TIER_ALIASES.get(tier, tier)
+    return FACILITY_TIERS.get(tier, FACILITY_TIERS["academy"])["roster_ceiling"]
+
+
+# --------------------------------------------------------------------
 #  Result type
 # --------------------------------------------------------------------
 @dataclass
@@ -123,6 +156,24 @@ def _resolve_plan_id(plan_snapshot: Optional[dict]) -> str:
 def caps_for(plan_id: str) -> dict:
     """Return the capability dict for a plan id (defaults to FREE)."""
     return PLAN_CAPS.get(plan_id) or PLAN_CAPS[FREE_PLAN_ID]
+
+
+def resolve_effective_plan(
+    plan_snapshot: Optional[dict], *, sponsored: bool = False
+) -> str:
+    """Best-of the player's own plan and any facility sponsorship.
+
+    A facility sponsors full Pro for every active rostered player. So a
+    sponsored player on a Free plan resolves to SOLO (full Pro caps). A
+    player who already has a real paid sub keeps it — losing sponsorship
+    must NEVER downgrade a paying customer (portability, spec §6). Every
+    existing can_X() gate keeps working unchanged: it just receives the
+    resolved plan_id.
+    """
+    own = _resolve_plan_id(plan_snapshot)
+    if sponsored and own == FREE_PLAN_ID:
+        return SOLO_PLAN_ID
+    return own
 
 
 def is_pro(plan_snapshot: Optional[dict]) -> bool:
@@ -249,4 +300,7 @@ __all__ = [
     "can_access_development_tracker", "can_export_pdf",
     "can_compare_swings", "can_access_rewards",
     "plan_display_name", "plan_seat_count",
+    "resolve_effective_plan",
+    "FACILITY_TIERS", "FACILITY_TIER_ALIASES",
+    "facility_tier_for_roster", "facility_roster_ceiling",
 ]
