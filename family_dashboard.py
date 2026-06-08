@@ -766,24 +766,26 @@ def _render_member_card(summary: dict, is_self: bool = False) -> None:
     you_tag = '<span class="fd-you-tag">YOU</span>' if is_self else ''
     date_display = latest_date[:10] if latest_date else "—"
 
+    # NOTE: keep these flush-left, single logical string (no leading whitespace,
+    # no embedded newlines). They get interpolated into the card markdown below;
+    # any line indented >=4 spaces would be rendered as a literal code block by
+    # Streamlit's markdown (the cause of the "<div class=...>" leak on cards).
     if is_stale:
         topfix_html = ""
-        nudge_html = f"""
-        <div class="fd-nudge">
-          <div class="fd-nudge-text">
-            <strong>Send {name} a soft nudge?</strong>
-            We'll push a friendly reminder — no spam.
-          </div>
-        </div>
-        """
+        nudge_html = (
+            '<div class="fd-nudge"><div class="fd-nudge-text">'
+            f'<strong>Send {name} a soft nudge?</strong> '
+            "We'll push a friendly reminder, no spam."
+            '</div></div>'
+        )
     else:
         eyebrow = "YOUR FIX" if is_self else "ASK"
-        topfix_html = f"""
-        <div class="fd-topfix">
-          <div class="fd-topfix-eyebrow">{eyebrow}</div>
-          <div class="fd-topfix-text">{_html.escape(verdict_line)}</div>
-        </div>
-        """
+        topfix_html = (
+            '<div class="fd-topfix">'
+            f'<div class="fd-topfix-eyebrow">{eyebrow}</div>'
+            f'<div class="fd-topfix-text">{_html.escape(verdict_line)}</div>'
+            '</div>'
+        )
         nudge_html = ""
 
     score_html = (f'<div class="fd-score">{latest_score}</div>'
@@ -793,7 +795,10 @@ def _render_member_card(summary: dict, is_self: bool = False) -> None:
     position_html = ('<span class="dot">·</span><span>' + _html.escape(str(position)) + '</span>') if position else ''
     handed_html = ('<span class="dot">·</span><span>' + _html.escape(str(handed)) + '</span>') if handed else ''
 
-    st.markdown(f"""
+    # st.html (NOT st.markdown): renders raw HTML with no markdown processing, so
+    # interpolated sub-blocks (topfix/nudge) can't be turned into literal code by
+    # indentation/blank-line rules. (Same reason the swing report uses st.html.)
+    st.html(f"""
     <div class="{card_class}">
       <div class="fd-card-top">
         <div class="fd-identity">
@@ -809,9 +814,7 @@ def _render_member_card(summary: dict, is_self: bool = False) -> None:
         </div>
         {badge_html}
       </div>
-
       <div class="{verdict_class}">{_html.escape(verdict_line)}</div>
-
       <div class="fd-latest">
         {score_html}
         <div class="fd-score-meta">
@@ -822,17 +825,15 @@ def _render_member_card(summary: dict, is_self: bool = False) -> None:
           </div>
         </div>
       </div>
-
       <div class="fd-spark-wrap">
         <span class="fd-spark-tick top">90</span>
         <span class="fd-spark-tick bottom">60</span>
         {spark_svg}
       </div>
-
       {topfix_html}
       {nudge_html}
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     if is_stale:
         btn_label = f"Nudge {name}"
