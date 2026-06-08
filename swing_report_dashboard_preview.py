@@ -166,13 +166,14 @@ _DASHBOARD_CSS = """
   background: var(--srd-red); box-shadow: 0 0 8px var(--srd-red);
 }
 .srd-pagehead-title {
-  font-family: var(--srd-serif);
+  font-family: var(--srd-sans);
   font-size: 3.4rem;
-  font-style: italic;
+  font-style: normal;
   line-height: 0.95;
   letter-spacing: -0.02em;
   color: var(--srd-bone);
   margin: 0.6rem 0 0;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-pagehead-meta {
   text-align: right;
@@ -185,7 +186,7 @@ _DASHBOARD_CSS = """
 .srd-pagehead-meta strong {
   color: var(--srd-bone); font-weight: 500;
   display:block; margin-top: 4px;
-  font-family: var(--srd-serif); font-style: italic;
+  font-family: var(--srd-sans); font-style: normal;
   font-size: 16px; letter-spacing: 0; text-transform: none;
 }
 
@@ -247,12 +248,13 @@ _DASHBOARD_CSS = """
 
 /* Score side */
 .srd-score-num {
-  font-family: var(--srd-serif);
+  font-family: var(--srd-mono);
   font-size: 6rem;
   line-height: 0.92;
   letter-spacing: -0.04em;
   color: var(--srd-bone);
-  font-style: italic;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
 }
 .srd-score-foot {
   font-family: var(--srd-mono);
@@ -313,13 +315,14 @@ _DASHBOARD_CSS = """
   align-items: center;
 }
 .srd-mlb-name {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 2.2rem;
   letter-spacing: -0.015em;
   color: var(--srd-bone);
   line-height: 1.05;
   margin-top: 0.2rem;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-mlb-team {
   font-family: var(--srd-mono);
@@ -334,12 +337,13 @@ _DASHBOARD_CSS = """
   margin-top: 1rem;
 }
 .srd-mlb-sim {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-mono);
+  font-style: normal;
   font-size: 2.4rem;
   color: var(--srd-gold);
   letter-spacing: -0.02em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-mlb-sim-foot {
   font-family: var(--srd-mono);
@@ -436,12 +440,13 @@ _DASHBOARD_CSS = """
   border-bottom: 1px solid var(--srd-line);
 }
 .srd-section-title {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 1.7rem;
   letter-spacing: -0.015em;
   color: var(--srd-bone);
   margin: 0.4rem 0 0;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-section-sub {
   font-family: var(--srd-mono);
@@ -473,23 +478,25 @@ _DASHBOARD_CSS = """
 }
 .srd-pri:hover { border-color: var(--srd-line-hi); background: var(--srd-glass-2); }
 .srd-pri-num {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-mono);
+  font-style: normal;
   font-size: 2rem;
   color: var(--srd-red);
   line-height: 1;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .srd-pri-head {
   display:flex; align-items:center; justify-content:space-between;
   gap: 12px; margin-bottom: 0.4rem;
 }
 .srd-pri-title {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 1.2rem;
   color: var(--srd-bone);
   letter-spacing: -0.01em;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-pri-tag {
   font-family: var(--srd-mono);
@@ -537,11 +544,12 @@ _DASHBOARD_CSS = """
   line-height: 1.1; text-align: center;
 }
 .srd-drill-title {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 1.1rem;
   color: var(--srd-bone);
   letter-spacing: -0.005em;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-drill-pills {
   display:flex; flex-wrap:wrap; gap: 6px;
@@ -590,12 +598,13 @@ _DASHBOARD_CSS = """
 }
 .srd-km-val-row { display:flex; align-items:baseline; gap:6px; margin-top: 0.7rem; }
 .srd-km-val {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-mono);
+  font-style: normal;
   font-size: 1.9rem;
   color: var(--srd-bone);
   letter-spacing: -0.015em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-km-unit {
   font-family: var(--srd-mono);
@@ -678,13 +687,14 @@ _DASHBOARD_CSS = """
   color: var(--srd-bone-60);
 }
 .srd-prog-stat-val {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-mono);
+  font-style: normal;
   font-size: 1.5rem;
   color: var(--srd-bone);
   margin-top: 0.4rem;
   letter-spacing: -0.01em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-prog-stat-sub {
   font-family: var(--srd-mono);
@@ -719,11 +729,12 @@ _DASHBOARD_CSS = """
   display:flex; align-items:center; justify-content:center;
 }
 .srd-next-title {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 1.1rem;
   color: var(--srd-bone);
   letter-spacing: -0.005em;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-next-sub {
   color: var(--srd-bone-80);
@@ -808,8 +819,9 @@ _DASHBOARD_CSS = """
   text-align:center;
 }
 .srd-cmp-summary-badge .big {
-  font-family: var(--srd-serif); font-style: italic;
+  font-family: var(--srd-mono); font-style: normal;
   font-size: 2.4rem; line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-cmp-summary-badge.up .big   { color: var(--srd-green); }
 .srd-cmp-summary-badge.down .big { color: var(--srd-red); }
@@ -855,7 +867,7 @@ _DASHBOARD_CSS = """
 .srd-cmp-avatar {
   width: 56px; height: 56px; border-radius: 14px;
   display:flex; align-items:center; justify-content:center;
-  font-family: var(--srd-serif); font-style: italic;
+  font-family: var(--srd-sans); font-style: normal;
   font-size: 1.5rem;
   flex-shrink:0;
 }
@@ -863,9 +875,10 @@ _DASHBOARD_CSS = """
 .srd-cmp-avatar-amber { background: var(--srd-gold-soft);  color: var(--srd-gold);  border: 1px solid rgba(232,193,112,0.25); }
 .srd-cmp-avatar-red   { background: var(--srd-red-soft);   color: var(--srd-red);   border: 1px solid rgba(230,69,48,0.28); }
 .srd-cmp-swing {
-  font-family: var(--srd-serif); font-style: italic;
+  font-family: var(--srd-sans); font-style: normal;
   font-size: 1.25rem; color: var(--srd-bone);
   letter-spacing: -0.005em; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-cmp-meta {
   font-family: var(--srd-mono);
@@ -899,9 +912,10 @@ _DASHBOARD_CSS = """
   color: var(--srd-bone-60);
 }
 .srd-cmp-delta-val {
-  font-family: var(--srd-serif); font-style: italic;
+  font-family: var(--srd-mono); font-style: normal;
   font-size: 2rem; margin-top: 6px; letter-spacing: -0.02em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-cmp-delta-val.up   { color: var(--srd-green); }
 .srd-cmp-delta-val.down { color: var(--srd-red); }
@@ -1010,9 +1024,10 @@ _DASHBOARD_CSS = """
     margin: 0 0 8px 0;
 }
 .srd-power-title {
-    font-family: var(--srd-serif); font-size: 2.4rem;
+    font-family: var(--srd-sans); font-size: 2.4rem;
     line-height: 1.05; letter-spacing: -0.018em;
     color: var(--srd-bone); font-weight: 400; margin: 0 0 8px 0;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-power-title .ital { font-style: italic; color: var(--srd-gold); }
 .srd-power-verdict {
@@ -1049,9 +1064,10 @@ _DASHBOARD_CSS = """
 .srd-power-tile.good     .srd-power-tile-label { color: var(--srd-gold); }
 .srd-power-tile.poor     .srd-power-tile-label { color: var(--srd-red); }
 .srd-power-tile-value {
-    font-family: var(--srd-serif); font-style: italic;
+    font-family: var(--srd-mono); font-style: normal;
     font-size: 2.2rem; line-height: 1; letter-spacing: -0.02em;
     color: var(--srd-bone); margin: 4px 0 8px 0;
+  font-variant-numeric: tabular-nums;
 }
 .srd-power-tile-unit {
     font-family: var(--srd-mono); font-size: 11px; font-weight: 500;
@@ -1107,21 +1123,22 @@ _DASHBOARD_CSS = """
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   color: var(--srd-gold);
   font-size: 28px;
   flex-shrink: 0;
 }
 .srd-match-info { flex: 1; }
 .srd-match-name {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-sans);
+  font-style: normal;
   font-size: 2.8rem;
   letter-spacing: -0.02em;
   color: var(--srd-bone);
   line-height: 1;
   margin-bottom: 0.5rem;
+  text-transform: uppercase; letter-spacing: 0.005em; font-weight: 700;
 }
 .srd-match-pct-row {
   display: flex;
@@ -1130,12 +1147,13 @@ _DASHBOARD_CSS = """
   margin-top: 0.8rem;
 }
 .srd-match-pct {
-  font-family: var(--srd-serif);
-  font-style: italic;
+  font-family: var(--srd-mono);
+  font-style: normal;
   font-size: 2.2rem;
   color: var(--srd-gold);
   letter-spacing: -0.02em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .srd-match-pct-label {
   font-family: var(--srd-mono);
