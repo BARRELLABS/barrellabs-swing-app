@@ -86,11 +86,12 @@ _HC_LOCAL_CSS = """
     margin-bottom: 0.85rem;
 }
 .hc-title {
-    font-family: var(--bl-serif);
-    font-style: italic;
+    font-family: var(--bl-sans);
+    font-style: normal;
     font-size: clamp(2rem, 7vw, 2.8rem);
-    font-weight: 400;
-    letter-spacing: -0.015em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
     color: var(--bl-ink-100);
     line-height: 1.04;
     margin-bottom: 0.65rem;
@@ -200,12 +201,13 @@ _HC_LOCAL_CSS = """
     margin-bottom: 0.55rem;
 }
 .hc-stat-value {
-    font-family: var(--bl-sans);
-    font-size: 1.7rem;
-    font-weight: 700;
+    font-family: var(--bl-mono);
+    font-size: 1.55rem;
+    font-weight: 600;
     color: var(--bl-ink-100);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
     line-height: 1.05;
+    font-variant-numeric: tabular-nums;
 }
 .hc-stat-value.is-red   { color: var(--bl-red); }
 .hc-stat-value.is-gold  { color: var(--bl-gold); }
@@ -235,9 +237,10 @@ _HC_LOCAL_CSS = """
 }
 .hc-section-title {
     font-family: var(--bl-sans);
-    font-size: 1.35rem;
-    font-weight: 600;
-    letter-spacing: -0.015em;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.005em;
+    text-transform: uppercase;
     color: var(--bl-ink-100);
 }
 .hc-section-count {
@@ -305,9 +308,10 @@ _HC_LOCAL_CSS = """
 }
 .hc-chart-title {
     font-family: var(--bl-sans);
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: -0.018em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.005em;
+    text-transform: uppercase;
     color: var(--bl-ink-100);
 }
 .hc-chart-sub {
@@ -402,11 +406,12 @@ _HC_LOCAL_CSS = """
     padding-right: 0.5rem;
 }
 .hc-table-num {
-    font-family: var(--bl-sans);
-    font-size: 0.95rem;
+    font-family: var(--bl-mono);
+    font-size: 0.9rem;
     font-weight: 500;
     color: var(--bl-ink-80);
     text-align: right;
+    font-variant-numeric: tabular-nums;
     font-variant-numeric: tabular-nums;
 }
 .hc-table-num.is-up   { color: var(--bl-gold); }
