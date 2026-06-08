@@ -213,6 +213,14 @@ iframe {
 .st-key-bl_edge_masthead {
   position: relative; z-index: 10;
   width: 100vw; left: 50%; right: 50%;
+  /* Without this, the full-bleed masthead inherits Streamlit's default
+     max-width:100% and gets clamped to the block-container's content width.
+     The dashboard zeroes the block-container padding so it stays 100vw, but
+     pages that don't (e.g. the Library) clamped the masthead ~77px narrower,
+     pulling the "+ Analyze new swing" CTA left into the brand wordmark and
+     causing a width-reflow flash on navigation. max-width:none keeps it truly
+     full-bleed and identical on every page. */
+  max-width: none !important;
   margin-left: -50vw !important; margin-right: -50vw !important;
   background: #0A0B0E !important; border: 0 !important;
   display: flex !important; flex-direction: row !important;
