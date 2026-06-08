@@ -163,7 +163,7 @@ class EdgeChromeImportTest(unittest.TestCase):
         # untouched.
         self.assertEqual(
             labels,
-            ["Dashboard", "Sessions", "Compare", "Training Plan", "Library"],
+            ["Dashboard", "Sessions", "Compare", "Training Plan", "Library", "Progress"],
             "Nav labels must match the spec exactly.",
         )
         self.assertIn("saved_reports", keys, "Sessions must map to saved_reports")

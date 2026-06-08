@@ -217,11 +217,14 @@ class TestCreateHouseholdPlayerBirthYear:
 
         monkeypatch.setattr(auth, "get_client", lambda: _Client())
 
+        # Use a teen birth year: COPPA consent is only required under 13, so a
+        # 2009 birth year exercises the birth_year-stamping path without the
+        # guardian_consent gate (which would also add consent fields to update).
         res = auth.create_household_player("Kid", "RIGHT", None, True,
-                                           birth_year=2015)
+                                           birth_year=2009)
         assert res["ok"] is True
-        assert updates == [{"birth_year": 2015}]
-        assert res["player"]["birth_year"] == 2015
+        assert updates == [{"birth_year": 2009}]
+        assert res["player"]["birth_year"] == 2009
 
     def test_blank_birth_year_skips_update(self, monkeypatch, _stub_streamlit):
         import auth

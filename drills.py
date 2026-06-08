@@ -80,7 +80,7 @@ DRILL_DB = {
     },
     'hip_shoulder_separation': {
         "title": 'Stretch the X',
-        "why_it_matters": "The stretch between the hips and shoulders (the 'X-factor') is the rubber band of the swing. The hips start to open while the shoulders stay closed, loading torque that whips the barrel. No stretch, no whip.",
+        "why_it_matters": "The stretch between the hips and shoulders is the rubber band of the swing. The hips start to open while the shoulders stay closed, loading torque that whips the barrel. No stretch, no whip.",
         "drills": [
             {"name": 'PVC Coil', "reps": '3 x 10', "equipment": ['pvc'],
              "how": 'Hold a PVC across the shoulders; load by turning the shoulders back as the hips begin forward. Feel the stretch, then fire.'},

@@ -303,7 +303,10 @@ class TestCanAnalyzeSwing:
         (can_save_drill_plan,              "drill_plan"),
         (can_save_video,                   "video_storage"),
         (can_access_development_tracker,   "development_tracker"),
-        (can_export_pdf,                   "pdf_export"),
+        # can_export_pdf intentionally removed: PDF export is now free for
+        # everyone (weak paywall + shareable report = distribution). See
+        # entitlements.can_export_pdf. The capability flag still exists in the
+        # matrix (tested above), it's just no longer gated.
         (can_compare_swings,               "compare_swings"),
         (can_access_rewards,               "rewards"),
     ],

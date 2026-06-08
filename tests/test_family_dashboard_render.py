@@ -36,6 +36,7 @@ def _stub_streamlit(monkeypatch):
 
     st_stub = types.SimpleNamespace(
         markdown=_markdown,
+        html=_markdown,  # family cards now render via st.html; capture it too
         columns=_columns,
         button=_button,
         rerun=_rerun,
