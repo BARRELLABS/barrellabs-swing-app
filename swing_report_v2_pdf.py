@@ -419,6 +419,29 @@ def build_swing_report_pdf_v2(
     c.line(0, H - 110, W, H - 110)
     c.setLineWidth(1)
 
+    # ---- Facility co-brand lookup: a sponsored player's PDF carries their
+    #      academy logo + name (top-right), matching the on-screen report. Only
+    #      a validated PNG data-URI is accepted (same guard as the HTML path).
+    _fac_name = None
+    _fac_logo_reader = None
+    try:
+        import streamlit as _st
+        import facility_storage as _facs
+        _active = _st.session_state.get("player") or _st.session_state.get("user") or {}
+        _pid = (_active or {}).get("id")
+        if _pid:
+            _fac = _facs.get_facility_for_player(_pid)
+            if _fac:
+                _fac_name = (_fac.get("name") or "").strip() or None
+                _logo = _fac.get("logo_url") or ""
+                _pfx = "data:image/png;base64,"
+                if _logo.startswith(_pfx):
+                    import base64
+                    _raw = base64.b64decode(_logo[len(_pfx):], validate=True)
+                    _fac_logo_reader = ImageReader(BytesIO(_raw))
+    except Exception:
+        _fac_name, _fac_logo_reader = None, None
+
     logo_offset = 0
     logo_path = Path("barrellabs_logo.png")
     if logo_path.exists():
@@ -444,6 +467,24 @@ def build_swing_report_pdf_v2(
     c.setFont("Helvetica", 8.5)
     c.drawString(MARGIN + logo_offset, H - 90,
                  "AI swing analysis  ·  MLB comparison  ·  personalized development plan")
+
+    # Facility co-brand (top-right) — sponsored players only.
+    if _fac_name:
+        _rx = W - MARGIN
+        if _fac_logo_reader is not None:
+            try:
+                c.drawImage(_fac_logo_reader, W - MARGIN - 38, H - 86,
+                            width=38, height=38, mask="auto",
+                            preserveAspectRatio=True)
+                _rx = W - MARGIN - 48
+            except Exception:
+                _rx = W - MARGIN
+        c.setFillColor(AMBER)
+        c.setFont("Helvetica-Bold", 6)
+        c.drawRightString(_rx, H - 56, "IN PARTNERSHIP WITH")
+        c.setFillColor(INK_100)
+        c.setFont("Helvetica-Bold", 10.5)
+        c.drawRightString(_rx, H - 73, _fac_name[:26])
 
     y = H - 134
 
