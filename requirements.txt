@@ -1,4 +1,9 @@
-streamlit>=1.32
+# Pinned: unpinned (>=1.32) let Render install a newer Streamlit whose thread
+# context-wrapper crashes mid-analysis (TypeError: _run_with_thread_state takes
+# 0 positional arguments but 1 was given) when MediaPipe/posthog spawn threads,
+# and which warns st.components.v1.html (the dashboard iframe) is being removed.
+# 1.57.0 is the dev-verified version where analyze + the dashboard iframe work.
+streamlit==1.57.0
 numpy>=1.26
 pandas>=2.2
 opencv-python-headless>=4.9
