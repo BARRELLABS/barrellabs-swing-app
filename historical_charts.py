@@ -418,6 +418,30 @@ _HC_LOCAL_CSS = """
 .hc-table-num.is-down { color: var(--bl-red); }
 .hc-table-num.is-strong { color: var(--bl-ink-100); font-weight: 600; }
 
+/* "What's changed" plain-language highlight cards (replaced the dense table) */
+.hc-change-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem;
+    margin: 0.4rem 0 0.7rem;
+}
+@media (max-width: 760px) { .hc-change-grid { grid-template-columns: 1fr; } }
+.hc-change-card {
+    border: 1px solid var(--bl-line); border-radius: 14px;
+    background: rgba(255,255,255,0.02); padding: 1.15rem 1.25rem;
+}
+.hc-change-label {
+    font-family: var(--bl-mono); font-size: 0.58rem; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bl-gold); margin-bottom: 0.55rem;
+}
+.hc-change-big {
+    font-family: var(--bl-mono); font-size: 1.5rem; font-weight: 600;
+    color: var(--bl-ink-100); letter-spacing: -0.01em; line-height: 1.12;
+    font-variant-numeric: tabular-nums;
+}
+.hc-change-to { color: var(--bl-ink-80); margin: 0 0.12em; }
+.hc-change-sub { margin-top: 0.55rem; font-size: 0.84rem; color: var(--bl-ink-80); }
+.hc-change-sub.is-up { color: var(--bl-gold); }
+.hc-change-sub.is-down { color: var(--bl-red); }
+
 /* ===========  MILESTONES  =========== */
 .hc-milestones {
     display: grid;
@@ -778,6 +802,97 @@ def _friendly_metric(col) -> str:
     return label
 
 
+def build_progress_pdf(player_name: str, df: pd.DataFrame,
+                       numeric_metrics: list) -> bytes:
+    """One-page printable Progress summary, dark-themed to match the app.
+    Header + key stats + a first->latest table for the friendly metrics
+    (the full numbers the on-screen page intentionally keeps simple)."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.units import inch
+    from reportlab.pdfgen import canvas as _canvas
+
+    INK, BONE, GOLD, MUT, RED = (
+        (0.039, 0.043, 0.055), (0.957, 0.937, 0.902),
+        (0.910, 0.757, 0.439), (0.55, 0.55, 0.58), (0.90, 0.27, 0.19),
+    )
+    buf = BytesIO()
+    c = _canvas.Canvas(buf, pagesize=letter)
+    W, H = letter
+    M = 0.85 * inch
+    c.setFillColorRGB(*INK); c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    y = H - 0.95 * inch
+    c.setFillColorRGB(*GOLD); c.setFont("Helvetica-Bold", 9)
+    c.drawString(M, y, "BARRELLABS  ·  PROGRESS OVER TIME")
+    y -= 0.42 * inch
+    c.setFillColorRGB(*BONE); c.setFont("Helvetica-Bold", 24)
+    c.drawString(M, y, str(player_name or "Player"))
+    y -= 0.18 * inch
+    c.setFillColorRGB(*MUT); c.setFont("Helvetica", 10)
+    try:
+        _dts = df["date"].dropna()
+        c.drawString(M, y, f"{len(df)} swings   ·   {str(_dts.iloc[0])[:10]} to {str(_dts.iloc[-1])[:10]}")
+    except Exception:
+        c.drawString(M, y, f"{len(df)} swings")
+    y -= 0.55 * inch
+
+    ss = df["Swing Score"].dropna() if "Swing Score" in df.columns else None
+    cells = []
+    if ss is not None and len(ss):
+        cells.append(("LATEST SCORE", _fmt_value(ss.iloc[-1])))
+        if len(ss) >= 2:
+            d = ss.iloc[-1] - ss.iloc[0]
+            cells.append(("CHANGE", f'{"+" if d >= 0 else ""}{_fmt_value(d)}'))
+        cells.append(("BEST", _fmt_value(ss.max())))
+    cells.append(("SESSIONS", str(len(df))))
+    cw = (W - 2 * M) / max(1, len(cells))
+    for k, (lab, val) in enumerate(cells):
+        x = M + k * cw
+        c.setFillColorRGB(*MUT); c.setFont("Helvetica", 7.5); c.drawString(x, y, lab)
+        c.setFillColorRGB(*BONE); c.setFont("Helvetica-Bold", 20)
+        c.drawString(x, y - 0.3 * inch, str(val))
+    y -= 0.95 * inch
+
+    c.setFillColorRGB(*GOLD); c.setFont("Helvetica-Bold", 8)
+    c.drawString(M, y, "METRIC")
+    c.drawRightString(W - M - 1.7 * inch, y, "FIRST")
+    c.drawRightString(W - M - 0.85 * inch, y, "LATEST")
+    c.drawRightString(W - M, y, "CHANGE")
+    y -= 0.1 * inch
+    c.setStrokeColorRGB(0.2, 0.2, 0.22); c.line(M, y, W - M, y)
+    y -= 0.28 * inch
+
+    ordered = ["Swing Score"] + [m for m in numeric_metrics if m != "Swing Score"]
+    shown = 0
+    for m in ordered:
+        if m not in df.columns:
+            continue
+        s = df[m].dropna()
+        if len(s) < 1:
+            continue
+        first, last = s.iloc[0], s.iloc[-1]
+        net = (last - first) if len(s) >= 2 else None
+        c.setFillColorRGB(*BONE); c.setFont("Helvetica", 9.5)
+        c.drawString(M, y, _friendly_metric(m)[:44])
+        c.drawRightString(W - M - 1.7 * inch, y, _fmt_value(first))
+        c.drawRightString(W - M - 0.85 * inch, y, _fmt_value(last))
+        if net is None:
+            c.setFillColorRGB(*MUT); c.drawRightString(W - M, y, "—")
+        else:
+            c.setFillColorRGB(*(GOLD if net >= 0 else RED))
+            c.drawRightString(W - M, y, f'{"+" if net >= 0 else ""}{_fmt_value(net)}')
+        y -= 0.27 * inch
+        shown += 1
+        if y < 1.0 * inch or shown >= 16:
+            break
+
+    c.setFillColorRGB(*MUT); c.setFont("Helvetica", 7.5)
+    c.drawString(M, 0.6 * inch, "Generated by BarrelLabs  ·  barrellabsai.com")
+    c.showPage(); c.save()
+    return buf.getvalue()
+
+
 # ============================================================
 #                         MAIN
 # ============================================================
@@ -935,6 +1050,22 @@ def render_historical_charts():
         '</div>'
     )
     st.markdown(stat_strip, unsafe_allow_html=True)
+
+    # Download a standalone Progress PDF (the "print progress over time" ask).
+    _pdf_l, _pdf_r = st.columns([1.3, 4])
+    with _pdf_l:
+        try:
+            _prog_pdf = build_progress_pdf(player_name, df, numeric_metrics)
+            st.download_button(
+                "⬇  Download Progress PDF",
+                data=_prog_pdf,
+                file_name="barrellabs_progress.pdf",
+                mime="application/pdf",
+                width="stretch",
+                key="hc_progress_pdf",
+            )
+        except Exception:
+            pass
 
     # ==========================================================
     #             CONTROLS (metric, time range, MA)
@@ -1220,74 +1351,55 @@ def render_historical_charts():
         st.markdown("".join(insights_html), unsafe_allow_html=True)
 
     # ==========================================================
-    #             METRIC COMPARISON TABLE
+    #   WHAT CHANGED — plain-language highlights. Replaced the dense
+    #   first-vs-latest, 5-column x 25-row metric table (hard to parse;
+    #   "numbers no one understands"). The full numbers still live in the
+    #   downloadable Progress PDF for anyone who wants them.
     # ==========================================================
     st.markdown(
-        '<div class="hc-section-header">'
-        '<div>'
-        '<div class="hc-section-eyebrow">SIDE BY SIDE</div>'
-        '<div class="hc-section-title">Metric comparison: first vs latest</div>'
-        '</div>'
-        f'<div class="hc-section-count">{len(numeric_metrics)} METRICS</div>'
-        '</div>',
+        '<div class="hc-section-header"><div>'
+        '<div class="hc-section-eyebrow">THE HEADLINE</div>'
+        '<div class="hc-section-title">What\'s changed</div>'
+        '</div></div>',
         unsafe_allow_html=True,
     )
-
-    rows_html = [
-        '<div class="hc-table-wrap">',
-        '<div class="hc-table-head">'
-        '<div>METRIC</div>'
-        '<div style="text-align:right;">FIRST</div>'
-        '<div style="text-align:right;">LATEST</div>'
-        '<div style="text-align:right;">NET CHANGE</div>'
-        '<div style="text-align:right;">% CHANGE</div>'
-        '</div>',
-    ]
-
-    # Sort: prefer Swing Score, then by absolute % change (biggest movers first).
-    table_metrics = []
-    for m in numeric_metrics:
-        s = df[m].dropna()
-        if len(s) < 1:
-            continue
-        first = s.iloc[0]
-        last = s.iloc[-1]
-        net = last - first if len(s) >= 2 else None
-        pct = ((last - first) / abs(first) * 100) if (len(s) >= 2 and first != 0) else None
-        table_metrics.append({"metric": m, "first": first, "last": last, "net": net, "pct": pct})
-
-    def _sort_key(row):
-        rank = 0 if row["metric"] == "Swing Score" else 1
-        score = abs(row["pct"]) if row["pct"] is not None else -1
-        return (rank, -score)
-
-    table_metrics.sort(key=_sort_key)
-
-    for row in table_metrics[:25]:  # cap to keep it scannable
-        first_s = _fmt_value(row["first"])
-        last_s = _fmt_value(row["last"])
-        if row["net"] is None:
-            net_s = "—"
-            pct_s = "—"
-            net_cls = ""
-            pct_cls = ""
-        else:
-            net_s = f'{"+" if row["net"] >= 0 else ""}{_fmt_value(row["net"])}'
-            pct_s = "—" if row["pct"] is None else f'{"+" if row["pct"] >= 0 else ""}{row["pct"]:.1f}%'
-            net_cls = "is-up" if row["net"] >= 0 else "is-down"
-            pct_cls = net_cls
-        rows_html.append(
-            f'<div class="hc-table-row">'
-            f'<div class="hc-table-metric">{_friendly_metric(row["metric"])}</div>'
-            f'<div class="hc-table-num">{first_s}</div>'
-            f'<div class="hc-table-num is-strong">{last_s}</div>'
-            f'<div class="hc-table-num {net_cls}">{net_s}</div>'
-            f'<div class="hc-table-num {pct_cls}">{pct_s}</div>'
-            f'</div>'
+    _chg = []
+    _ss = df["Swing Score"].dropna() if "Swing Score" in df.columns else None
+    if _ss is not None and len(_ss) >= 1:
+        _f, _l = _ss.iloc[0], _ss.iloc[-1]
+        _d = _l - _f
+        _cls = "is-up" if _d > 0 else ("is-down" if _d < 0 else "")
+        _arrow = "\u25b2" if _d > 0 else ("\u25bc" if _d < 0 else "\u2014")
+        _chg.append(
+            '<div class="hc-change-card">'
+            '<div class="hc-change-label">Swing Score</div>'
+            f'<div class="hc-change-big">{_fmt_value(_f)} <span class="hc-change-to">\u2192</span> {_fmt_value(_l)}</div>'
+            f'<div class="hc-change-sub {_cls}">{_arrow} {"+" if _d >= 0 else ""}{_fmt_value(_d)} since your first swing</div>'
+            '</div>'
         )
-    rows_html.append('</div>')
-    st.markdown("".join(rows_html), unsafe_allow_html=True)
-
+    _imp = _strongest_improver(df, numeric_metrics)
+    if _imp:
+        _m, _pct = _imp
+        _chg.append(
+            '<div class="hc-change-card">'
+            '<div class="hc-change-label">Most improved</div>'
+            f'<div class="hc-change-big">{_friendly_metric(_m)}</div>'
+            f'<div class="hc-change-sub is-up">\u25b2 {"+" if _pct >= 0 else ""}{_pct:.0f}% better than your first</div>'
+            '</div>'
+        )
+    _opp = _largest_opportunity(df, numeric_metrics)
+    if _opp:
+        _m2, _ = _opp
+        _chg.append(
+            '<div class="hc-change-card">'
+            '<div class="hc-change-label">Focus next</div>'
+            f'<div class="hc-change-big">{_friendly_metric(_m2)}</div>'
+            '<div class="hc-change-sub">Your biggest room to grow</div>'
+            '</div>'
+        )
+    if _chg:
+        st.markdown('<div class="hc-change-grid">' + "".join(_chg) + '</div>',
+                    unsafe_allow_html=True)
     # ==========================================================
     #             MILESTONE TRACKER
     # ==========================================================

@@ -349,6 +349,54 @@ html, body, [data-testid="stAppViewContainer"] {
     border-color: var(--bl-line-hi) !important;
     color: var(--bl-ink-100) !important;
 }
+
+/* ===========  GLOBAL DEFAULT BUTTON THEME  ===========
+   Every st.button / st.download_button anywhere in the app gets the Edge look
+   instead of raw Streamlit chrome (the "basic buttons" on report/download/
+   delete/analyze). Specific wrappers (.bl-cta / .bl-ghost) still override. */
+div.stButton > button,
+div.stDownloadButton > button,
+div[data-testid="stDownloadButton"] > button {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid var(--bl-line) !important;
+    color: var(--bl-ink-100) !important;
+    border-radius: 10px !important;
+    font-family: var(--bl-sans) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.005em !important;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+div.stButton > button:hover,
+div.stDownloadButton > button:hover,
+div[data-testid="stDownloadButton"] > button:hover {
+    background: rgba(232,193,112,0.08) !important;
+    border-color: rgba(232,193,112,0.45) !important;
+    color: var(--bl-ink-100) !important;
+    transform: translateY(-1px);
+}
+div.stButton > button:active,
+div.stDownloadButton > button:active { transform: translateY(0); }
+
+/* Primary buttons (type="primary"): branded red Edge pill, not Streamlit's
+   default. Covers both the legacy `kind` attr and the newer testid. */
+div.stButton > button[kind="primary"],
+div.stButton > button[data-testid="stBaseButton-primary"],
+div.stDownloadButton > button[kind="primary"] {
+    background: var(--bl-red) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    color: #fff !important;
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16) !important;
+}
+div.stButton > button[kind="primary"]:hover,
+div.stButton > button[data-testid="stBaseButton-primary"]:hover,
+div.stDownloadButton > button[kind="primary"]:hover {
+    background: var(--bl-red-hover) !important;
+    border-color: rgba(255,255,255,0.2) !important;
+    box-shadow: 0 14px 32px -12px rgba(255,59,48,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.22) !important;
+}
 </style>
 """
 

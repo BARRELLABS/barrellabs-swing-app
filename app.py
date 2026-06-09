@@ -4498,7 +4498,11 @@ video_path = UPLOAD_DIR / unique_upload_name(upload.name,
 with open(video_path, "wb") as f:
     f.write(upload.getbuffer())
 
-st.video(str(video_path))
+# Keep the preview compact so the Analyze button stays in view. A full-width
+# video pushed the button far below the fold, forcing a scroll to analyze.
+_pv_col, _pv_rest = st.columns([1, 1.5])
+with _pv_col:
+    st.video(str(video_path))
 
 if not st.button("Analyze swing", type="primary", width="stretch"):
     st.stop()
