@@ -4504,7 +4504,8 @@ _pv_col, _pv_rest = st.columns([1, 1.5])
 with _pv_col:
     st.video(str(video_path))
 
-if not st.button("Analyze swing", type="primary", width="stretch"):
+if not st.button("Analyze swing", type="primary", width="stretch",
+                 key="analyze_swing_btn"):
     st.stop()
 
 

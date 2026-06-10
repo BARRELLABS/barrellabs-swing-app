@@ -685,6 +685,23 @@ def get_swing_video_signed_url(storage_path: str, expires_in: int = 3600) -> Opt
         return None
 
 
+def load_swing_pose_data(storage_path: str) -> Optional[dict]:
+    """Download + parse the per-frame pose JSON for a swing
+    ({pose_frames, pose_meta, phases_t}). Used to draw the pose skeletons in
+    the swing report. Returns None if missing or unreadable."""
+    if not storage_path:
+        return None
+    try:
+        sb = get_client()
+        raw = sb.storage.from_(STORAGE_BUCKET).download(storage_path)
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8")
+        import json as _json
+        return _json.loads(raw)
+    except Exception:
+        return None
+
+
 # --------------------------------------------------------------------
 #  Per-swing meta (notes + drill completion). Piggybacks on the
 #  existing training_logs row so we don't need a schema migration.

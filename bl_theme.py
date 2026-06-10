@@ -350,52 +350,55 @@ html, body, [data-testid="stAppViewContainer"] {
     color: var(--bl-ink-100) !important;
 }
 
-/* ===========  GLOBAL DEFAULT BUTTON THEME  ===========
-   Every st.button / st.download_button anywhere in the app gets the Edge look
-   instead of raw Streamlit chrome (the "basic buttons" on report/download/
-   delete/analyze). Specific wrappers (.bl-cta / .bl-ghost) still override. */
-div.stButton > button,
-div.stDownloadButton > button,
-div[data-testid="stDownloadButton"] > button {
-    background: rgba(255,255,255,0.03) !important;
-    border: 1px solid var(--bl-line) !important;
-    color: var(--bl-ink-100) !important;
-    border-radius: 10px !important;
-    font-family: var(--bl-sans) !important;
+/* ===========  ACTION BUTTONS -> match the Edge nav button look  ===========
+   Ghost / mono / uppercase, same language as the top nav. SCOPED to specific
+   widget-key prefixes ONLY (sessions open/download/delete, swing-report,
+   progress, analyze) so this never touches the nav (.st-key-bl_edge_navbar)
+   or any other button. */
+[class*="st-key-srl_"] button,
+[class*="st-key-sr_"] button,
+[class*="st-key-srp_"] button,
+[class*="st-key-hc_quick_"] button,
+.st-key-hc_progress_pdf button,
+.st-key-analyze_swing_btn button {
+    background: transparent !important;
+    border: 1px solid rgba(244,239,230,0.12) !important;
+    color: #A6A9B0 !important;
+    font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace !important;
+    font-size: 11px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.005em !important;
-    transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+    letter-spacing: 0.13em !important;
+    text-transform: uppercase !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    transition: color .22s, background-color .22s, border-color .22s, transform .22s !important;
 }
-div.stButton > button:hover,
-div.stDownloadButton > button:hover,
-div[data-testid="stDownloadButton"] > button:hover {
-    background: rgba(232,193,112,0.08) !important;
-    border-color: rgba(232,193,112,0.45) !important;
-    color: var(--bl-ink-100) !important;
-    transform: translateY(-1px);
+[class*="st-key-srl_"] button p, [class*="st-key-srl_"] button div, [class*="st-key-srl_"] button span,
+[class*="st-key-sr_"] button p, [class*="st-key-sr_"] button div, [class*="st-key-sr_"] button span,
+[class*="st-key-srp_"] button p, [class*="st-key-srp_"] button div, [class*="st-key-srp_"] button span,
+[class*="st-key-hc_quick_"] button p, [class*="st-key-hc_quick_"] button div, [class*="st-key-hc_quick_"] button span,
+.st-key-hc_progress_pdf button p, .st-key-hc_progress_pdf button div, .st-key-hc_progress_pdf button span,
+.st-key-analyze_swing_btn button p, .st-key-analyze_swing_btn button div, .st-key-analyze_swing_btn button span {
+    font: inherit !important; letter-spacing: inherit !important; color: inherit !important; margin: 0 !important;
 }
-div.stButton > button:active,
-div.stDownloadButton > button:active { transform: translateY(0); }
-
-/* Primary buttons (type="primary"): branded red Edge pill, not Streamlit's
-   default. Covers both the legacy `kind` attr and the newer testid. */
-div.stButton > button[kind="primary"],
-div.stButton > button[data-testid="stBaseButton-primary"],
-div.stDownloadButton > button[kind="primary"] {
-    background: var(--bl-red) !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
-    color: #fff !important;
-    border-radius: 999px !important;
-    font-weight: 700 !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16) !important;
+[class*="st-key-srl_"] button:hover,
+[class*="st-key-sr_"] button:hover,
+[class*="st-key-srp_"] button:hover,
+[class*="st-key-hc_quick_"] button:hover,
+.st-key-hc_progress_pdf button:hover,
+.st-key-analyze_swing_btn button:hover {
+    color: #EFE9DB !important;
+    background: rgba(244,239,230,0.045) !important;
+    border-color: rgba(244,239,230,0.14) !important;
+    transform: translateY(-0.5px);
 }
-div.stButton > button[kind="primary"]:hover,
-div.stButton > button[data-testid="stBaseButton-primary"]:hover,
-div.stDownloadButton > button[kind="primary"]:hover {
-    background: var(--bl-red-hover) !important;
-    border-color: rgba(255,255,255,0.2) !important;
-    box-shadow: 0 14px 32px -12px rgba(255,59,48,0.5),
-                inset 0 1px 0 rgba(255,255,255,0.22) !important;
+/* Analyze = the primary action: same nav language but the nav-primary elevated
+   fill so it reads as the main CTA. */
+.st-key-analyze_swing_btn button {
+    color: #F8F2E0 !important;
+    background: linear-gradient(180deg, rgba(244,239,230,0.095), rgba(244,239,230,0.035)) !important;
+    border-color: rgba(244,239,230,0.14) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 0 16px -6px rgba(232,193,112,0.45) !important;
 }
 </style>
 """

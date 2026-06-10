@@ -226,6 +226,8 @@ def _compute_key_metrics(record: Dict[str, Any],
             "delta_str": delta_str,
             "delta_class": delta_class,
             "ref_str": ref_label,
+            "ref_short": ref_short,
+            "sim_pct": curr_row.get("sim_pct"),
             "sparkline_svg": spark_svg,
         })
 
