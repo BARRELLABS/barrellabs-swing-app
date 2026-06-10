@@ -842,29 +842,27 @@ def delete_account(*, cancel_stripe: bool = True) -> dict:
        configured.)
     2. Delete every row from public.swings owned by this player.
     3. Delete the public.players row itself (the player profile).
-    4. Sign the user out (clears the session token).
-
-    What this does NOT do (yet, by design):
-    - Delete the auth.users row. Supabase requires a service-role key
-      to delete auth users, which is not safe to ship to a browser-
-      side anon-key client. The auth row is orphaned (no player row →
-      next login auto-recovers an empty profile, which the UI will
-      show as "new account"). A nightly admin script or an Edge
-      Function should reap orphaned auth rows on a schedule.
+    4. Delete the auth.users row via the delete_own_auth_user() RPC
+       (SECURITY DEFINER, self-only). Every public table referencing
+       auth.users is ON DELETE CASCADE, so this also reaps anything the
+       RLS deletes above missed. No more orphaned auth/PII row.
+    5. Sign the user out (clears the session token).
 
     Returns a status dict the UI can use to show what happened:
         {
-          "stripe_cancelled": bool,
-          "swings_deleted":   int,
-          "player_deleted":   bool,
-          "signed_out":       bool,
-          "errors":           [str, ...],   # non-fatal per-step issues
+          "stripe_cancelled":  bool,
+          "swings_deleted":    int,
+          "player_deleted":    bool,
+          "auth_user_deleted": bool,
+          "signed_out":        bool,
+          "errors":            [str, ...],   # non-fatal per-step issues
         }
     """
     status = {
         "stripe_cancelled": False,
         "swings_deleted": 0,
         "player_deleted": False,
+        "auth_user_deleted": False,
         "signed_out": False,
         "errors": [],
     }
@@ -913,6 +911,18 @@ def delete_account(*, cancel_stripe: bool = True) -> dict:
         status["player_deleted"] = bool(del_player.data)
     except Exception as exc:
         status["errors"].append(f"Could not delete player row: {exc}")
+
+    # 3b. Delete the auth.users row itself (closes the orphaned-PII gap). The
+    # RPC is SECURITY DEFINER + self-only (auth.uid()), and cascades to every
+    # public table that references the user, so this is the real "account gone".
+    try:
+        sb.rpc("delete_own_auth_user").execute()
+        status["auth_user_deleted"] = True
+    except Exception as exc:
+        # Soft-fail: if the RPC isn't deployed yet or errors, the app-row
+        # deletes above still wiped the user's data; the auth row just lingers
+        # (the prior behavior). Surface it as a non-fatal note.
+        status["errors"].append(f"Could not delete auth user: {exc}")
 
     # 4. Sign out. We do this even if earlier steps failed so the user
     # is at least logged out on this device.
