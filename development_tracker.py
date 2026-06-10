@@ -5862,7 +5862,7 @@ def _render_progress_card(total_completed: int, total_drills: int,
       </div>
       <div>
         <div class="dt-progress-meta-eyebrow">SESSION PROGRESS</div>
-        <div class="dt-progress-meta-title">Training plan for {player_name}</div>
+        <div class="dt-progress-meta-title">Training plan for {html.escape(str(player_name))}</div>
         <div class="dt-progress-meta-line">
           Built from your latest report on
           <strong style="color:var(--bl-ink-100);">{swing_date}</strong>.

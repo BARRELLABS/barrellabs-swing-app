@@ -938,7 +938,10 @@ def render_historical_charts():
         return
 
     player_id = user.get("id") or user.get("slug")
-    player_name = user.get("name") or "Player"
+    # Escaped: rendered raw into HTML below, so an XSS-y display name can't
+    # inject markup (self-XSS hardening).
+    import html as _html
+    player_name = _html.escape(str(user.get("name") or "Player"))
 
     df = load_player_history_df(player_id)
     if df.empty:

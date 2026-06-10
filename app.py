@@ -1075,8 +1075,13 @@ if (
                 st.query_params.clear()
             except Exception:
                 pass
+        else:
+            # Consume returned False (expired/used/invalid link). Don't fall
+            # through silently to the normal screen, or the user has no idea
+            # their reset link failed.
+            st.session_state["recovery_link_error"] = True
     except Exception:
-        pass
+        st.session_state["recovery_link_error"] = True
 
 # Access-token flow (kept for the paste-URL fallback)
 elif (
@@ -1099,12 +1104,22 @@ elif (
                 st.query_params.clear()
             except Exception:
                 pass
+        else:
+            st.session_state["recovery_link_error"] = True
     except Exception:
-        pass
+        st.session_state["recovery_link_error"] = True
 
 if st.session_state.get("recovery_mode"):
     render_recovery_screen()
     st.stop()
+
+if st.session_state.pop("recovery_link_error", False):
+    # The reset link was invalid/expired and didn't put us in recovery mode.
+    # Tell the user explicitly instead of silently showing the login screen.
+    st.error(
+        "This password-reset link is invalid or has expired. Request a new one "
+        "from the login screen and use it within the hour."
+    )
 
 
 # --- Auth gate -------------------------------------------------------
@@ -4743,9 +4758,22 @@ saved_record = save_swing_record(
 # Soft-fail so a transient DB hiccup never blocks the analysis save.
 if not is_pro(_plan_snapshot):
     try:
-        increment_free_swing_count()
-    except Exception:
-        pass
+        _bumped = increment_free_swing_count()
+        # The RPC returns -1 on failure. Capture it so a silently-failed
+        # increment (which would let a Free user squeeze an extra analysis past
+        # the cap) is at least visible to ops, rather than fully swallowed.
+        if _bumped == -1:
+            try:
+                from monitoring import capture
+                capture(RuntimeError("increment_free_swing_count returned -1"))
+            except Exception:
+                pass
+    except Exception as _inc_exc:
+        try:
+            from monitoring import capture
+            capture(_inc_exc)
+        except Exception:
+            pass
 
 swing_history = load_swing_history(user["slug"])
 

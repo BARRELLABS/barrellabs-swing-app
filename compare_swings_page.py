@@ -650,6 +650,27 @@ def render_compare_swings_page(user: Dict[str, Any]) -> None:
     st.markdown(_CMP_CSS, unsafe_allow_html=True)
     st.markdown('<div class="cmp-wrap">', unsafe_allow_html=True)
 
+    # Pro gate. Swing comparison is a Pro capability (PLAN_CAPS.compare_swings);
+    # the gate function existed but was never wired in, so the page was open to
+    # Free users. Enforce it server-side here, mirroring the analyze gate.
+    try:
+        from entitlements import can_compare_swings
+        from subscription_storage import load_my_plan
+        _gate = can_compare_swings(load_my_plan())
+    except Exception:
+        _gate = None
+    if _gate is not None and not _gate.allowed:
+        st.markdown(_hero_html(0), unsafe_allow_html=True)
+        st.markdown(_empty_html(
+            "Swing comparison is a Pro feature",
+            "Upgrade to Solo Pro (or redeem a beta code) to line up any two of "
+            "your swings side by side, phase by phase, and see exactly what "
+            "changed.",
+        ), unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        render_edge_page_wrapper_close()
+        return
+
     history = _load_history(user)
     total = len(history)
     st.markdown(_hero_html(total), unsafe_allow_html=True)

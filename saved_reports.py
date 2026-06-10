@@ -791,10 +791,13 @@ def render_saved_reports(user: dict, build_pdf_fn=None) -> None:
             score_disp = f"{int(round(float(score)))}"
         except (TypeError, ValueError):
             score_disp = "—"
-        ref = str(rec.get("reference_name") or "—")
+        import html as _html
+        ref = _html.escape(str(rec.get("reference_name") or "—"))
         focus = _top_focus(rec)
         date_disp = _fmt_short_date(rec)
-        filename = str(rec.get("filename") or "—")
+        # Escaped: the uploaded filename is user-controlled and rendered raw
+        # into the card HTML (self-XSS hardening).
+        filename = _html.escape(str(rec.get("filename") or "—"))
 
         # Visual card shell
         card_html = textwrap.dedent(f"""

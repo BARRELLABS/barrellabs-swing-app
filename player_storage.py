@@ -204,6 +204,56 @@ _VIDEO_CONTENT_TYPES = {
 }
 
 
+def _json_safe(obj):
+    """Round-trip a value through JSON so it's guaranteed Postgres-jsonb-safe
+    before insert. The analyzer result can carry numpy scalars/arrays, which
+    aren't JSON-serializable and would otherwise blow up the whole insert.
+    Returns None if it can't be made safe (caller stores NULL, falls back to
+    the legacy fields)."""
+    import json as _json
+
+    def _default(o):
+        if hasattr(o, "item"):       # numpy scalar
+            try:
+                return o.item()
+            except Exception:
+                pass
+        if hasattr(o, "tolist"):     # numpy array
+            try:
+                return o.tolist()
+            except Exception:
+                pass
+        return str(o)
+
+    try:
+        return _json.loads(_json.dumps(obj, default=_default))
+    except Exception:
+        return None
+
+
+def _report_upload_failure(exc: Exception, kind: str, object_path: str,
+                           surface: bool = True) -> None:
+    """A swing-media upload failed for an ENTITLED user (past the Pro gate), so
+    it's real paid-feature data loss, not an intentional Free-tier skip. Report
+    it to monitoring (so ops can see degraded paths, which were previously
+    completely dark) and, for the primary assets, warn the user so they can
+    re-upload. Best-effort: never let reporting throw."""
+    try:
+        from monitoring import capture
+        capture(exc, upload_kind=kind, object_path=object_path)
+    except Exception:
+        pass
+    if surface:
+        try:
+            label = {"video": "swing video", "pose": "pose data"}.get(kind, kind)
+            st.warning(
+                f"We saved your analysis, but couldn't store your {label} just "
+                f"now. Re-upload this swing when you can to keep it on file."
+            )
+        except Exception:
+            pass
+
+
 def _upload_swing_video(player_id: str, timestamp: str, safe_name: str,
                         local_path: Path) -> Optional[str]:
     """
@@ -249,7 +299,11 @@ def _upload_swing_video(player_id: str, timestamp: str, safe_name: str,
                 file_options={"content-type": content_type, "upsert": "true"},
             )
         return object_path
-    except Exception:
+    except Exception as exc:
+        # This is an ENTITLED user (we passed the gate above), so a failure here
+        # is real paid-feature data loss, not an intentional skip. Make it
+        # visible to ops and to the user so they can re-upload.
+        _report_upload_failure(exc, "video", object_path)
         return None
 
 
@@ -304,7 +358,8 @@ def _upload_swing_pose_json(player_id: str, timestamp: str, safe_name: str,
             file_options={"content-type": "application/json", "upsert": "true"},
         )
         return object_path
-    except Exception:
+    except Exception as exc:
+        _report_upload_failure(exc, "pose", object_path)
         return None
 
 
@@ -340,7 +395,8 @@ def _upload_swing_key_frames(player_id: str, timestamp: str, safe_name: str,
                 file_options={"content-type": "image/jpeg", "upsert": "true"},
             )
             uploaded.append(key)
-        except Exception:
+        except Exception as exc:
+            _report_upload_failure(exc, "key_frame", object_path, surface=False)
             continue
     return uploaded
 
@@ -481,6 +537,12 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
         # side-by-side comparison viewer to sync user playback against
         # the MLB reference at foot plant. Stored as JSONB.
         "phases_t":           result.get("phases_t", {}) or {},
+        # Full analyzer result so a reopened report is identical to the live one
+        # (new-engine fields: swing_score, pillars, mlb_match, what_you_did_well,
+        # confidence, ...). The discrete columns above are kept for querying;
+        # _swing_row_to_legacy uses result_json as the base and overlays them.
+        # JSON-sanitized so numpy types can't break the insert.
+        "result_json":        _json_safe(result),
     }
 
     # Tolerate older deployments where the swings table doesn't yet have
@@ -506,6 +568,12 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
             # viewer. Older deployments may not have the JSONB column
             # yet — drop and retry so the swing still saves.
             row.pop("phases_t", None)
+            retried = True
+        if "result_json" in msg and "result_json" in row:
+            # result_json is a new column; on a deployment that doesn't have it
+            # yet, drop and retry so the swing still saves (it'll just reopen
+            # with the legacy field set, the pre-existing behavior).
+            row.pop("result_json", None)
             retried = True
         if retried:
             resp = _do_insert(row)
@@ -542,7 +610,17 @@ def _swing_row_to_legacy(row: dict) -> dict:
     """
     if not row:
         return {}
-    return {
+    # The full analyzer result is persisted in result_json (newer swings). Use
+    # it as the BASE so reopened reports carry every new-engine field
+    # (swing_score, pillars, mlb_match, what_you_did_well, confidence, ...),
+    # not just the legacy score. Explicit column mappings below overlay it so
+    # the canonical columns always win. Older swings (no result_json) keep the
+    # exact legacy behavior.
+    base = {}
+    rj = row.get("result_json")
+    if isinstance(rj, dict):
+        base = dict(rj)
+    base.update({
         # Legacy keys
         "id":                row.get("id"),
         "timestamp":         row.get("timestamp_str"),
@@ -577,7 +655,8 @@ def _swing_row_to_legacy(row: dict) -> dict:
         # Per-frame pose JSON pointer (may be None for Free users or older swings)
         "_pose_path":        row.get("pose_path"),
         "_record_path":      None,  # no longer a local file
-    }
+    })
+    return base
 
 
 def _is_jwt_expired_error(exc: Exception) -> bool:
@@ -650,10 +729,42 @@ def delete_swing_record(swing_id: str) -> bool:
     reflect the deletion immediately.
     """
     sb = get_client()
+    # Read the row's storage pointers BEFORE deleting so we can clean up the
+    # bucket. Otherwise the video / pose JSON / phase chart / 3 key-frame stills
+    # are orphaned forever (storage cost + privacy: a "deleted" video stays
+    # signable). RLS scopes the select to the owner.
+    media_paths = []
+    try:
+        resp = (sb.table("swings")
+                  .select("video_path,pose_path,phase_chart_path")
+                  .eq("id", swing_id).limit(1).execute())
+        row = (resp.data or [{}])[0]
+        for col in ("video_path", "pose_path", "phase_chart_path"):
+            p = row.get(col)
+            if p:
+                media_paths.append(p)
+        # The 3 key-frame stills live beside the pose JSON by convention.
+        pose_p = row.get("pose_path")
+        if pose_p and pose_p.endswith(".pose.json"):
+            base = pose_p[: -len(".pose.json")]
+            media_paths += [f"{base}.frame_{k}.jpg"
+                            for k in ("foot_plant", "contact", "finish")]
+    except Exception:
+        media_paths = []
+
     try:
         sb.table("swings").delete().eq("id", swing_id).execute()
     except Exception:
         return False
+
+    # Best-effort bucket cleanup after the row is gone. Soft-fail: a storage
+    # hiccup must never make the delete look failed (the row is already gone).
+    if media_paths:
+        try:
+            sb.storage.from_(STORAGE_BUCKET).remove(media_paths)
+        except Exception:
+            pass
+
     # Invalidate the cache regardless of caller — soft-fail to avoid
     # breaking the delete success path if the cache helper is unavailable.
     try:
@@ -912,6 +1023,20 @@ def save_player_progress(player_id: str, persisted: dict) -> dict:
     from gamification import _coerce_persisted
     if not player_id:
         return _coerce_persisted(persisted)
+
+    # Server-side rewards gate. Streaks/XP/rewards are Pro-only
+    # (PLAN_CAPS.rewards); the cap was only enforced in the UI. No-op the
+    # persistence for non-entitled users so the gate holds even if a future
+    # code path reaches here. Fail-closed only on an explicit "not allowed";
+    # any lookup error degrades to writing (so we never lose a payer's data).
+    try:
+        from entitlements import can_access_rewards
+        from subscription_storage import load_my_plan
+        _rw = can_access_rewards(load_my_plan())
+        if _rw is not None and not _rw.allowed:
+            return _coerce_persisted(persisted)
+    except Exception:
+        pass
 
     coerced = _coerce_persisted(persisted)
     log = load_training_log(player_id)

@@ -3477,6 +3477,10 @@ def _build_pose_frames(pose_data: Optional[dict], frame_imgs: Optional[dict],
         fr = min(frames, key=lambda f: abs((f.get("t") or 0) - t))
         overlay = _skeleton_overlay_svg(fr.get("kp") or [], vw, vh, hl_conns, hl_color)
         mrow = _metric_row_for(rows, needles)
+        # Treat a missing value as "no comparable metric" rather than composing
+        # "You — · …" (the em-dash scrub would turn that into "You , · …").
+        if mrow and str(mrow.get("player_str") or "—").strip() == "—":
+            mrow = None
         if mrow:
             you = str(mrow.get("player_str") or "—").strip()
             ref = str(mrow.get("ref_str") or "—").strip()
@@ -3587,7 +3591,7 @@ def _build_priorities_drills(record: Dict[str, Any],
     <div class="srd-eyebrow">§ 03 · Where to spend your next session</div>
     <h2 class="srd-section-title">Your top fixes, prescribed</h2>
   </div>
-  <div class="srd-section-sub">{len(fixes[:3])} priorities · {len(drill_rows)} drills</div>
+  <div class="srd-section-sub">{len(fixes[:3])} priorit{'y' if len(fixes[:3]) == 1 else 'ies'} · {idx} drill{'s' if idx != 1 else ''}</div>
 </div>
 
 <div class="srd-pd-grid">
@@ -4288,7 +4292,7 @@ def _build_next_session(record: Dict[str, Any]) -> str:
     <div class="srd-eyebrow">§ 09 · Next Session</div>
     <h2 class="srd-section-title">Your training plan</h2>
   </div>
-  <div class="srd-section-sub">3 actions before next swing</div>
+  <div class="srd-section-sub">{len(items)} action{'s' if len(items) != 1 else ''} before next swing</div>
 </div>
 
 <ul class="srd-next-list">{list_html}</ul>

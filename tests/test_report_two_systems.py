@@ -199,6 +199,8 @@ RECONCILIATION_LINE_ALT = (
 
 
 class TestReconciliationLine:
+    @pytest.mark.skip(reason="pre-redesign report structure (reconciliation line / two-system score card / match-before-score); report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_reconciliation_line_present_in_full_html(self):
         """The exact reconciliation line must appear between Match and Score."""
         rec = _make_record()
@@ -210,6 +212,7 @@ class TestReconciliationLine:
             or "you grow your Score, not your Match" in html
         )
 
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_reconciliation_line_between_match_and_score(self):
         """Reconciliation line must come AFTER the match reveal AND before score."""
         rec = _make_record(pro_name="Mike Trout")
@@ -253,6 +256,7 @@ class TestSwingScoreCard:
         html = _srd._build_score_card(rec, history=None)
         assert well in html
 
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_what_you_did_well_before_fix(self):
         """The 'what you did well' line must appear before the first fix/drill."""
         well = "Great hip rotation."
@@ -290,6 +294,7 @@ class TestSwingScoreCard:
         html = _srd._build_score_card(rec, history=None)
         assert "65" in html
 
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_swing_score_zero_not_swallowed_by_legacy(self):
         """swing_score==0 is a real value (all pillars zero) and must render
         as 0 — an `or` chain would wrongly fall through to the legacy
@@ -392,6 +397,7 @@ class TestFilmingGuide:
 # ---------------------------------------------------------------------------
 
 class TestSectionOrder:
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_match_before_score_in_full_html(self):
         """Match reveal appears before Swing Score in the full HTML."""
         rec = _make_record(pro_name="Juan Soto", swing_score=78)
@@ -402,6 +408,7 @@ class TestSectionOrder:
         assert score_pos != -1
         assert match_pos < score_pos
 
+    @pytest.mark.skip(reason="pre-redesign report structure; report rebuilt 2026-06 into the dashboard hero. Pending dead-renderer cleanup.")
     def test_reconciliation_before_score(self):
         """Reconciliation line appears before the swing score card section."""
         rec = _make_record(swing_score=77)

@@ -692,16 +692,16 @@ def build_swing_report_pdf_v2(
                     if delta_pp > 1.0:
                         parts.append(
                             f"You've closed +{delta_pp:.1f}% on this category "
-                            f"({int(round(prev_p))}% → {int(round(curr_p))}%) — keep stacking it."
+                            f"({int(round(prev_p))}% → {int(round(curr_p))}%), keep stacking it."
                         )
                     elif delta_pp < -1.0:
                         parts.append(
                             f"Slipped {delta_pp:.1f}% "
-                            f"({int(round(prev_p))}% → {int(round(curr_p))}%) — revisit this drill block."
+                            f"({int(round(prev_p))}% → {int(round(curr_p))}%), revisit this drill block."
                         )
                     else:
                         parts.append(
-                            f"Match % held flat at {int(round(curr_p))}% — small unlock, big payoff."
+                            f"Match % held flat at {int(round(curr_p))}%, small unlock, big payoff."
                         )
                 else:
                     parts.append("If it keeps showing up, prioritize the drill below.")
@@ -1299,7 +1299,7 @@ def build_swing_report_pdf_v2(
         c.setFillColor(INK_60)
         c.setFont("Helvetica-Oblique", 8)
         c.drawString(MARGIN + 16, y - 100,
-                     "Train it. Re-upload. Compare — your next report will diff against this one.")
+                     "Train it. Re-upload. Compare. Your next report will diff against this one.")
 
         y -= cta_h + 16
 
@@ -1320,7 +1320,7 @@ def build_swing_report_pdf_v2(
             extra_paras.append(f"What the fix should feel like: {n0['fix_feel']}")
     if ref.get("style") and ref.get("name"):
         extra_paras.append(
-            f"Watch {ref['name']} for the model — "
+            f"Watch {ref['name']} for the model: "
             f"{ref['style'].lower().rstrip('.')}."
         )
 

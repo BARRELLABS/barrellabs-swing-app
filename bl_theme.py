@@ -350,6 +350,36 @@ html, body, [data-testid="stAppViewContainer"] {
     color: var(--bl-ink-100) !important;
 }
 
+/* ===========  GLOBAL DEFAULT BUTTON LOOK  ===========
+   Generic st.button / st.download_button that isn't a nav tab, an action
+   button, or a .bl-cta/.bl-ghost wrapper would otherwise show raw Streamlit
+   chrome (the "basic buttons" look). Give them the Edge default.
+   CRITICAL: NO !important here. The nav (.st-key-bl_edge_navbar button) and the
+   action-button rules below are all !important, so they win over this and stay
+   exactly as designed. This rule only "fills in" everything those don't cover.
+   That's why this is safe for the nav, unlike the old !important global theme. */
+div.stButton > button,
+div.stDownloadButton > button,
+div[data-testid="stDownloadButton"] > button {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--bl-line);
+    color: var(--bl-ink-100);
+    border-radius: 10px;
+    font-family: var(--bl-sans);
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+div.stButton > button:hover,
+div.stDownloadButton > button:hover,
+div[data-testid="stDownloadButton"] > button:hover {
+    background: rgba(232,193,112,0.08);
+    border-color: rgba(232,193,112,0.45);
+    transform: translateY(-1px);
+}
+div.stButton > button:active,
+div.stDownloadButton > button:active { transform: translateY(0); }
+
 /* ===========  ACTION BUTTONS -> match the Edge nav button look  ===========
    Ghost / mono / uppercase, same language as the top nav. SCOPED to specific
    widget-key prefixes ONLY (sessions open/download/delete, swing-report,

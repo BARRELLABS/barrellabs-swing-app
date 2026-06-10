@@ -280,7 +280,13 @@ def render_compare_video(rec_a: Dict[str, Any], rec_b: Dict[str, Any]) -> None:
 
     path_a = rec_a.get("_video_path")
     path_b = rec_b.get("_video_path")
-    marks = shared_phase_marks(rec_a.get("phases_t"), rec_b.get("phases_t"))
+    # phases_t lives in a DB column on newer swings, but swings saved before that
+    # column existed carry it only inside the pose JSON. Fall back to the pose
+    # JSON (same lazy-load the report uses) so two valid clips never silently
+    # self-suppress. We also pick up the real fps there for the nudge step.
+    pa, fps_a = _phases_and_fps(rec_a)
+    pb, fps_b = _phases_and_fps(rec_b)
+    marks = shared_phase_marks(pa, pb)
 
     if not path_a or not path_b or len(marks) < 2:
         # Self-suppress with a quiet, on-theme note. Free users (no saved video)
@@ -309,8 +315,6 @@ def render_compare_video(rec_a: Dict[str, Any], rec_b: Dict[str, Any]) -> None:
 
     meta_a = {"role": "Swing A · earlier", "date": _fmt(rec_a), "score": _score(rec_a)}
     meta_b = {"role": "Swing B · later", "date": _fmt(rec_b), "score": _score(rec_b)}
-    fps_a = _fps(rec_a)
-    fps_b = _fps(rec_b)
 
     doc = build_compare_video_html(url_a, url_b, marks, meta_a, meta_b, fps_a, fps_b)
     if not doc:
@@ -349,16 +353,41 @@ def _fmt(rec: Dict[str, Any]) -> str:
         return str(ts)
 
 
-def _fps(rec: Dict[str, Any]) -> float:
-    """Frames-per-second for the nudge step. Phone clips are ~30fps and the
-    record doesn't carry fps, so default to 30; the nudge is a fine alignment
-    aid, not a precise frame index."""
-    meta = rec.get("pose_meta") or {}
-    try:
-        f = float(meta.get("fps"))
-        return f if f > 0 else 30.0
-    except (TypeError, ValueError):
-        return 30.0
+def _phases_and_fps(rec: Dict[str, Any]):
+    """Return (phases_t, fps) for a swing.
+
+    Prefers the swing's phases_t column; for older swings where it's empty,
+    lazy-loads the pose JSON (which always carries phases_t and pose_meta.fps).
+    fps drives the per-frame nudge step; phone clips are ~30fps so that's the
+    default when no pose_meta is available.
+    """
+    phases = rec.get("phases_t") or {}
+    fps = 30.0
+    needs_phases = not (isinstance(phases, dict) and len(phases) >= 2)
+    pose_path = rec.get("_pose_path")
+    if (needs_phases or rec.get("pose_meta") is None) and pose_path:
+        try:
+            from player_storage import load_swing_pose_data
+            pose = load_swing_pose_data(pose_path) or {}
+            if needs_phases:
+                pj = pose.get("phases_t") or {}
+                if isinstance(pj, dict) and len(pj) >= 2:
+                    phases = pj
+            meta = pose.get("pose_meta") or {}
+            f = meta.get("fps")
+            if f:
+                fps = float(f)
+        except Exception:
+            pass
+    else:
+        meta = rec.get("pose_meta") or {}
+        try:
+            f = float(meta.get("fps"))
+            if f > 0:
+                fps = f
+        except (TypeError, ValueError):
+            pass
+    return phases, fps
 
 
 def _is_pro_user() -> bool:
@@ -492,13 +521,18 @@ function timeFor(pp, side){
   return Math.max(0, t+off);
 }
 function curPhaseLabel(pp){ let best=marks[0]; for(const m of marks){ if(Math.abs(m.frac-pp)<Math.abs(best.frac-pp)) best=m; } return best.label; }
+// Is A's phase-timestamp sequence strictly increasing? Phase detection can be
+// noisy on busy clips and emit non-monotonic timestamps; if so, the segment
+// scan below is meaningless, so we map playback by even time across the window.
+const aMono=(function(){ for(let i=0;i<marks.length-1;i++){ if(marks[i+1].ta<=marks[i].ta) return false; } return true; })();
 function pFromA(t){ // map A real time (minus offset) back to normalized frac
-  const tt=t-offA;
-  if(tt<=marks[0].ta) return marks[0].frac;
-  if(tt>=marks[marks.length-1].ta) return marks[marks.length-1].frac;
+  const tt=t-offA, t0=marks[0].ta, t1=marks[marks.length-1].ta;
+  if(!aMono){ return (t1<=t0)?marks[0].frac:Math.max(0,Math.min(1,(tt-t0)/(t1-t0))); }
+  if(tt<=t0) return marks[0].frac;
+  if(tt>=t1) return marks[marks.length-1].frac;
   for(let i=0;i<marks.length-1;i++){ const a=marks[i],b=marks[i+1];
     if(tt>=a.ta && tt<=b.ta){ const u=(tt-a.ta)/((b.ta-a.ta)||1); return a.frac+u*(b.frac-a.frac); } }
-  return marks[0].frac;
+  return marks[marks.length-1].frac;
 }
 function segIndexForP(pp){ for(let i=0;i<marks.length-1;i++){ if(pp>=marks[i].frac && pp<=marks[i+1].frac) return i; } return marks.length-2; }
 function rateForSeg(i){ const dA=marks[i+1].ta-marks[i].ta, dB=marks[i+1].tb-marks[i].tb; return (dA>0? (dB/dA):1); }

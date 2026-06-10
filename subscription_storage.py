@@ -89,13 +89,14 @@ def _query_my_plan() -> Optional[dict]:
         if _is_jwt_expired_error(exc):
             _flag_session_expired()
             return None
-        # Any other error — return None so the app degrades to Free caps
-        # rather than blowing up. Surface once for visibility.
+        # Any other error: signal a READ FAILURE (not "no plan"). load_my_plan
+        # keeps the last-known snapshot so a transient hiccup doesn't silently
+        # downgrade a paying user mid-analyze. Surface once for visibility.
         try:
             st.warning(f"Could not load subscription info: {exc}")
         except Exception:
             pass
-        return None
+        return _QUERY_ERROR
 
     rows = resp.data or []
     if not rows:
@@ -115,6 +116,12 @@ def load_my_plan(force_refresh: bool = False) -> Optional[dict]:
             return _apply_sponsorship(cached)
 
     snap = _query_my_plan()
+    if snap is _QUERY_ERROR:
+        # Transient read failure: keep the last-known plan rather than dropping
+        # a payer to Free for this call. Falls through to Free only if we never
+        # had a snapshot this session.
+        cached = st.session_state.get(_CACHE_KEY, _SENTINEL)
+        return _apply_sponsorship(cached if cached is not _SENTINEL else None)
     try:
         st.session_state[_CACHE_KEY] = snap
     except Exception:
@@ -141,6 +148,10 @@ def invalidate_my_plan_cache() -> None:
 class _Sentinel:
     pass
 _SENTINEL = _Sentinel()
+# Distinct sentinel for "the plan read FAILED" (transient DB error), vs None
+# which legitimately means "no active plan row -> Free". Lets load_my_plan keep
+# the last-known plan on a transient error instead of dropping a payer to Free.
+_QUERY_ERROR = _Sentinel()
 
 
 # --------------------------------------------------------------------
