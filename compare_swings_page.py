@@ -364,6 +364,32 @@ _CMP_CSS = """
 .cmp-tl .sc{font-family:var(--serif); font-style:italic; font-size:1.3rem; color:var(--bone);}
 .cmp-tl.is-a .sc{color:var(--gold);} .cmp-tl.is-b .sc{color:var(--red);}
 
+/* side-by-side video self-suppress note */
+.cvv-note{border:1px solid var(--line); border-radius:14px; padding:18px 22px;
+  background:var(--glass); font-family:var(--sans); font-size:13.5px; color:var(--bone-50);
+  text-align:center; margin:4px 0 8px;}
+
+/* plain-language "what changed, where to watch" cards (under the video) */
+.cmp-watch-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+@media(max-width:860px){.cmp-watch-grid{grid-template-columns:1fr;}}
+.cmp-watch-card{border:1px solid var(--line); border-left:2px solid var(--bone-35);
+  border-radius:14px; padding:16px 18px; background:var(--glass);}
+.cmp-watch-card.up{border-left-color:var(--green);}
+.cmp-watch-card.down{border-left-color:var(--red);}
+.cwc-top{display:flex; align-items:center; gap:9px; margin-bottom:9px; flex-wrap:wrap;}
+.cwc-tag{font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:.16em;
+  text-transform:uppercase; padding:3px 8px; border-radius:999px; border:1px solid var(--line-hi); color:var(--bone-50);}
+.cmp-watch-card.up .cwc-tag{color:var(--green); border-color:rgba(74,227,140,.4);}
+.cmp-watch-card.down .cwc-tag{color:var(--red); border-color:rgba(230,69,48,.4);}
+.cwc-ttl{font-family:var(--serif); font-style:italic; font-size:1.18rem; color:var(--bone);}
+.cwc-top .pct{margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--bone-50); letter-spacing:.04em;}
+.cwc-mean{font-family:var(--sans); font-size:13px; line-height:1.5; color:var(--bone-70); margin-bottom:11px;}
+.cwc-look{font-family:var(--sans); font-size:12.5px; line-height:1.5; color:var(--bone-50);
+  border-top:1px solid var(--line); padding-top:10px;}
+.cwc-look b{color:var(--gold); font-weight:500; font-family:var(--mono); font-size:10.5px;
+  letter-spacing:.08em; text-transform:uppercase;}
+.cwc-eye{color:var(--gold); margin-right:4px;}
+
 /* empty state */
 .cmp-empty{text-align:center; padding:64px 24px; border:1px dashed var(--line-hi);
   border-radius:20px; background:var(--glass); margin-top:24px;}
@@ -674,6 +700,33 @@ def render_compare_swings_page(user: Dict[str, Any]) -> None:
     lo, hi = sorted((a_idx, b_idx))
     older, newer = history[lo], history[hi]
     rows = compare_metric_rows(older, newer)
+
+    # --- Watch them side by side (phase-locked dual video) ---
+    # Additive: renders only when both swings have a saved clip + shared phases,
+    # otherwise self-suppresses to a quiet note. The metric comparison below
+    # always renders regardless.
+    st.markdown(
+        """
+        <div class="cmp-section cmp-rise" style="animation-delay:.12s">
+          <div class="cmp-sec-head"><h2 class="cmp-sec-title">Watch them side by side</h2>
+            <span class="cmp-sec-sub">Phase-locked · scrub once, both move</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    try:
+        from compare_video_view import (
+            render_compare_video, watch_cards, build_watch_breakdown_html,
+        )
+        render_compare_video(older, newer)
+        # Plain-language "what changed, where to watch" right under the video, so
+        # the numbers become something to actually look for in the two swings.
+        st.markdown(build_watch_breakdown_html(watch_cards(rows)),
+                    unsafe_allow_html=True)
+    except Exception:
+        # Video + breakdown are a bonus on top of the metric compare; never let
+        # them break the page. Fall through to the numbers.
+        pass
 
     st.markdown(_versus_html(older, newer), unsafe_allow_html=True)
     st.markdown(_summary_html(older, newer, rows), unsafe_allow_html=True)
