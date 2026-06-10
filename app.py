@@ -4694,11 +4694,15 @@ if not manual_override and not (user or {}).get("locked_mlb_slug"):
 # Fail-soft: if extraction errors for any reason, the swing still saves
 # without pose data and the report falls back to "overlay unavailable".
 pose_payload = None
+key_frames = None
 if is_pro(_plan_snapshot):
     try:
-        from pose_extract import extract_pose_frames, build_pose_meta
+        from pose_extract import (
+            extract_pose_frames, build_pose_meta, extract_key_frames,
+        )
         with st.spinner("Capturing your pose data for swing comparison..."):
             _pose_data = extract_pose_frames(video_path)
+        _phases_t = result.get("phases_t", {}) or {}
         pose_payload = {
             "pose_frames": _pose_data["frames"],
             "pose_meta":   build_pose_meta(_pose_data),
@@ -4707,12 +4711,20 @@ if is_pro(_plan_snapshot):
             # even on older deployments where the swings table doesn't
             # yet have the phases_t JSONB column. Pulled from the
             # analyzer result via the surfaced field added for v2.
-            "phases_t":    result.get("phases_t", {}) or {},
+            "phases_t":    _phases_t,
         }
+        # Stills at foot plant / contact / finish so the report can draw the
+        # pose overlay on the real swing frames. Reuses the just-decoded clip;
+        # fail-soft so a missing frame only drops that one report panel.
+        try:
+            key_frames = extract_key_frames(video_path, _phases_t)
+        except Exception:
+            key_frames = None
     except Exception:
         # Silent fail — pose is a nice-to-have on top of the analysis,
         # not a hard requirement. Surface only if we hit it repeatedly.
         pose_payload = None
+        key_frames = None
 
 # ---------- SAVE SWING TO LOGGED-IN PLAYER'S HISTORY ----------
 saved_record = save_swing_record(
@@ -4722,6 +4734,7 @@ saved_record = save_swing_record(
     phase_chart_path=phase_chart_path,
     video_path=str(video_path),
     pose_payload=pose_payload,
+    key_frames=key_frames,
 )
 
 # ---------- USAGE COUNTER: bump free-swing tally for Free users ----------
@@ -4793,6 +4806,18 @@ _live_record = dict(result)
 _live_record["date"] = "Just analyzed"
 _live_record["swing_number"] = len(swing_history) if swing_history else 1
 _live_record["swing_duration_ms"] = slow_mo.get("player_corrected_swing_ms")
+
+# Feed the pose overlay straight from memory so the post-analyze report shows
+# the annotated key-moment frames immediately, with no storage round-trip.
+# (Saved swings reopened from Sessions lazy-load the same data from storage.)
+if pose_payload:
+    _live_record["_pose_data"] = pose_payload
+if key_frames:
+    import base64 as _b64_kf
+    _live_record["_pose_frame_imgs"] = {
+        _k: "data:image/jpeg;base64," + _b64_kf.b64encode(_v).decode()
+        for _k, _v in key_frames.items() if _v
+    }
 
 # Phase audit follow-up: unify the post-analyze swing report onto the
 # same editorial design used when re-opening from Sessions. Previously

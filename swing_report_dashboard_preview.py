@@ -4536,6 +4536,18 @@ def render_swing_report_dashboard_preview(
         except Exception:
             pose_data = None
 
+    # The 3 key-moment stills the pose is drawn over. Live post-analyze records
+    # carry them in-memory (_pose_frame_imgs); saved swings lazy-load them from
+    # storage by convention beside the pose JSON. Either way, a swing with no
+    # saved frames (older swings, or a failed extract) just drops the panel.
+    frame_imgs = record.get("_pose_frame_imgs")
+    if not frame_imgs and record.get("_pose_path"):
+        try:
+            from player_storage import load_swing_frame_images
+            frame_imgs = load_swing_frame_images(record["_pose_path"])
+        except Exception:
+            frame_imgs = None
+
     body = (
         '<div class="srd-wrap">'
         + (_build_header(record, is_sample) if is_preview else _build_header_production(record))
@@ -4543,7 +4555,7 @@ def render_swing_report_dashboard_preview(
         # 1. Hero — dense 3-column band (score ring + headline + match card)
         + _build_hero_band(record, history)
         # 2. The swing — real frames at the key moments with the pose overlaid
-        + _build_pose_frames(pose_data, record.get("_pose_frame_imgs"), record)
+        + _build_pose_frames(pose_data, frame_imgs, record)
         # 3. Where to spend your next session — fixes + drills
         + _build_priorities_drills(record, history)
         # 3. What you crushed — strengths
@@ -4588,7 +4600,7 @@ def render_swing_report_dashboard_preview(
     components.html(full_html,
                     height=_estimate_report_height(
                         record, history,
-                        has_pose=bool(pose_data and record.get("_pose_frame_imgs"))),
+                        has_pose=bool(pose_data and frame_imgs)),
                     scrolling=False)
 
 

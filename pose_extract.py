@@ -105,6 +105,52 @@ def extract_pose_frames(video_path: Union[str, Path]) -> Dict:
     }
 
 
+def extract_key_frames(video_path: Union[str, Path],
+                       phases_t: Dict,
+                       keys=("foot_plant", "contact", "finish"),
+                       max_width: int = 480,
+                       jpeg_quality: int = 80) -> Dict[str, bytes]:
+    """Grab one still JPEG at each requested swing-phase moment.
+
+    `phases_t` maps phase name -> seconds into the clip (the same dict
+    detect_phases surfaces). For each key we seek to that timestamp and keep
+    a single frame, downsized to `max_width` (aspect ratio preserved, so the
+    report's pose overlay still aligns) and JPEG-encoded.
+
+    Returns {key: jpeg_bytes} for every key that resolved to a readable frame.
+    Keys with no timestamp or an unreadable seek are simply omitted. Returns
+    an empty dict (never raises) if the video can't be opened, so the caller
+    can stay fail-soft: a missing frame just drops that panel from the report.
+    """
+    if not phases_t:
+        return {}
+    cap = cv2.VideoCapture(str(Path(video_path)))
+    if not cap.isOpened():
+        return {}
+    out: Dict[str, bytes] = {}
+    try:
+        for key in keys:
+            t = phases_t.get(key)
+            if t is None:
+                continue
+            cap.set(cv2.CAP_PROP_POS_MSEC, float(t) * 1000.0)
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                continue
+            h, w = frame.shape[:2]
+            if w > max_width and w > 0:
+                new_h = max(1, int(round(h * max_width / w)))
+                frame = cv2.resize(frame, (max_width, new_h),
+                                   interpolation=cv2.INTER_AREA)
+            ok, buf = cv2.imencode(
+                ".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), int(jpeg_quality)])
+            if ok:
+                out[key] = buf.tobytes()
+    finally:
+        cap.release()
+    return out
+
+
 def build_pose_meta(pose_data: Dict) -> Dict:
     """Format the metadata block that gets stored alongside `frames`.
 

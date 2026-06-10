@@ -308,6 +308,74 @@ def _upload_swing_pose_json(player_id: str, timestamp: str, safe_name: str,
         return None
 
 
+def _upload_swing_key_frames(player_id: str, timestamp: str, safe_name: str,
+                             key_frames: dict) -> list:
+    """Upload the key-moment still JPEGs (foot plant / contact / finish)
+    captured at analyze time so the swing report can overlay the pose on the
+    real frames. Stored beside the pose JSON at
+    <uid>/<player_id>/<timestamp>_<name>.frame_<key>.jpg, so the report loader
+    derives the paths by convention (no extra DB column).
+
+    `key_frames` maps phase key -> JPEG bytes. Returns the list of keys
+    uploaded. Best-effort: any per-frame failure is skipped. The caller gates
+    on the pose upload succeeding (Pro + entitled), so no separate gate here.
+    """
+    if not key_frames:
+        return []
+    sb = get_client()
+    user = sb.auth.get_user()
+    user_obj = getattr(user, "user", None)
+    if not user_obj:
+        return []
+    uid = user_obj.id
+    uploaded = []
+    for key, data in key_frames.items():
+        if not data:
+            continue
+        object_path = f"{uid}/{player_id}/{timestamp}_{safe_name}.frame_{key}.jpg"
+        try:
+            sb.storage.from_(STORAGE_BUCKET).upload(
+                path=object_path,
+                file=data,
+                file_options={"content-type": "image/jpeg", "upsert": "true"},
+            )
+            uploaded.append(key)
+        except Exception:
+            continue
+    return uploaded
+
+
+def load_swing_frame_images(pose_path: str,
+                            keys=("foot_plant", "contact", "finish")
+                            ) -> dict:
+    """Download the key-moment still frames saved beside the pose JSON and
+    return {key: 'data:image/jpeg;base64,...'} for the report's pose overlay.
+
+    Paths are derived from `pose_path` by convention (swapping the
+    `.pose.json` suffix for `.frame_<key>.jpg`), so no extra column is needed.
+    Missing frames are omitted; returns {} on any failure. Older swings that
+    never saved frames just render without the overlay panel.
+    """
+    if not pose_path or not pose_path.endswith(".pose.json"):
+        return {}
+    base = pose_path[: -len(".pose.json")]
+    import base64 as _b64
+    try:
+        sb = get_client()
+    except Exception:
+        return {}
+    out = {}
+    for key in keys:
+        object_path = f"{base}.frame_{key}.jpg"
+        try:
+            raw = sb.storage.from_(STORAGE_BUCKET).download(object_path)
+            if isinstance(raw, (bytes, bytearray)) and raw:
+                out[key] = "data:image/jpeg;base64," + _b64.b64encode(bytes(raw)).decode()
+        except Exception:
+            continue
+    return out
+
+
 def get_swing_pose_signed_url(storage_path: str, expires_in: int = 3600) -> Optional[str]:
     """Return a short-lived signed URL for a pose JSON object in
     Supabase Storage. Returns None if storage_path is empty or the URL
@@ -326,7 +394,8 @@ def get_swing_pose_signed_url(storage_path: str, expires_in: int = 3600) -> Opti
 def save_swing_record(player: dict, upload_name: str, result: dict,
                       phase_chart_path: Optional[str] = None,
                       video_path: Optional[str] = None,
-                      pose_payload: Optional[dict] = None) -> dict:
+                      pose_payload: Optional[dict] = None,
+                      key_frames: Optional[dict] = None) -> dict:
     """
     Insert a swings row tied to the current player + auth user. Returns
     the inserted row (with the same key names the rest of the app
@@ -371,6 +440,19 @@ def save_swing_record(player: dict, upload_name: str, result: dict,
             safe_name=safe_name,
             pose_payload=pose_payload,
         )
+        # If the pose JSON persisted (Pro + entitled), also save the 3
+        # key-moment stills so the report can overlay the pose on the real
+        # frames. Same gate (pose presence), convention-derived paths, soft-fail.
+        if pose_storage_path and key_frames:
+            try:
+                _upload_swing_key_frames(
+                    player_id=player_id,
+                    timestamp=timestamp,
+                    safe_name=safe_name,
+                    key_frames=key_frames,
+                )
+            except Exception:
+                pass
 
     row = {
         "player_id":          player_id,
