@@ -92,6 +92,13 @@ st.set_page_config(
     layout="wide",
 )
 
+# App-wide em-dash scrubber: wrap st.markdown / st.html / components.html so no
+# em dashes reach any page's copy (generated headlines, narratives, drill text,
+# trend insights, ...). Installed before any rendering. Operates on output, so
+# source/CSS comments are never touched.
+from text_clean import install_em_dash_scrubber
+install_em_dash_scrubber()
+
 # Error monitoring (Sentry) — reports unhandled prod errors so they don't fail
 # silently. No-op until a DSN is configured (see monitoring.py). Never blocks.
 try:
