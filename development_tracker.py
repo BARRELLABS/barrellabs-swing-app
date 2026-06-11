@@ -5845,6 +5845,9 @@ def _render_progress_card(total_completed: int, total_drills: int,
     dash_offset = circumference * (1 - pct)
     tag = _progress_tag(pct)
     remaining = max(0, total_drills - total_completed)
+    # Escape here (and use __import__ so the module isn't shadowed by the local
+    # `html` string built just below) — player_name is user-controlled.
+    player_name = __import__("html").escape(str(player_name))
 
     html = textwrap.dedent(f"""
     <div class="dt-progress-card">
@@ -5862,7 +5865,7 @@ def _render_progress_card(total_completed: int, total_drills: int,
       </div>
       <div>
         <div class="dt-progress-meta-eyebrow">SESSION PROGRESS</div>
-        <div class="dt-progress-meta-title">Training plan for {html.escape(str(player_name))}</div>
+        <div class="dt-progress-meta-title">Training plan for {player_name}</div>
         <div class="dt-progress-meta-line">
           Built from your latest report on
           <strong style="color:var(--bl-ink-100);">{swing_date}</strong>.
