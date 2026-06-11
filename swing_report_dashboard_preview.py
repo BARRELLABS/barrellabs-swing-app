@@ -1748,11 +1748,17 @@ _DASHBOARD_CSS = """
 .srd-collapse[open] > summary .caret { transform: rotate(90deg); }
 .srd-collapse[open] > summary { border-bottom: 1px solid var(--srd-line); }
 .srd-collapse .srd2-break-body { padding: 6px 22px 18px; }
-.srd2-break-table { width:100%; border-collapse:collapse; }
+/* table-layout:fixed so columns respect width:100% and content wraps instead of
+   forcing horizontal overflow (mobile fit). First column wraps long metric names. */
+.srd2-break-table { width:100%; max-width:100%; border-collapse:collapse; table-layout:fixed; }
+.srd2-break-table td:first-child, .srd2-break-table th:first-child { word-break:break-word; }
 .srd2-break-table th {
   font-family: var(--srd-mono); font-size:9px; letter-spacing:0.14em;
   text-transform:uppercase; color: var(--srd-gray); text-align:left;
   padding: 12px 8px 10px; border-bottom:1px solid var(--srd-line); font-weight:500;
+}
+@media (max-width: 560px) {
+  .srd2-break-table th, .srd2-break-table td { padding: 8px 4px; font-size: 10.5px; }
 }
 .srd2-break-table th + th, .srd2-break-table td + td { text-align:right; }
 .srd2-break-table td {

@@ -454,6 +454,10 @@ border-radius:10px;padding:7px 12px;background:transparent;cursor:pointer;}
 .fill{position:absolute;top:8px;left:0;height:4px;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--red));}
 .playhead{position:absolute;top:2px;width:2px;height:16px;background:var(--bone);border-radius:2px;transform:translateX(-1px);box-shadow:0 0 8px rgba(244,239,230,.6);}
 .mk{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;cursor:pointer;}
+/* Keep the first/last phase labels inside the track (they'd overflow the edges
+   on narrow widths). Tick stays at the frac point; only the label aligns inward. */
+.mk:first-child{transform:translateX(0);align-items:flex-start;}
+.mk:last-child{transform:translateX(-100%);align-items:flex-end;}
 .mk .tick{width:2px;height:18px;background:var(--bone-35);border-radius:2px;transition:.15s;}
 .mk .lab{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-50);margin-top:7px;white-space:nowrap;transition:.15s;}
 .mk:hover .tick,.mk.active .tick{background:var(--gold);height:22px;}
